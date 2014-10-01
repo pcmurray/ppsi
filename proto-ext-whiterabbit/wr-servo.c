@@ -230,13 +230,32 @@ int wr_servo_got_delay(struct pp_instance *ppi, Integer32 cf)
 	return 0;
 }
 
+/********************************************************************************************
+ * FIXME: This is bad, I know. First make it work, then make it beautiful...
+********************************************************************************************/
+typedef struct
+{
+	uint64_t start_tics;
+	uint64_t timeout;
+} timeout_t ;
+
+struct wrs_socket {
+	/* parameters for linearization of RX timestamps */
+	uint32_t clock_period;
+	uint32_t phase_transition;
+	uint32_t dmtd_phase;
+	int dmtd_phase_valid;
+	timeout_t dmtd_update_tmo;
+};
+/*******************************************************************************************/
+
 
 int wr_servo_update(struct pp_instance *ppi)
 {
 	struct wr_dsport *wrp = WR_DSPOR(ppi);
 	struct wr_servo_state_t *s =
 			&((struct wr_data_t *)ppi->ext_data)->servo_state[ppi->port_idx];
-
+	struct wrs_socket *ss;
 	uint64_t tics;
 	uint64_t big_delta_fix;
 	uint64_t delay_ms_fix;
@@ -370,8 +389,30 @@ int wr_servo_update(struct pp_instance *ppi)
 		pp_diag(ppi, servo, 1, " WR_SYNC_PHASE\n");
 		if(ppi->slave_prio == 0) // only for active slave
 			strcpy(cur_servo_state.slave_servo_state, "SYNC_PHASE");
-		s->cur_setpoint = ts_offset_hw.phase
-			+ ts_offset_hw.nanoseconds * 1000;
+		if(ppi->slave_prio == 0)
+		{
+			s->cur_setpoint = ts_offset_hw.phase
+			      + ts_offset_hw.nanoseconds * 1000;
+		}
+		else
+		{
+			/*
+			 * On a backup port, setting the setpoint to the value already set by
+			 * active port. 
+			 * 
+			 * The dmtd_phase is surely valid, otherwise the timestampp would be
+			 * incorrect and we would have returned at the beginning of this fuction
+			 * 
+			 * NOTE: it might happen after switchover that a formely backup and 
+			 *       now active port enters here, since the priority is not 
+			 *       changed at switchover. This will be fixed in a separate/next
+			 *       commit (independently useful).
+			 * 
+			 * FIXME: Sure, this is nasty, if works, will make it beautiful
+			 */
+			ss = (struct wrs_socket*)NP(ppi)->ch[PP_NP_GEN].arch_data;
+			s->cur_setpoint = ss->dmtd_phase;
+		}
 
 		wrp->ops->adjust_phase(s->cur_setpoint, ppi->port_idx);
 
