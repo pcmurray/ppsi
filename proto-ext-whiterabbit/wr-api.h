@@ -169,6 +169,10 @@ typedef struct{
 struct wr_data_t {
 	struct wr_servo_state_t servo_state[18]; // per-port to enable hot-swap backup, 
 	                                         //TODO:use some global
+	int active_slave;                        // holds the number of the active slave port
+	int backup_slave;                       // backup to be used at failover
+	int other_backup_slaves[PP_MAX_LINKS];  // holds the list of additional backup slaves 
+	                                       // (in prio of failover) 
 };
 
 #endif /* __WREXT_WR_API_H__ */

@@ -58,7 +58,13 @@ static int wr_open(struct pp_globals *ppg, struct pp_runtime_opts *rt_opts)
 		else
 			WR_DSPOR(ppi)->wrConfig = NON_WR;
 	}
-
+	
+	//init info about active/backup slaves - for the switchover thingy
+	wr_data.active_slave = -1;
+	wr_data.backup_slave = -1;
+	for(i=0;i<PP_MAX_LINKS;i++)
+		wr_data.other_backup_slaves[i] = -1;
+	
 	return 0;
 }
 
@@ -125,7 +131,7 @@ static int wr_handle_resp(struct pp_instance *ppi)
 	 * After we adjusted the pps counter, stamps are invalid, so
 	 * we'll have the Unix time instead, marked by "correct"
 	 */
-	pp_diag(ppi, servo, 1,"handle response, wrModeOn=%d\n",wrp->wrModeOn);
+	pp_diag(ppi, ext, 1,"handle response, wrModeOn=%d\n",wrp->wrModeOn);
 	if (!wrp->wrModeOn) {
 		if (!ppi->t2.correct || !ppi->t3.correct) {
 			pp_diag(ppi, servo, 1,
@@ -149,6 +155,8 @@ static int wr_handle_resp(struct pp_instance *ppi)
 
 static void wr_s1(struct pp_instance *ppi, MsgHeader *hdr, MsgAnnounce *ann)
 {
+	struct wr_data_t *wd = ((struct wr_data_t *)ppi->ext_data);
+			
 	WR_DSPOR(ppi)->parentIsWRnode =
 		((ann->ext_specific & WR_NODE_MODE) != NON_WR);
 	WR_DSPOR(ppi)->parentWrModeOn =
@@ -158,6 +166,38 @@ static void wr_s1(struct pp_instance *ppi, MsgHeader *hdr, MsgAnnounce *ann)
 	WR_DSPOR(ppi)->parentWrConfig = ann->ext_specific & WR_NODE_MODE;
 	DSCUR(ppi)->primarySlavePortNumber =
 		DSPOR(ppi)->portIdentity.portNumber;
+	
+	if(ppi->slave_prio == 0)
+	{
+		if(wd->active_slave < 0)
+		{
+			/*no active slaves, so make it active*/
+			wd->active_slave = ppi->port_idx;
+		}
+		else
+		{
+			/* there is active slave...*/
+			wd->backup_slave = ppi->port_idx;
+			ppi->slave_prio = 1;
+		}
+	}
+	else
+	{
+		//TODO: how to handle a backp port being connected when there is no active ?
+		
+		if(wd->active_slave == ppi->port_idx) // this guy is active (after failover)
+		{
+			/* there is no active slave, promote the backup to active */
+			ppi->slave_prio = 0;
+		}
+		else
+		{
+			wd->backup_slave = ppi->port_idx;
+			//TODO: add here prioritizing of backup slaves..
+		}	
+	}
+	pp_diag(ppi, ext, 1, "S1: active slave: %d ; backup slave %d, prio: %d\n",
+		wd->active_slave, wd->backup_slave,ppi->slave_prio );
 }
 
 static int wr_execute_slave(struct pp_instance *ppi)

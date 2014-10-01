@@ -29,6 +29,8 @@ static int run_all_state_machines(struct pp_globals *ppg)
 
 	for (j = 0; j < ppg->nlinks; j++) {
 		struct pp_instance *ppi = INST(ppg, j);
+		struct wr_data_t *wd = ((struct wr_data_t *)ppi->ext_data);
+		
 		int old_lu = WR_DSPOR(ppi)->linkUP;
 		hexp_port_state_t state;
 
@@ -52,8 +54,36 @@ static int run_all_state_machines(struct pp_globals *ppg)
 				ppi->n_ops->exit(ppi);
 				ppi->frgn_rec_num = 0;
 				ppi->frgn_rec_best = -1;
-				if (ppg->ebest_idx == ppi->port_idx)
-					wr_servo_reset();
+				if (ppg->ebest_idx == ppi->port_idx && wd->backup_slave<0)
+					wr_servo_reset();// if there no backup slave, reset the servo
+				if(wd->active_slave == ppi->port_idx
+					&&  wd->backup_slave < 0)
+				{
+					/*this was the only slave, no backup*/
+					wd->active_slave = -1;
+				}
+				else if(wd->active_slave == ppi->port_idx  
+					&&  wd->backup_slave >=0)
+				{
+					/* this was active slave and we switchover to backup.
+					 * there is no backup any more */
+					wd->active_slave = wd->backup_slave;
+					wd->backup_slave = -1;
+				}
+				else if( wd->backup_slave == ppi->port_idx  
+					&&  wd->active_slave >=0)
+				{
+					/* backup slave went down, we have still active*/
+					wd->backup_slave = -1;
+				}
+				else 
+				{
+					/*  better reset  */
+					wd->active_slave = -1;
+					wd->backup_slave = -1;
+				}
+				pp_diag(ppi, ext, 1, "LinkDOWN, now active slave: %d ; backup slave %d\n",
+				wd->active_slave, wd->backup_slave);
 			}
 		}
 
