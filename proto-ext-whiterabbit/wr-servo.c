@@ -304,7 +304,9 @@ int wr_servo_update(struct pp_instance *ppi)
 
 	ts_offset = ts_add(ts_sub(s->t1, s->t2), picos_to_ts(delay_ms_fix));
 	ts_offset_hw = ts_hardwarize(ts_offset, s->clock_period_ps);
-	pp_diag(ppi, servo, 1, "offset: %d [hw:%d]\n", ts_offset,ts_offset_hw);
+	pp_diag(ppi, servo, 1, "offset: %d [hw:%d]\n", 
+	                   (ts_offset.phase    + ts_offset.nanoseconds * 1000),
+	                   (ts_offset_hw.phase + ts_offset_hw.nanoseconds * 1000));
 
 	if(ppi->slave_prio == 0) // only for active slave
 	{
