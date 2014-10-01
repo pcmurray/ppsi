@@ -242,6 +242,7 @@ int wr_servo_update(struct pp_instance *ppi)
 	uint64_t delay_ms_fix;
 	static int errcount;
 	int cur_active;
+	static int skip_adjust;
 
 	TimeInternal ts_offset, ts_offset_hw /*, ts_phase_adjust */;
 	pp_diag(ppi, servo, 1, "in wr servo update, got_sync=%d\n",got_sync);
@@ -387,10 +388,16 @@ int wr_servo_update(struct pp_instance *ppi)
 			+ ts_offset_hw.nanoseconds * 1000;
 
 		pp_diag(ppi, servo, 1, "setpointSP: %d\n", s->cur_setpoint);
-		if(ppi->slave_prio == 0 || (ppi->slave_prio == 1 && cur_active != ppi->port_idx))
+		if(ppi->slave_prio == 1 && cur_active == ppi->port_idx && skip_adjust < 5)
+			skip_adjust++;
+
+		if(ppi->slave_prio == 0)
+			wrp->ops->adjust_phase(s->cur_setpoint, ppi->port_idx);
+		if(ppi->slave_prio == 1 && cur_active != ppi->port_idx)// && skip_adjust >= 5)
 			wrp->ops->adjust_phase(s->cur_setpoint, ppi->port_idx);
 
 		if(ppi->port_idx == cur_active) {
+			cur_servo_state.cur_setpoint = s->cur_setpoint;
 			s->next_state = WR_WAIT_OFFSET_STABLE;
 			s->state = WR_WAIT_SYNC_IDLE;
 		}
@@ -431,7 +438,8 @@ int wr_servo_update(struct pp_instance *ppi)
 		if (ts_offset_hw.seconds !=0 || ts_offset_hw.nanoseconds != 0)
 				s->state = WR_SYNC_TAI;
 
-		if(tracking_enabled && ppi->port_idx == cur_active) {
+		//if(tracking_enabled && ppi->port_idx == cur_active) {
+		if(tracking_enabled && ppi->slave_prio == 0) {
 //         	shw_pps_gen_enable_output(1);
 			// just follow the changes of deltaMS
 			s->cur_setpoint += (s->delta_ms - s->delta_ms_prev);
