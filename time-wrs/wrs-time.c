@@ -16,6 +16,17 @@
  * defined in .h file, so this would lead to a multiple definition. */
 extern struct minipc_pd __rpcdef_pps_cmd;
 extern struct minipc_pd __rpcdef_lock_cmd;
+extern struct minipc_pd __rpcdef_swover_cmd;
+
+int wrs_active_poll()
+{
+	int act, rval;
+
+	act = minipc_call(hal_ch, DEFAULT_TO, &__rpcdef_swover_cmd,
+			&rval, 0);
+
+	return rval;
+}
 
 int wrs_adjust_counters(int64_t adjust_sec, int32_t adjust_nsec)
 {

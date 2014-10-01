@@ -243,6 +243,14 @@ struct minipc_pd __rpcdef_get_timing_state = {
 	},
 };
 
+struct minipc_pd __rpcdef_swover_cmd = {
+	.name = "swover_cmd",
+	.retval = MINIPC_ARG_ENCODE(MINIPC_ATYPE_INT, int),
+	.args = {
+		MINIPC_ARG_END,
+	},
+};
+
 
 #endif /* HAL_EXPORT_STRUCTURES */
 

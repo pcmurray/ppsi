@@ -171,7 +171,7 @@ int wr_servo_init(struct pp_instance *ppi)
 	s->delta_tx_s = ((((int32_t)WR_DSPOR(ppi)->deltaTx.scaledPicoseconds.lsb) >> 16) & 0xffff) | (((int32_t)WR_DSPOR(ppi)->deltaTx.scaledPicoseconds.msb) << 16);
 	s->delta_rx_s = ((((int32_t)WR_DSPOR(ppi)->deltaRx.scaledPicoseconds.lsb) >> 16) & 0xffff) | (((int32_t)WR_DSPOR(ppi)->deltaRx.scaledPicoseconds.msb) << 16);
 
-	if(ppi->slave_prio != 0 ) // only for active slave
+	if(ppi->port_idx != wrp->ops->active_poll()) // only for active slave
 		return 0;
 	cur_servo_state.delta_tx_m = (int64_t)s->delta_tx_m;
 	cur_servo_state.delta_rx_m = (int64_t)s->delta_rx_m;
@@ -241,10 +241,21 @@ int wr_servo_update(struct pp_instance *ppi)
 	uint64_t big_delta_fix;
 	uint64_t delay_ms_fix;
 	static int errcount;
+	int cur_active;
 
 	TimeInternal ts_offset, ts_offset_hw /*, ts_phase_adjust */;
 	pp_diag(ppi, servo, 1, "in wr servo update, got_sync=%d\n",got_sync);
+	pp_diag(ppi, servo, 1, "d_txm: %d, d_rxm: %d, d_txs: %d, d_rxs: %d\n", s->delta_tx_m, s->delta_rx_m,
+			s->delta_tx_s, s->delta_rx_s);
 	
+	cur_active = wrp->ops->active_poll();
+	if(ppi->port_idx == cur_active) {
+		cur_servo_state.delta_tx_m = (int64_t)s->delta_tx_m;
+		cur_servo_state.delta_rx_m = (int64_t)s->delta_rx_m;
+		cur_servo_state.delta_tx_s = (int64_t)s->delta_tx_s;
+		cur_servo_state.delta_rx_s = (int64_t)s->delta_rx_s;
+	}
+
 	if(!got_sync)
 		return 0;
 
@@ -261,7 +272,7 @@ int wr_servo_update(struct pp_instance *ppi)
 	}
 	errcount = 0;
 
-	if(ppi->slave_prio == 0) // only for active slave
+	if(ppi->port_idx == cur_active) // only for active slave
 		cur_servo_state.update_count++;
 
 	got_sync = 0;
@@ -287,7 +298,7 @@ int wr_servo_update(struct pp_instance *ppi)
 	ts_offset_hw = ts_hardwarize(ts_offset, s->clock_period_ps);
 	pp_diag(ppi, servo, 1, "offset: %d [hw:%d]\n", ts_offset,ts_offset_hw);
 
-	if(ppi->slave_prio == 0) // only for active slave
+	if(ppi->port_idx == cur_active) // only for active slave
 	{
 		cur_servo_state.mu = (uint64_t)ts_to_picos(s->mu);
 		cur_servo_state.cur_offset = ts_to_picos(ts_offset);
@@ -317,6 +328,8 @@ int wr_servo_update(struct pp_instance *ppi)
 	pp_diag(ppi, servo, 1, "wr_servo state: %s\n",
 		cur_servo_state.slave_servo_state);
 
+	pp_diag(ppi, servo, 1, "greg: active port is: %d\n", cur_active);
+
 	switch (s->state) {
 	case WR_WAIT_SYNC_IDLE:
 		pp_diag(ppi, servo, 1, " WR_WAIT_SYNC_IDLE\n");
@@ -333,7 +346,7 @@ int wr_servo_update(struct pp_instance *ppi)
 
 		if (ts_offset_hw.seconds != 0) {
 			pp_diag(ppi, servo, 1, " WR_SYNC_TAI-> counters touching at seconds\n");
-			if(ppi->slave_prio == 0) // only for active slave
+			if(ppi->port_idx == cur_active) // only for active slave
 				strcpy(cur_servo_state.slave_servo_state, "SYNC_SEC");
 			wrp->ops->adjust_counters(ts_offset_hw.seconds, 0);
 			wrp->ops->adjust_phase(0, ppi->port_idx);
@@ -349,7 +362,7 @@ int wr_servo_update(struct pp_instance *ppi)
 
 	case WR_SYNC_NSEC:
 		pp_diag(ppi, servo, 1, " WR_SYNC_NSEC\n");
-		if(ppi->slave_prio == 0) // only for active slave
+		if(ppi->port_idx == cur_active) // only for active slave
 			strcpy(cur_servo_state.slave_servo_state, "SYNC_NSEC");
 
 		if (ts_offset_hw.nanoseconds != 0) {
@@ -367,16 +380,20 @@ int wr_servo_update(struct pp_instance *ppi)
 		break;
 
 	case WR_SYNC_PHASE:
-		pp_diag(ppi, servo, 1, " WR_SYNC_PHASE\n");
-		if(ppi->slave_prio == 0) // only for active slave
+		pp_diag(ppi, servo, 1, " WR_SYNC_PHASE: %d\n", (int32_t) ts_to_picos(ts_offset_hw));
+		if(ppi->port_idx == cur_active) // only for active slave
 			strcpy(cur_servo_state.slave_servo_state, "SYNC_PHASE");
 		s->cur_setpoint = ts_offset_hw.phase
 			+ ts_offset_hw.nanoseconds * 1000;
 
-		wrp->ops->adjust_phase(s->cur_setpoint, ppi->port_idx);
+		pp_diag(ppi, servo, 1, "setpointSP: %d\n", s->cur_setpoint);
+		if(ppi->slave_prio == 0 || (ppi->slave_prio == 1 && cur_active != ppi->port_idx))
+			wrp->ops->adjust_phase(s->cur_setpoint, ppi->port_idx);
 
-		s->next_state = WR_WAIT_OFFSET_STABLE;
-		s->state = WR_WAIT_SYNC_IDLE;
+		if(ppi->port_idx == cur_active) {
+			s->next_state = WR_WAIT_OFFSET_STABLE;
+			s->state = WR_WAIT_SYNC_IDLE;
+		}
 		s->last_tics = tics;
 		s->delta_ms_prev = s->delta_ms;
 		break;
@@ -385,7 +402,7 @@ int wr_servo_update(struct pp_instance *ppi)
 	{
 		int64_t remaining_offset = abs(ts_to_picos(ts_offset_hw));
 
-		pp_diag(ppi, servo, 1, " WR_WAIT_OFFSET_STABLE\n");
+		pp_diag(ppi, servo, 1, " WR_WAIT_OFFSET_STABLE: %d\n", (int32_t) remaining_offset);
 		if (ts_offset_hw.seconds !=0 || ts_offset_hw.nanoseconds != 0)
 			s->state = WR_SYNC_TAI;
 		else
@@ -397,13 +414,14 @@ int wr_servo_update(struct pp_instance *ppi)
 			}
 
 		if (s->missed_iters >= 10)
-			s->state = WR_SYNC_TAI;
+			s->state = WR_SYNC_PHASE;
+		//	s->state = WR_SYNC_TAI;
 		break;
 	}
 
 	case WR_TRACK_PHASE:
 		pp_diag(ppi, servo, 1, "WR_TRACK_PHASE \n");
-		if(ppi->slave_prio == 0) // only for active slave
+		if(ppi->port_idx == cur_active) // only for active slave
 		{
 			strcpy(cur_servo_state.slave_servo_state, "TRACK_PHASE");
 			cur_servo_state.cur_setpoint = s->cur_setpoint;
@@ -413,10 +431,11 @@ int wr_servo_update(struct pp_instance *ppi)
 		if (ts_offset_hw.seconds !=0 || ts_offset_hw.nanoseconds != 0)
 				s->state = WR_SYNC_TAI;
 
-		if(tracking_enabled) {
+		if(tracking_enabled && ppi->port_idx == cur_active) {
 //         	shw_pps_gen_enable_output(1);
 			// just follow the changes of deltaMS
 			s->cur_setpoint += (s->delta_ms - s->delta_ms_prev);
+			pp_diag(ppi, servo, 1, "setpointTP: %d\n", s->cur_setpoint);
 
 			wrp->ops->adjust_phase(s->cur_setpoint, ppi->port_idx);
 
