@@ -54,6 +54,22 @@ static int run_all_state_machines(struct pp_globals *ppg)
 				ppi->frgn_rec_best = -1;
 				if (ppg->ebest_idx == ppi->port_idx)
 					wr_servo_reset();
+				//ML: temp hack: when backup port 1 goes down, change it to slave
+				if( ppi->port_idx == 0)
+				{
+				    INST(ppg, 0)->slave_only  = 0;
+				    INST(ppg, 0)->backup_only = 1;
+				    INST(ppg, 1)->slave_only  = 1;
+				    INST(ppg, 1)->backup_only = 0;
+				}
+				else if(ppi->port_idx == 1)
+				{
+				    INST(ppg, 0)->slave_only  = 1;
+				    INST(ppg, 0)->backup_only = 0;
+				    INST(ppg, 1)->slave_only  = 0;
+				    INST(ppg, 1)->backup_only = 1;
+				}
+
 			}
 		}
 
