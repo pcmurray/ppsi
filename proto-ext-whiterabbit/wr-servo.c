@@ -23,6 +23,7 @@ const char *servo_state_str[] = {
 
 int servo_state_valid = 0; /* FIXME: why? */
 ptpdexp_sync_state_t cur_servo_state; /* FIXME: why? */
+int32_t master_delta = 0;
 
 static int tracking_enabled = 1; /* FIXME: why? */
 
@@ -302,7 +303,11 @@ int wr_servo_update(struct pp_instance *ppi)
 	if(ppi->port_idx == wrp->ops->active_poll()) // only for active slave
 	{
 		cur_servo_state.mu = (uint64_t)ts_to_picos(s->mu);
-		cur_servo_state.cur_offset = ts_to_picos(ts_offset);
+		//hack only for printing in wr_mon
+		if(wrp->ops->active_poll() == 1)
+			cur_servo_state.cur_offset = ts_to_picos(ts_offset) - master_delta;
+		else
+			cur_servo_state.cur_offset = ts_to_picos(ts_offset);
 
 		cur_servo_state.delay_ms = delay_ms_fix;
 		cur_servo_state.total_asymmetry =
@@ -384,14 +389,23 @@ int wr_servo_update(struct pp_instance *ppi)
 		pp_diag(ppi, servo, 1, " WR_SYNC_PHASE: %d\n", (int32_t) ts_to_picos(ts_offset_hw));
 		if(ppi->port_idx == wrp->ops->active_poll()) // only for active slave
 			strcpy(cur_servo_state.slave_servo_state, "SYNC_PHASE");
+
+		if(wrp->ops->active_poll() == 1) {
+			ts_offset_hw.nanoseconds -= (master_delta/1000);
+			ts_offset_hw.phase -= (master_delta%1000);
+			//pp_diag(ppi, servo, 1, "setpointSP2: %d (m_d: %d)\n", s->cur_setpoint, master_delta);
+		}
+
 		s->cur_setpoint = ts_offset_hw.phase
 			+ ts_offset_hw.nanoseconds * 1000;
 
 		pp_diag(ppi, servo, 1, "setpointSP: %d\n", s->cur_setpoint);
 		if(ppi->slave_prio == 1 && wrp->ops->active_poll() == ppi->port_idx && skip_adjust < 5)
 			skip_adjust++;
-
-		if(ppi->port_idx == wrp->ops->active_poll())
+	
+		if(ppi->slave_prio != 0 && wrp->ops->active_poll() == 0)
+			master_delta = s->cur_setpoint;
+		//if(ppi->port_idx == wrp->ops->active_poll())
 		//if(ppi->slave_prio == 0)
 			wrp->ops->adjust_phase(s->cur_setpoint, ppi->port_idx);
 		//if(ppi->slave_prio == 1 && wrp->ops->active_poll() != ppi->port_idx)// && skip_adjust >= 5)
@@ -408,6 +422,10 @@ int wr_servo_update(struct pp_instance *ppi)
 
 	case WR_WAIT_OFFSET_STABLE:
 	{
+		if(wrp->ops->active_poll() == 1) {
+			ts_offset_hw.nanoseconds -= (master_delta/1000);
+			ts_offset_hw.phase -= (master_delta%1000);
+		}
 		int64_t remaining_offset = abs(ts_to_picos(ts_offset_hw));
 
 		pp_diag(ppi, servo, 1, " WR_WAIT_OFFSET_STABLE: %d\n", (int32_t) remaining_offset);
@@ -445,6 +463,9 @@ int wr_servo_update(struct pp_instance *ppi)
 //         	shw_pps_gen_enable_output(1);
 			// just follow the changes of deltaMS
 			s->cur_setpoint += (s->delta_ms - s->delta_ms_prev);
+			pp_diag(ppi,servo, 1, "master_delta: %d\n", master_delta);
+			//if(wrp->ops->active_poll() == 1)
+			//	s->cur_setpoint -= master_delta;
 			pp_diag(ppi, servo, 1, "setpointTP: %d\n", s->cur_setpoint);
 
 			wrp->ops->adjust_phase(s->cur_setpoint, ppi->port_idx);
