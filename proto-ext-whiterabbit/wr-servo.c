@@ -428,11 +428,13 @@ int wr_servo_update(struct pp_instance *ppi)
 	{
 		int64_t remaining_offset = abs(ts_to_picos(ts_offset_hw));
 
-		pp_diag(ppi, servo, 1, " WR_WAIT_OFFSET_STABLE\n");
+		pp_diag(ppi, servo, 1, " WR_WAIT_OFFSET_STABLE (offset=%d)\n",remaining_offset);
 		if (ts_offset_hw.seconds !=0 || ts_offset_hw.nanoseconds != 0)
 			s->state = WR_SYNC_TAI;
 		else
-			if(remaining_offset < WR_SERVO_OFFSET_STABILITY_THRESHOLD) {
+			if(remaining_offset < WR_SERVO_OFFSET_STABILITY_THRESHOLD || 
+				ppi->slave_prio > 0) 
+			{
 				wrp->ops->enable_timing_output(ppi, 1);
 				s->state = WR_TRACK_PHASE;
 				s->missed_iters = 0;
