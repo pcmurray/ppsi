@@ -435,6 +435,7 @@ int wr_servo_update(struct pp_instance *ppi)
 			if(remaining_offset < WR_SERVO_OFFSET_STABILITY_THRESHOLD) {
 				wrp->ops->enable_timing_output(ppi, 1);
 				s->state = WR_TRACK_PHASE;
+				s->missed_iters = 0;
 			} else {
 				s->missed_iters++;
 			}
