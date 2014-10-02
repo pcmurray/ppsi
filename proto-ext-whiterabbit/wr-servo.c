@@ -250,7 +250,7 @@ int wr_servo_update(struct pp_instance *ppi)
 			s->delta_tx_s, s->delta_rx_s);
 	
 	cur_active = wrp->ops->active_poll();
-	if(ppi->port_idx == cur_active) {
+	if(ppi->port_idx == wrp->ops->active_poll()) {
 		cur_servo_state.delta_tx_m = (int64_t)s->delta_tx_m;
 		cur_servo_state.delta_rx_m = (int64_t)s->delta_rx_m;
 		cur_servo_state.delta_tx_s = (int64_t)s->delta_tx_s;
@@ -273,7 +273,7 @@ int wr_servo_update(struct pp_instance *ppi)
 	}
 	errcount = 0;
 
-	if(ppi->port_idx == cur_active) // only for active slave
+	if(ppi->port_idx == wrp->ops->active_poll()) // only for active slave
 		cur_servo_state.update_count++;
 
 	got_sync = 0;
@@ -299,7 +299,7 @@ int wr_servo_update(struct pp_instance *ppi)
 	ts_offset_hw = ts_hardwarize(ts_offset, s->clock_period_ps);
 	pp_diag(ppi, servo, 1, "offset: %d [hw:%d]\n", ts_offset,ts_offset_hw);
 
-	if(ppi->port_idx == cur_active) // only for active slave
+	if(ppi->port_idx == wrp->ops->active_poll()) // only for active slave
 	{
 		cur_servo_state.mu = (uint64_t)ts_to_picos(s->mu);
 		cur_servo_state.cur_offset = ts_to_picos(ts_offset);
@@ -329,7 +329,7 @@ int wr_servo_update(struct pp_instance *ppi)
 	pp_diag(ppi, servo, 1, "wr_servo state: %s\n",
 		cur_servo_state.slave_servo_state);
 
-	pp_diag(ppi, servo, 1, "greg: active port is: %d\n", cur_active);
+	pp_diag(ppi, servo, 1, "greg: active port is: %d\n", wrp->ops->active_poll());
 
 	switch (s->state) {
 	case WR_WAIT_SYNC_IDLE:
@@ -347,7 +347,7 @@ int wr_servo_update(struct pp_instance *ppi)
 
 		if (ts_offset_hw.seconds != 0) {
 			pp_diag(ppi, servo, 1, " WR_SYNC_TAI-> counters touching at seconds\n");
-			if(ppi->port_idx == cur_active) // only for active slave
+			if(ppi->port_idx == wrp->ops->active_poll()) // only for active slave
 				strcpy(cur_servo_state.slave_servo_state, "SYNC_SEC");
 			wrp->ops->adjust_counters(ts_offset_hw.seconds, 0);
 			wrp->ops->adjust_phase(0, ppi->port_idx);
@@ -363,7 +363,7 @@ int wr_servo_update(struct pp_instance *ppi)
 
 	case WR_SYNC_NSEC:
 		pp_diag(ppi, servo, 1, " WR_SYNC_NSEC\n");
-		if(ppi->port_idx == cur_active) // only for active slave
+		if(ppi->port_idx == wrp->ops->active_poll()) // only for active slave
 			strcpy(cur_servo_state.slave_servo_state, "SYNC_NSEC");
 
 		if (ts_offset_hw.nanoseconds != 0) {
@@ -382,21 +382,22 @@ int wr_servo_update(struct pp_instance *ppi)
 
 	case WR_SYNC_PHASE:
 		pp_diag(ppi, servo, 1, " WR_SYNC_PHASE: %d\n", (int32_t) ts_to_picos(ts_offset_hw));
-		if(ppi->port_idx == cur_active) // only for active slave
+		if(ppi->port_idx == wrp->ops->active_poll()) // only for active slave
 			strcpy(cur_servo_state.slave_servo_state, "SYNC_PHASE");
 		s->cur_setpoint = ts_offset_hw.phase
 			+ ts_offset_hw.nanoseconds * 1000;
 
 		pp_diag(ppi, servo, 1, "setpointSP: %d\n", s->cur_setpoint);
-		if(ppi->slave_prio == 1 && cur_active == ppi->port_idx && skip_adjust < 5)
+		if(ppi->slave_prio == 1 && wrp->ops->active_poll() == ppi->port_idx && skip_adjust < 5)
 			skip_adjust++;
 
-		if(ppi->slave_prio == 0)
+		if(ppi->port_idx == wrp->ops->active_poll())
+		//if(ppi->slave_prio == 0)
 			wrp->ops->adjust_phase(s->cur_setpoint, ppi->port_idx);
-		if(ppi->slave_prio == 1 && cur_active != ppi->port_idx)// && skip_adjust >= 5)
-			wrp->ops->adjust_phase(s->cur_setpoint, ppi->port_idx);
+		//if(ppi->slave_prio == 1 && wrp->ops->active_poll() != ppi->port_idx)// && skip_adjust >= 5)
+		//	wrp->ops->adjust_phase(s->cur_setpoint, ppi->port_idx);
 
-		if(ppi->port_idx == cur_active) {
+		if(ppi->port_idx == wrp->ops->active_poll()) {
 			cur_servo_state.cur_setpoint = s->cur_setpoint;
 			s->next_state = WR_WAIT_OFFSET_STABLE;
 			s->state = WR_WAIT_SYNC_IDLE;
@@ -428,7 +429,7 @@ int wr_servo_update(struct pp_instance *ppi)
 
 	case WR_TRACK_PHASE:
 		pp_diag(ppi, servo, 1, "WR_TRACK_PHASE \n");
-		if(ppi->port_idx == cur_active) // only for active slave
+		if(ppi->port_idx == wrp->ops->active_poll()) // only for active slave
 		{
 			strcpy(cur_servo_state.slave_servo_state, "TRACK_PHASE");
 			cur_servo_state.cur_setpoint = s->cur_setpoint;
@@ -438,8 +439,8 @@ int wr_servo_update(struct pp_instance *ppi)
 		if (ts_offset_hw.seconds !=0 || ts_offset_hw.nanoseconds != 0)
 				s->state = WR_SYNC_TAI;
 
-		//if(tracking_enabled && ppi->port_idx == cur_active) {
-		if(tracking_enabled && ppi->slave_prio == 0) {
+		if(tracking_enabled && ppi->port_idx == wrp->ops->active_poll()) {
+		//if(tracking_enabled && ppi->slave_prio == 0) {
 //         	shw_pps_gen_enable_output(1);
 			// just follow the changes of deltaMS
 			s->cur_setpoint += (s->delta_ms - s->delta_ms_prev);
