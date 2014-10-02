@@ -52,8 +52,10 @@ static int run_all_state_machines(struct pp_globals *ppg)
 				ppi->n_ops->exit(ppi);
 				ppi->frgn_rec_num = 0;
 				ppi->frgn_rec_best = -1;
-				if (ppg->ebest_idx == ppi->port_idx)
-					wr_servo_reset();
+				//ML: temp hack to make sure we don't reset servo when switchover
+				//TODO: detect whether we have backup and reset only if we don't
+// 				if (ppg->ebest_idx == ppi->port_idx)	
+// 					wr_servo_reset();
 				//ML: temp hack: when backup port 1 goes down, change it to slave
 				if( ppi->port_idx == 0)
 				{
