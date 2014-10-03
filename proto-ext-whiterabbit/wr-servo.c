@@ -300,6 +300,9 @@ int wr_servo_update(struct pp_instance *ppi)
 	ts_offset_hw = ts_hardwarize(ts_offset, s->clock_period_ps);
 	pp_diag(ppi, servo, 1, "offset: %d [hw:%d]\n", ts_offset,ts_offset_hw);
 
+
+	pp_sprintf(cur_servo_state.sync_source, "wr%d", wrp->ops->active_poll());
+
 	if(ppi->port_idx == wrp->ops->active_poll()) // only for active slave
 	{
 		cur_servo_state.mu = (uint64_t)ts_to_picos(s->mu);
@@ -332,7 +335,7 @@ int wr_servo_update(struct pp_instance *ppi)
 	}
 
 	pp_diag(ppi, servo, 1, "wr_servo state: %s\n",
-		cur_servo_state.slave_servo_state);
+		servo_state_str[s->state]);
 
 	pp_diag(ppi, servo, 1, "greg: active port is: %d\n", wrp->ops->active_poll());
 
@@ -386,15 +389,29 @@ int wr_servo_update(struct pp_instance *ppi)
 		break;
 
 	case WR_SYNC_PHASE:
+
+		if(ppi->port_idx == 1 && wrp->ops->active_poll() == 0) {
+			master_delta = ts_offset_hw.phase + ts_offset_hw.nanoseconds * 1000;
+			pp_diag(ppi, servo, 1, "update m_delta: %d\n", master_delta);
+		}
+
+		if(ppi->port_idx == 1) {
+			ts_offset_hw.nanoseconds -= (master_delta/16000);
+			ts_offset_hw.phase -= (master_delta%16000);
+			if(ts_offset_hw.phase >= 16000) {
+				ts_offset_hw.nanoseconds += ts_offset_hw.phase/16000;
+				ts_offset_hw.phase %= 16000;
+			}
+			else if(ts_offset_hw.phase < 0) {
+				ts_offset_hw.nanoseconds -= ts_offset_hw.phase/16000;
+				ts_offset_hw.phase += (ts_offset_hw.phase/16000)*16000;
+			}
+			//pp_diag(ppi, servo, 1, "setpointSP2: %d (m_d: %d)\n", s->cur_setpoint, master_delta);
+		}
+
 		pp_diag(ppi, servo, 1, " WR_SYNC_PHASE: %d\n", (int32_t) ts_to_picos(ts_offset_hw));
 		if(ppi->port_idx == wrp->ops->active_poll()) // only for active slave
 			strcpy(cur_servo_state.slave_servo_state, "SYNC_PHASE");
-
-		if(wrp->ops->active_poll() == 1) {
-			ts_offset_hw.nanoseconds -= (master_delta/1000);
-			ts_offset_hw.phase -= (master_delta%1000);
-			//pp_diag(ppi, servo, 1, "setpointSP2: %d (m_d: %d)\n", s->cur_setpoint, master_delta);
-		}
 
 		s->cur_setpoint = ts_offset_hw.phase
 			+ ts_offset_hw.nanoseconds * 1000;
@@ -403,8 +420,6 @@ int wr_servo_update(struct pp_instance *ppi)
 		if(ppi->slave_prio == 1 && wrp->ops->active_poll() == ppi->port_idx && skip_adjust < 5)
 			skip_adjust++;
 	
-		if(ppi->slave_prio != 0 && wrp->ops->active_poll() == 0)
-			master_delta = s->cur_setpoint;
 		//if(ppi->port_idx == wrp->ops->active_poll())
 		//if(ppi->slave_prio == 0)
 			wrp->ops->adjust_phase(s->cur_setpoint, ppi->port_idx);
@@ -413,6 +428,7 @@ int wr_servo_update(struct pp_instance *ppi)
 
 		if(ppi->port_idx == wrp->ops->active_poll()) {
 			cur_servo_state.cur_setpoint = s->cur_setpoint;
+		//}
 			s->next_state = WR_WAIT_OFFSET_STABLE;
 			s->state = WR_WAIT_SYNC_IDLE;
 		}
@@ -423,8 +439,17 @@ int wr_servo_update(struct pp_instance *ppi)
 	case WR_WAIT_OFFSET_STABLE:
 	{
 		if(wrp->ops->active_poll() == 1) {
+		//if(ppi->port_idx == 1) {
 			ts_offset_hw.nanoseconds -= (master_delta/1000);
 			ts_offset_hw.phase -= (master_delta%1000);
+			if(ts_offset_hw.phase >= 16000) {
+				ts_offset_hw.nanoseconds += ts_offset_hw.phase/16000;
+				ts_offset_hw.phase %= 16000;
+			}
+			else if(ts_offset_hw.phase < 0) {
+				ts_offset_hw.nanoseconds -= ts_offset_hw.phase/16000;
+				ts_offset_hw.phase += (ts_offset_hw.phase/16000)*16000;
+			}
 		}
 		int64_t remaining_offset = abs(ts_to_picos(ts_offset_hw));
 
@@ -468,7 +493,10 @@ int wr_servo_update(struct pp_instance *ppi)
 			//	s->cur_setpoint -= master_delta;
 			pp_diag(ppi, servo, 1, "setpointTP: %d\n", s->cur_setpoint);
 
-			wrp->ops->adjust_phase(s->cur_setpoint, ppi->port_idx);
+			//if(wrp->ops->active_poll() == 1)
+			//	wrp->ops->adjust_phase((s->cur_setpoint-master_delta)%16000, ppi->port_idx);
+			//else
+				wrp->ops->adjust_phase(s->cur_setpoint, ppi->port_idx);
 
 			s->delta_ms_prev = s->delta_ms;
 			s->next_state = WR_TRACK_PHASE;
