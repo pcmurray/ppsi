@@ -156,7 +156,8 @@ int wr_servo_init(struct pp_instance *ppi)
 		&s->fiber_fix_alpha, &s->clock_period_ps) != WR_HW_CALIB_OK)
 		return -1;
 
-	wrp->ops->enable_timing_output(ppi, 0);
+	if(ppi->slave_prio == 0)
+		wrp->ops->enable_timing_output(ppi, 0);
 
 	/* FIXME useful?
 	strncpy(s->if_name, clock->netPath.ifaceName, 16);
@@ -329,7 +330,7 @@ int wr_servo_update(struct pp_instance *ppi)
 
 	if (wrp->ops->locking_poll(ppi, 0) != WR_SPLL_READY) {
 		pp_diag(ppi, servo, 1, "PLL OutOfLock, should restart sync\n");
-		wrp->ops->enable_timing_output(ppi, 0);
+		if(ppi->slave_prio == 0) wrp->ops->enable_timing_output(ppi, 0);
 		/* TODO check
 		 * DSPOR(ppi)->doRestart = TRUE; */
 	}
@@ -351,7 +352,7 @@ int wr_servo_update(struct pp_instance *ppi)
 
 	case WR_SYNC_TAI:
 		pp_diag(ppi, servo, 1, " WR_SYNC_TAI\n");
-		wrp->ops->enable_timing_output(ppi, 0);
+		if(ppi->slave_prio == 0) wrp->ops->enable_timing_output(ppi, 0);
 
 		if (ts_offset_hw.seconds != 0) {
 			pp_diag(ppi, servo, 1, " WR_SYNC_TAI-> counters touching at seconds\n");
