@@ -354,6 +354,12 @@ extern void msg_unpack_delay_req(void *buf, MsgDelayReq *delay_req);
 extern void msg_pack_delay_resp(struct pp_instance *ppi,
 				MsgHeader *hdr, Timestamp *rcv_tstamp);
 extern void msg_unpack_delay_resp(void *buf, MsgDelayResp *resp);
+/* pdelay */
+extern void msg_pack_pdelay_resp_follow_up(struct pp_instance *ppi,
+        MsgHeader *hdr, Timestamp *prec_orig_tstamp);
+extern void msg_pack_pdelay_resp(struct pp_instance *ppi,
+				MsgHeader *hdr, Timestamp *rcv_tstamp);
+
 
 /* each of them returns 0 if no error and -1 in case of error in send */
 extern int msg_issue_announce(struct pp_instance *ppi);
@@ -361,7 +367,8 @@ extern int msg_issue_sync(struct pp_instance *ppi);
 extern int msg_issue_followup(struct pp_instance *ppi, TimeInternal *time);
 extern int msg_issue_delay_req(struct pp_instance *ppi);
 extern int msg_issue_delay_resp(struct pp_instance *ppi, TimeInternal *time);
-
+extern int msg_issue_pdelay_resp_followup(struct pp_instance *ppi, TimeInternal *time);
+extern int msg_issue_pdelay_resp(struct pp_instance *ppi, TimeInternal *time);
 
 /* Functions for timestamp handling (internal to protocol format conversion*/
 /* FIXME: add prefix in function name? */

@@ -224,6 +224,41 @@ void msg_pack_follow_up(struct pp_instance *ppi, Timestamp *prec_orig_tstamp)
 		htonl(prec_orig_tstamp->nanosecondsField);
 }
 
+/* Pack PDelay Follow Up message into out buffer of ppi*/
+void msg_pack_pdelay_resp_follow_up(struct pp_instance *ppi,
+			 MsgHeader *hdr, Timestamp *prec_orig_tstamp)
+{
+	void *buf;
+
+	buf = ppi->tx_ptp;
+
+  /* header */
+	*(char *)(buf + 0) = *(char *)(buf + 0) & 0xF0;
+	/* RAZ messageType */
+	*(char *)(buf + 0) = *(char *)(buf + 0) | 0x0A;
+
+	*(UInteger16 *) (buf + 2) = htons(PP_PDELAY_RESP_LENGTH);
+	*(UInteger8 *) (buf + 4)  = hdr->domainNumber;
+  /* copy the correction field, 11.4.3 c.3) */
+  *(Integer32 *) (buf + 8)  = htonl(hdr->correctionfield.msb);
+	*(Integer32 *) (buf + 12) = htonl(hdr->correctionfield.lsb);
+
+	*(UInteger16 *) (buf + 30) = htons(hdr->sequenceId);
+	*(UInteger8 *) (buf + 32) = 0x05; /* controlField */
+
+  /* requestReceiptTimestamp */
+	*(UInteger16 *) (buf + 34) =
+		htons(prec_orig_tstamp->secondsField.msb);
+	*(UInteger32 *) (buf + 36) = htonl(prec_orig_tstamp->secondsField.lsb);
+	*(UInteger32 *) (buf + 40) = htonl(prec_orig_tstamp->nanosecondsField);
+
+  /* requestingPortIdentity */
+  memcpy((buf + 44), &hdr->sourcePortIdentity.clockIdentity,
+		  PP_CLOCK_IDENTITY_LENGTH);
+	*(UInteger16 *) (buf + 52) =
+		htons(hdr->sourcePortIdentity.portNumber);
+}
+
 /* Unpack FollowUp message from in buffer of ppi to msgtmp.follow */
 void msg_unpack_follow_up(void *buf, MsgFollowUp *flwup)
 {
@@ -263,6 +298,39 @@ void msg_pack_delay_req(struct pp_instance *ppi, Timestamp *orig_tstamp)
 	*(UInteger16 *) (buf + 34) = htons(orig_tstamp->secondsField.msb);
 	*(UInteger32 *) (buf + 36) = htonl(orig_tstamp->secondsField.lsb);
 	*(UInteger32 *) (buf + 40) = htonl(orig_tstamp->nanosecondsField);
+}
+
+/* pack PDelayResp message into OUT buffer of ppi */
+void msg_pack_pdelay_resp(struct pp_instance *ppi,
+			 MsgHeader *hdr, Timestamp *rcv_tstamp)
+{
+	void *buf;
+
+	buf = ppi->tx_ptp;
+
+  /* header */
+	*(char *)(buf + 0) = *(char *)(buf + 0) & 0xF0;
+	/* RAZ messageType */
+	*(char *)(buf + 0) = *(char *)(buf + 0) | 0x03;
+
+	*(UInteger16 *) (buf + 2) = htons(PP_PDELAY_RESP_LENGTH);
+	*(UInteger8 *) (buf + 4) = hdr->domainNumber;
+  /* set 0 the correction field, 11.4.3 c.3) */
+	memset((buf + 8), 0, 8);
+	*(UInteger16 *) (buf + 30) = htons(hdr->sequenceId);
+	*(UInteger8 *) (buf + 32) = 0x05; /* controlField */
+
+  /* requestReceiptTimestamp */
+	*(UInteger16 *) (buf + 34) =
+		htons(rcv_tstamp->secondsField.msb);
+	*(UInteger32 *) (buf + 36) = htonl(rcv_tstamp->secondsField.lsb);
+	*(UInteger32 *) (buf + 40) = htonl(rcv_tstamp->nanosecondsField);
+
+  /* requestingPortIdentity */
+  memcpy((buf + 44), &hdr->sourcePortIdentity.clockIdentity,
+		  PP_CLOCK_IDENTITY_LENGTH);
+	*(UInteger16 *) (buf + 52) =
+		htons(hdr->sourcePortIdentity.portNumber);
 }
 
 /* pack DelayResp message into OUT buffer of ppi */
@@ -380,6 +448,18 @@ int msg_issue_followup(struct pp_instance *ppi, TimeInternal *time)
 			      PP_NP_GEN);
 }
 
+/* Pack and send on general multicast ip address a FollowUp message */
+int msg_issue_pdelay_resp_followup(struct pp_instance *ppi, TimeInternal *time)
+{
+	Timestamp prec_orig_tstamp;
+	from_TimeInternal(time, &prec_orig_tstamp);
+
+	msg_pack_pdelay_resp_follow_up(ppi, &ppi->pdelay_req_hdr, &prec_orig_tstamp);
+
+	return __send_and_log(ppi, PP_PDELAY_RESP_FOLLOW_UP_LENGTH, PPM_PDELAY_RESP_FOLLOW_UP,
+			      PP_NP_GEN);
+}
+
 /* Pack and send on event multicast ip adress a DelayReq message */
 int msg_issue_delay_req(struct pp_instance *ppi)
 {
@@ -404,4 +484,16 @@ int msg_issue_delay_resp(struct pp_instance *ppi, TimeInternal *time)
 
 	return __send_and_log(ppi, PP_DELAY_RESP_LENGTH, PPM_DELAY_RESP,
 			      PP_NP_GEN);
+}
+
+/* Pack and send on event multicast ip adress a DelayResp message */
+int msg_issue_pdelay_resp(struct pp_instance *ppi, TimeInternal *time)
+{
+	Timestamp rcv_tstamp;
+	from_TimeInternal(time, &rcv_tstamp);
+
+	msg_pack_pdelay_resp(ppi, &ppi->pdelay_req_hdr, &rcv_tstamp);
+
+	return __send_and_log(ppi, PP_PDELAY_RESP_LENGTH, PPM_PDELAY_RESP,
+			      PP_NP_EVT);
 }
