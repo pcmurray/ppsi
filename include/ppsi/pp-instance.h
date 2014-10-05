@@ -24,8 +24,6 @@ struct pp_runtime_opts {
 			/* master_only:1, -- moved to ppsi, is no more global */
 			no_adjust:1,
 			/* ethernet_mode:1, -- moved to ppsi, is no more global */
-			/* e2e_mode:1, -- no more: we only support e2e */
-			/* gptp_mode:1, -- no more: peer-to-peer unsupported */
 			no_rst_clk:1;
 	Integer16 ap, ai;
 	Integer16 s;
@@ -119,6 +117,7 @@ struct pp_instance_cfg {
 	int proto; /* 0: raw, 1: udp */
 	int role;  /* 0: auto, 1: master, 2: slave */
 	int ext;   /* 0: none, 1: whiterabbit */ /* FIXME extension enumeration */
+	int delay_mech; /* E2E: 0, P2P: 1 */
 };
 
 /*
@@ -205,6 +204,9 @@ struct pp_globals {
 	DSCurrent *currentDS;			/* page 67 */
 	DSParent *parentDS;			/* page 68 */
 	DSTimeProperties *timePropertiesDS;	/* page 70 */
+
+	/* Sync Mechanism */
+        int delay_mech; /* E2E : 0 , P2P : 1 */
 
 	/* Index of the pp_instance receiving the "Ebest" clock */
 	int ebest_idx;

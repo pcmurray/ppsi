@@ -25,6 +25,7 @@
 extern int32_t cal_phase_transition;
 
 int ptp_mode = WRC_MODE_UNKNOWN;
+int ptp_sync_mech = WRC_E2E;
 static int ptp_enabled = 0;
 
 static struct wr_operations wrpc_wr_operations = {
@@ -86,6 +87,7 @@ static struct pp_globals ppg_static = {
 	.currentDS		= &currentDS,
 	.parentDS		= &parentDS,
 	.timePropertiesDS	= &timePropertiesDS,
+        .delay_mech             = WRC_E2E,
 };
 
 int wrc_ptp_init()
@@ -176,6 +178,22 @@ int wrc_ptp_set_mode(int mode)
 int wrc_ptp_get_mode()
 {
 	return ptp_mode;
+}
+
+void wrc_ptp_set_sync_mech(int mech)
+{
+	struct pp_instance *ppi = &ppi_static;
+	struct pp_globals *ppg = ppi->glbs;
+
+	wrc_ptp_stop();
+
+        ppg->delay_mech = mech;
+        ptp_sync_mech = mech;
+}
+
+int wrc_ptp_get_sync_mech()
+{
+  return ptp_sync_mech;
 }
 
 int wrc_ptp_start()
