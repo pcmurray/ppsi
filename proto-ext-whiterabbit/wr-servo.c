@@ -260,6 +260,7 @@ int wr_servo_update(struct pp_instance *ppi)
 	uint64_t big_delta_fix;
 	uint64_t delay_ms_fix;
 	static int errcount;
+	int32_t tmp_setpoint;
 
 	TimeInternal ts_offset, ts_offset_hw /*, ts_phase_adjust */;
 	pp_diag(ppi, servo, 1, "in wr servo update, got_sync=%d\n",got_sync);
@@ -463,8 +464,15 @@ int wr_servo_update(struct pp_instance *ppi)
 //         	shw_pps_gen_enable_output(1);
 			// just follow the changes of deltaMS
 			s->cur_setpoint += (s->delta_ms - s->delta_ms_prev);
-
-			wrp->ops->adjust_phase(s->cur_setpoint, ppi->port_idx);
+			tmp_setpoint = (int32_t)wrp->ops->adjust_phase(s->cur_setpoint, ppi->port_idx);
+			while(tmp_setpoint != 0)
+			{
+				ss = (struct wrs_socket*)NP(ppi)->ch[PP_NP_GEN].arch_data;
+				s->cur_setpoint = ss->dmtd_phase;				
+				pp_diag(ppi, servo, 1, "Switchover detected in servo:"
+				"tmp_setpoint=%d , ss->dmtd_phase\n",tmp_setpoint ,ss->dmtd_phase);
+				tmp_setpoint = wrp->ops->adjust_phase(s->cur_setpoint, ppi->port_idx);
+			}
 
 			s->delta_ms_prev = s->delta_ms;
 			s->next_state = WR_TRACK_PHASE;
