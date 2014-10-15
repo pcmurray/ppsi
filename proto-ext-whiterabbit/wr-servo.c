@@ -463,14 +463,20 @@ int wr_servo_update(struct pp_instance *ppi)
 		if(tracking_enabled) {
 //         	shw_pps_gen_enable_output(1);
 			// just follow the changes of deltaMS
+			ss = (struct wrs_socket*)NP(ppi)->ch[PP_NP_GEN].arch_data;
+			pp_diag(ppi, servo, 1, "in servo cur_setpoint(before update)=%d, "
+			"update =%d, cur_dmtd_phase = %d\n",
+			s->cur_setpoint, (s->delta_ms - s->delta_ms_prev), ss->dmtd_phase);
+			
 			s->cur_setpoint += (s->delta_ms - s->delta_ms_prev);
 			tmp_setpoint = (int)wrp->ops->adjust_phase(s->cur_setpoint, ppi->port_idx);
-			while(tmp_setpoint > 0)
+// 			while(tmp_setpoint > 0)
+			if(tmp_setpoint > 0)
 			{
-				ss = (struct wrs_socket*)NP(ppi)->ch[PP_NP_GEN].arch_data;
-				s->cur_setpoint = ss->dmtd_phase;				
-				pp_diag(ppi, servo, 1, "Switchover detected in servo:"
-				"tmp_setpoint=%d , ss->dmtd_phase = %d\n",tmp_setpoint ,ss->dmtd_phase);
+			
+				pp_diag(ppi, servo, 1, "Switchover detected in servo: good_phase_val=%d\n",
+				tmp_setpoint);
+				s->cur_setpoint = tmp_setpoint;
 				tmp_setpoint = wrp->ops->adjust_phase(s->cur_setpoint, ppi->port_idx);
 			}
 
