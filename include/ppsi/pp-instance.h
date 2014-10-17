@@ -171,6 +171,7 @@ struct pp_instance {
 	UInteger16 sent_seq[__PP_NR_MESSAGES_TYPES]; /* last sent this type */
 	MsgHeader received_ptp_header;
 	MsgHeader delay_req_hdr;
+	MsgHeader pdelay_req_hdr;
 	UInteger32
 		is_from_cur_par:1,
 		waiting_for_follow:1,
