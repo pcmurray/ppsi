@@ -42,6 +42,7 @@ int pp_initializing(struct pp_instance *ppi, unsigned char *pkt, int plen)
 	/* 1-based port number =  index of this ppi in the global array */
 	port->portIdentity.portNumber = 1 + ppi - ppi->glbs->pp_instances;
 	port->logMinDelayReqInterval = PP_DEFAULT_DELAYREQ_INTERVAL;
+	port->logMinPDelayReqInterval = PP_DEFAULT_PDELAYREQ_INTERVAL;
 	port->logAnnounceInterval = opt->announce_intvl;
 	port->announceReceiptTimeout = PP_DEFAULT_ANNOUNCE_RECEIPT_TIMEOUT;
 	port->logSyncInterval = opt->sync_intvl;
