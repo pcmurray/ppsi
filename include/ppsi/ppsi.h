@@ -355,10 +355,14 @@ extern void msg_pack_delay_resp(struct pp_instance *ppi,
 				MsgHeader *hdr, Timestamp *rcv_tstamp);
 extern void msg_unpack_delay_resp(void *buf, MsgDelayResp *resp);
 /* pdelay */
+extern void msg_unpack_pdelay_resp_follow_up(void *buf,
+        MsgPDelayRespFollowUp *pdelay_resp_flwup);
 extern void msg_pack_pdelay_resp_follow_up(struct pp_instance *ppi,
         MsgHeader *hdr, Timestamp *prec_orig_tstamp);
+extern void msg_unpack_pdelay_resp(void *buf, MsgPDelayResp *presp);
 extern void msg_pack_pdelay_resp(struct pp_instance *ppi,
 				MsgHeader *hdr, Timestamp *rcv_tstamp);
+extern void msg_unpack_pdelay_req(void *buf, MsgPDelayReq *pdelay_req);
 extern void msg_pack_pdelay_req(struct pp_instance *ppi,
 			       Timestamp *orig_tstamp);
 
