@@ -22,6 +22,10 @@ struct pp_state_table_item pp_state_table[] __attribute__((weak)) = {
 	{ PPS_MASTER,		"master",	pp_master,},
 	{ PPS_PASSIVE,		"passive",	pp_passive,},
 	{ PPS_UNCALIBRATED,	"uncalibrated",	pp_uncalibrated,},
+#ifdef CONFIG_E2E
 	{ PPS_SLAVE,		"slave",	pp_slave,},
+#elif CONFIG_P2P
+	{ PPS_SLAVE,		"slave",	pp_pclock,},
+#endif
 	{ PPS_END_OF_TABLE,}
 };
