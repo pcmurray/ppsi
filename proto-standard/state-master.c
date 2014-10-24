@@ -83,23 +83,12 @@ int pp_master(struct pp_instance *ppi, unsigned char *pkt, int plen)
 		msg_issue_delay_resp(ppi, &ppi->last_rcv_time);
 		break;
 
-  case PPM_PDELAY_REQ:
-    msg_copy_header(&ppi->pdelay_req_hdr,
-        &ppi->received_ptp_header);
-    msg_issue_pdelay_resp(ppi, &ppi->last_rcv_time);
-    msg_issue_pdelay_resp_followup(ppi, &ppi->last_snt_time);
-
-    break;
-
-	/*der(&ppi->pdelay_req_hdr,
-            &ppi->received_ptp_header);
-   msg_issue_pdelay_resp(ppi, &ppi->last_rcv_time)
-   msg_issue_pdelay_resp_follow_up(ppi, &ppi->last_snt_time);
-	 /* We are not supporting pdelay (not configured to, see
-	 * 9.5.13.1, p 106), so all the code about pdelay is removed
-	 * as a whole by one commit in our history. It can be recoverd
-	 * and fixed if needed
-	 */
+        case PPM_PDELAY_REQ:
+                msg_copy_header(&ppi->pdelay_req_hdr,
+                                &ppi->received_ptp_header);
+                msg_issue_pdelay_resp(ppi, &ppi->last_rcv_time);
+                msg_issue_pdelay_resp_followup(ppi, &ppi->last_snt_time);
+                break;
 
 	default:
 		/* disregard, nothing to do */

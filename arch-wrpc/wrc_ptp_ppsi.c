@@ -192,7 +192,7 @@ void wrc_ptp_set_sync_mech(int mech)
 
 int wrc_ptp_get_sync_mech()
 {
-  return ptp_sync_mech;
+        return ptp_sync_mech;
 }
 
 int wrc_ptp_start()

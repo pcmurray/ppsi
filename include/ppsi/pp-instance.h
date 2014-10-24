@@ -176,6 +176,7 @@ struct pp_instance {
 	UInteger32
 		is_from_cur_par:1,
 		waiting_for_follow:1,
+                waiting_for_resp_follow:1,
 		slave_only:1,
 		master_only:1,
 		backup_only:1,
