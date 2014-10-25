@@ -103,13 +103,7 @@ void pp_servo_got_resp(struct pp_instance *ppi)
 	TimeInternal *mpd = &DSCUR(ppi)->meanPathDelay;
 	TimeInternal *ofm = &DSCUR(ppi)->offsetFromMaster;
 	struct pp_avg_fltr *mpd_fltr = &SRV(ppi)->mpd_fltr;
-	long long I_term;
-	long long P_term;
-	long long tmp;
-	int I_sign;
-	int P_sign;
 	Integer32 adj;
-	int s;
 
 	/*
 	 * calc 'slave_to_master_delay', removing the correction field
@@ -139,95 +133,11 @@ void pp_servo_got_resp(struct pp_instance *ppi)
         /* mean path delay filtering */
         pp_servo_mpd_fltr(ppi, mpd_fltr, mpd);
 
-	/* update 'offsetFromMaster', (End to End mode) */
-	sub_TimeInternal(ofm, m_to_s_dly, mpd);
-	pp_diag(ppi, servo, 1, "Offset from master:     %s\n", fmt_TI(ofm));
+        /* update 'offsetFromMaster', (End to End mode) */
+        pp_servo_offset_master(ppi, mpd, ofm, m_to_s_dly);
 
-	if (OPTS(ppi)->max_rst) { /* If max_rst is 0 then it's OFF */
-		if (ofm->seconds) {
-			pp_diag(ppi, servo, 1, "servo aborted, offset greater "
-				"than 1 second\n");
-			return; /* not good */
-		}
-
-		if (ofm->nanoseconds > OPTS(ppi)->max_rst) {
-			pp_diag(ppi, servo, 1, "servo aborted, offset greater "
-				"than configured maximum %d\n",
-				OPTS(ppi)->max_rst);
-			return; /* not good */
-		}
-	}
-
-	if (ofm->seconds) {
-		TimeInternal time_tmp;
-
-		/* if secs, reset clock or set freq adjustment to max */
-		if (!OPTS(ppi)->no_adjust) {
-			if (!OPTS(ppi)->no_rst_clk) {
-				/* Can't use adjust, limited to +/- 2s */
-				time_tmp = ppi->t4;
-				add_TimeInternal(&time_tmp, &time_tmp,
-						 &DSCUR(ppi)->meanPathDelay);
-				ppi->t_ops->set(ppi, &time_tmp);
-				pp_servo_init(ppi);
-			} else {
-				adj = ofm->nanoseconds > 0
-					? PP_ADJ_FREQ_MAX : -PP_ADJ_FREQ_MAX;
-
-				if (ppi->t_ops->adjust_freq)
-					ppi->t_ops->adjust_freq(ppi, -adj);
-				else
-					ppi->t_ops->adjust_offset(ppi, -adj);
-			}
-		}
-		return; /* ok */
-	}
-
-	/*
-	 * What follows is the PI controller
-	 */
-
-	/* the accumulator for the I component, shift by 10 to avoid losing bits
-	 * later in the division */
-	SRV(ppi)->obs_drift += ((long long)ofm->nanoseconds) << 10;
-
-	/* Anti-windup. The PP_ADJ_FREQ_MAX value is multiplied by OPTS(ppi)->ai
-	 * (which is the reciprocal of the integral gain of the controller).
-	 * Then it's scaled by 10 bits to match the bit shift used earlier to
-	 * avoid bit losses */
-	tmp = (((long long)PP_ADJ_FREQ_MAX) * OPTS(ppi)->ai) << 10;
-	if (SRV(ppi)->obs_drift > tmp)
-		SRV(ppi)->obs_drift = tmp;
-	else if (SRV(ppi)->obs_drift < -tmp)
-		SRV(ppi)->obs_drift = -tmp;
-
-	/* calculation of the I component, based on obs_drift */
-	I_sign = (SRV(ppi)->obs_drift > 0) ? 0 : -1;
-	I_term = SRV(ppi)->obs_drift;
-	if (I_sign)
-		I_term = -I_term;
-	__div64_32((uint64_t *)&I_term, OPTS(ppi)->ai);
-	if (I_sign)
-		I_term = -I_term;
-
-	/* calculation of the P component */
-	P_sign = (ofm->nanoseconds > 0) ? 0 : -1;
-	/* shift 10 bits again to avoid losses */
-	P_term = ((long long)ofm->nanoseconds) << 10;
-	if (P_sign)
-		P_term = -P_term;
-	__div64_32((uint64_t *)&P_term, OPTS(ppi)->ap);
-	if (P_sign)
-		P_term = -P_term;
-
-	/* calculate the correction of applied by the controller */
-	tmp = P_term + I_term;
-	/* Now scale it before passing the argument to adjtimex
-	 * Be careful with the signs */
-	if (tmp > 0)
-		adj = (tmp >> 10);
-	else
-		adj = -((-tmp) >> 10);
+        /* PI controller */
+        adj = pp_servo_pi_controller(ppi, ofm);
 
 	/* apply controller output as a clock tick rate adjustment, if
 	 * provided by arch, or as a raw offset otherwise */
@@ -298,3 +208,105 @@ void pp_servo_mpd_fltr(struct pp_instance *ppi, struct pp_avg_fltr *mpd_fltr,
 		(int)mpd_fltr->s_exp, mpd->nanoseconds);
 }
 
+void pp_servo_offset_master(struct pp_instance *ppi, TimeInternal *mpd,
+                                TimeInternal *ofm, TimeInternal *m_to_s_dly)
+{
+        Integer32 adj;
+
+        sub_TimeInternal(ofm, m_to_s_dly, mpd);
+	pp_diag(ppi, servo, 1, "Offset from master:     %s\n", fmt_TI(ofm));
+
+	if (OPTS(ppi)->max_rst) { /* If max_rst is 0 then it's OFF */
+		if (ofm->seconds) {
+			pp_diag(ppi, servo, 1, "servo aborted, offset greater "
+				"than 1 second\n");
+			return; /* not good */
+		}
+
+		if (ofm->nanoseconds > OPTS(ppi)->max_rst) {
+			pp_diag(ppi, servo, 1, "servo aborted, offset greater "
+				"than configured maximum %d\n",
+				OPTS(ppi)->max_rst);
+			return; /* not good */
+		}
+	}
+
+	if (ofm->seconds) {
+		TimeInternal time_tmp;
+
+		/* if secs, reset clock or set freq adjustment to max */
+		if (!OPTS(ppi)->no_adjust) {
+			if (!OPTS(ppi)->no_rst_clk) {
+				/* Can't use adjust, limited to +/- 2s */
+				time_tmp = ppi->t4;
+				add_TimeInternal(&time_tmp, &time_tmp,
+						 &DSCUR(ppi)->meanPathDelay);
+				ppi->t_ops->set(ppi, &time_tmp);
+				pp_servo_init(ppi);
+			} else {
+				adj = ofm->nanoseconds > 0
+					? PP_ADJ_FREQ_MAX : -PP_ADJ_FREQ_MAX;
+
+				if (ppi->t_ops->adjust_freq)
+					ppi->t_ops->adjust_freq(ppi, -adj);
+				else
+					ppi->t_ops->adjust_offset(ppi, -adj);
+			}
+		}
+		return; /* ok */
+	}
+}
+
+Integer32 pp_servo_pi_controller(struct pp_instance *ppi, TimeInternal *ofm)
+{
+        long long I_term;
+	long long P_term;
+	long long tmp;
+	int I_sign;
+	int P_sign;
+        Integer32 adj;
+
+	/* the accumulator for the I component, shift by 10 to avoid losing bits
+	 * later in the division */
+	SRV(ppi)->obs_drift += ((long long)ofm->nanoseconds) << 10;
+
+	/* Anti-windup. The PP_ADJ_FREQ_MAX value is multiplied by OPTS(ppi)->ai
+	 * (which is the reciprocal of the integral gain of the controller).
+	 * Then it's scaled by 10 bits to match the bit shift used earlier to
+	 * avoid bit losses */
+	tmp = (((long long)PP_ADJ_FREQ_MAX) * OPTS(ppi)->ai) << 10;
+	if (SRV(ppi)->obs_drift > tmp)
+		SRV(ppi)->obs_drift = tmp;
+	else if (SRV(ppi)->obs_drift < -tmp)
+		SRV(ppi)->obs_drift = -tmp;
+
+	/* calculation of the I component, based on obs_drift */
+	I_sign = (SRV(ppi)->obs_drift > 0) ? 0 : -1;
+	I_term = SRV(ppi)->obs_drift;
+	if (I_sign)
+		I_term = -I_term;
+	__div64_32((uint64_t *)&I_term, OPTS(ppi)->ai);
+	if (I_sign)
+		I_term = -I_term;
+
+	/* calculation of the P component */
+	P_sign = (ofm->nanoseconds > 0) ? 0 : -1;
+	/* shift 10 bits again to avoid losses */
+	P_term = ((long long)ofm->nanoseconds) << 10;
+	if (P_sign)
+		P_term = -P_term;
+	__div64_32((uint64_t *)&P_term, OPTS(ppi)->ap);
+	if (P_sign)
+		P_term = -P_term;
+
+	/* calculate the correction of applied by the controller */
+	tmp = P_term + I_term;
+	/* Now scale it before passing the argument to adjtimex
+	 * Be careful with the signs */
+	if (tmp > 0)
+		adj = (tmp >> 10);
+	else
+		adj = -((-tmp) >> 10);
+
+        return adj;
+}
