@@ -324,6 +324,9 @@ extern int pp_config_file(struct pp_globals *ppg, int force, char *fname);
 extern void pp_servo_init(struct pp_instance *ppi);
 extern void pp_servo_got_sync(struct pp_instance *ppi); /* got t1 and t2 */
 extern void pp_servo_got_resp(struct pp_instance *ppi); /* got all t1..t4 */
+extern void pp_servo_got_psync(struct pp_instance *ppi); /* got t1 and t2 */
+extern void pp_servo_got_presp(struct pp_instance *ppi); /* got all t3..t6 */
+
 extern void pp_servo_mpd_fltr(struct pp_instance *ppi, struct pp_avg_fltr *mpd_fltr,
                                 TimeInternal *mpd);
 extern void pp_servo_offset_master(struct pp_instance *ppi, TimeInternal *mpd,

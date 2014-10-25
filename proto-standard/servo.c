@@ -62,6 +62,45 @@ void pp_servo_got_sync(struct pp_instance *ppi)
 		fmt_TI(&ppi->cField));
 }
 
+/* Called by slave and uncalib when we have t1 and t2 */
+void pp_servo_got_psync(struct pp_instance *ppi)
+{
+        TimeInternal *m_to_s_dly = &SRV(ppi)->m_to_s_dly;
+	TimeInternal *mpd = &DSCUR(ppi)->meanPathDelay;
+	TimeInternal *ofm = &DSCUR(ppi)->offsetFromMaster;
+        Integer32 adj;
+
+        pp_diag(ppi, servo, 2, "T1: %s\n", fmt_TI(&ppi->t1));
+	pp_diag(ppi, servo, 2, "T2: %s\n", fmt_TI(&ppi->t2));
+
+	/*
+	 * calc 'master_to_slave_delay', removing the correction field
+	 * added by transparent clocks in the path.
+	 */
+	sub_TimeInternal(m_to_s_dly, &ppi->t2, &ppi->t1);
+	sub_TimeInternal(m_to_s_dly, m_to_s_dly, &ppi->cField);
+	pp_diag(ppi, servo, 3, "correction field 1: %s\n",
+		fmt_TI(&ppi->cField));
+
+        /* update 'offsetFromMaster', (End to End mode) */
+        pp_servo_offset_master(ppi, mpd, ofm, m_to_s_dly);
+
+	/* PI controller */
+        adj = pp_servo_pi_controller(ppi, ofm);
+
+	/* apply controller output as a clock tick rate adjustment, if
+	 * provided by arch, or as a raw offset otherwise */
+	if (!OPTS(ppi)->no_adjust) {
+		if (ppi->t_ops->adjust_freq)
+			ppi->t_ops->adjust_freq(ppi, -adj);
+		else
+			ppi->t_ops->adjust_offset(ppi, -adj);
+	}
+
+	pp_diag(ppi, servo, 2, "Observed drift: %9i\n",
+		(int)SRV(ppi)->obs_drift >> 10);
+}
+
 /*
  * This function makes the necessary checks to discard a set of t1..t4.
  * It relies on mpd to be already calculated.
@@ -150,6 +189,44 @@ void pp_servo_got_resp(struct pp_instance *ppi)
 
 	pp_diag(ppi, servo, 2, "Observed drift: %9i\n",
 		(int)SRV(ppi)->obs_drift >> 10);
+}
+
+/* called by slave states when delay_resp is received (all t1..t4 are valid) */
+void pp_servo_got_presp(struct pp_instance *ppi)
+{
+	TimeInternal *m_to_s_dly = &SRV(ppi)->m_to_s_dly;
+	TimeInternal *s_to_m_dly = &SRV(ppi)->s_to_m_dly;
+	TimeInternal *mpd = &DSCUR(ppi)->meanPathDelay;
+	struct pp_avg_fltr *mpd_fltr = &SRV(ppi)->mpd_fltr;
+
+	/*
+	 * calc 'slave_to_master_delay', removing the correction field
+	 * added by transparent clocks in the path.
+	 */
+	sub_TimeInternal(s_to_m_dly, &ppi->t6,	&ppi->t5);
+	sub_TimeInternal(s_to_m_dly, s_to_m_dly, &ppi->cField);
+        pp_diag(ppi, servo, 3, "correction field 2: %s\n",
+		fmt_TI(&ppi->cField));
+
+        sub_TimeInternal(m_to_s_dly, &ppi->t4,	&ppi->t3);
+
+	pp_diag(ppi, servo, 2, "T3: %s\n", fmt_TI(&ppi->t3));
+	pp_diag(ppi, servo, 2, "T4: %s\n", fmt_TI(&ppi->t4));
+	pp_diag(ppi, servo, 2, "T5: %s\n", fmt_TI(&ppi->t5));
+	pp_diag(ppi, servo, 2, "T6: %s\n", fmt_TI(&ppi->t6));
+	pp_diag(ppi, servo, 1, "Master to slave: %s\n", fmt_TI(m_to_s_dly));
+	pp_diag(ppi, servo, 1, "Slave to master: %s\n", fmt_TI(s_to_m_dly));
+
+	/* Calc mean path delay, used later to calc "offset from master" */
+	add_TimeInternal(mpd, &SRV(ppi)->m_to_s_dly, &SRV(ppi)->s_to_m_dly);
+	div2_TimeInternal(mpd);
+	pp_diag(ppi, servo, 1, "meanPathDelay: %s\n", fmt_TI(mpd));
+
+	/* if this succeeds mpd->seconds == 0 is true */
+	if (pp_servo_bad_event(ppi))
+		return;
+
+        pp_servo_mpd_fltr(ppi, mpd_fltr, mpd);
 }
 
 void pp_servo_mpd_fltr(struct pp_instance *ppi, struct pp_avg_fltr *mpd_fltr,
