@@ -147,7 +147,12 @@ int st_com_slave_handle_sync(struct pp_instance *ppi, unsigned char *buf,
 	ppi->waiting_for_follow = FALSE;
 	to_TimeInternal(&ppi->t1,
 			&sync.originTimestamp);
-	pp_servo_got_sync(ppi);
+
+        if (GLBS(ppi)->delay_mech)
+	        pp_servo_got_psync(ppi);
+        else
+	        pp_servo_got_sync(ppi);
+
 	return 0;
 }
 
@@ -193,7 +198,11 @@ int st_com_slave_handle_followup(struct pp_instance *ppi, unsigned char *buf,
 	if (ret < 0)
 		return ret;
 
-	pp_servo_got_sync(ppi);
+        if (GLBS(ppi)->delay_mech)
+                pp_servo_got_psync(ppi);
+        else
+	        pp_servo_got_sync(ppi);
+
 	return 0;
 }
 
