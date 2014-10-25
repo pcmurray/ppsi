@@ -136,55 +136,8 @@ void pp_servo_got_resp(struct pp_instance *ppi)
 	if (pp_servo_bad_event(ppi))
 		return;
 
-	if (mpd_fltr->s_exp < 1) {
-		/* First time, keep what we have */
-		mpd_fltr->y = mpd->nanoseconds;
-	}
-	/* avoid overflowing filter */
-	s = OPTS(ppi)->s;
-	while (abs(mpd_fltr->y) >> (31 - s))
-		--s;
-	if (mpd_fltr->s_exp > 1 << s)
-		mpd_fltr->s_exp = 1 << s;
-	/* crank down filter cutoff by increasing 's_exp' */
-	if (mpd_fltr->s_exp < 1 << s)
-		++mpd_fltr->s_exp;
-
-	/*
-	 * It may happen that mpd appears as negative. This happens when
-	 * the slave clock is running fast to recover a late time: the
-	 * (t3 - t2) measured in the slave appears longer than the (t4 - t1)
-	 * measured in the master.  Ignore such values, by keeping the
-	 * current average instead.
-	 */
-	if (mpd->nanoseconds < 0)
-		mpd->nanoseconds = mpd_fltr->y;
-	if (mpd->nanoseconds < 0)
-		mpd->nanoseconds = 0;
-
-	/*
-	 * It may happen that mpd appears to be very big. This happens
-	 * when we have software timestamps and there is overhead
-	 * involved -- or when the slave clock is running slow.  In
-	 * this case use a value just slightly bigger than the current
-	 * average (so if it really got longer, we will adapt).  This
-	 * kills most outliers on loaded networks.
-	 * The constant multipliers have been chosed arbitrarily, but
-	 * they work well in testing environment.
-	 */
-	if (mpd->nanoseconds > 3 * mpd_fltr->y) {
-		pp_diag(ppi, servo, 1, "Trim too-long mpd: %i\n",
-			mpd->nanoseconds);
-		/* add fltr->s_exp to ensure we are not trapped into 0 */
-		mpd->nanoseconds = mpd_fltr->y * 2 + mpd_fltr->s_exp + 1;
-	}
-	/* filter 'meanPathDelay' (running average) */
-	mpd_fltr->y = (mpd_fltr->y * (mpd_fltr->s_exp - 1) + mpd->nanoseconds)
-		/ mpd_fltr->s_exp;
-	mpd->nanoseconds = mpd_fltr->y;
-
-	pp_diag(ppi, servo, 1, "After avg(%i), meanPathDelay: %i\n",
-		(int)mpd_fltr->s_exp, mpd->nanoseconds);
+        /* mean path delay filtering */
+        pp_servo_mpd_fltr(ppi, mpd_fltr, mpd);
 
 	/* update 'offsetFromMaster', (End to End mode) */
 	sub_TimeInternal(ofm, m_to_s_dly, mpd);
@@ -288,3 +241,60 @@ void pp_servo_got_resp(struct pp_instance *ppi)
 	pp_diag(ppi, servo, 2, "Observed drift: %9i\n",
 		(int)SRV(ppi)->obs_drift >> 10);
 }
+
+void pp_servo_mpd_fltr(struct pp_instance *ppi, struct pp_avg_fltr *mpd_fltr,
+                        TimeInternal *mpd)
+{
+	int s;
+
+	if (mpd_fltr->s_exp < 1) {
+		/* First time, keep what we have */
+		mpd_fltr->y = mpd->nanoseconds;
+	}
+	/* avoid overflowing filter */
+	s = OPTS(ppi)->s;
+	while (abs(mpd_fltr->y) >> (31 - s))
+		--s;
+	if (mpd_fltr->s_exp > 1 << s)
+		mpd_fltr->s_exp = 1 << s;
+	/* crank down filter cutoff by increasing 's_exp' */
+	if (mpd_fltr->s_exp < 1 << s)
+		++mpd_fltr->s_exp;
+
+	/*
+	 * It may happen that mpd appears as negative. This happens when
+	 * the slave clock is running fast to recover a late time: the
+	 * (t3 - t2) measured in the slave appears longer than the (t4 - t1)
+	 * measured in the master.  Ignore such values, by keeping the
+	 * current average instead.
+	 */
+	if (mpd->nanoseconds < 0)
+		mpd->nanoseconds = mpd_fltr->y;
+	if (mpd->nanoseconds < 0)
+		mpd->nanoseconds = 0;
+
+	/*
+	 * It may happen that mpd appears to be very big. This happens
+	 * when we have software timestamps and there is overhead
+	 * involved -- or when the slave clock is running slow.  In
+	 * this case use a value just slightly bigger than the current
+	 * average (so if it really got longer, we will adapt).  This
+	 * kills most outliers on loaded networks.
+	 * The constant multipliers have been chosed arbitrarily, but
+	 * they work well in testing environment.
+	 */
+	if (mpd->nanoseconds > 3 * mpd_fltr->y) {
+		pp_diag(ppi, servo, 1, "Trim too-long mpd: %i\n",
+			mpd->nanoseconds);
+		/* add fltr->s_exp to ensure we are not trapped into 0 */
+		mpd->nanoseconds = mpd_fltr->y * 2 + mpd_fltr->s_exp + 1;
+	}
+	/* filter 'meanPathDelay' (running average) */
+	mpd_fltr->y = (mpd_fltr->y * (mpd_fltr->s_exp - 1) + mpd->nanoseconds)
+		/ mpd_fltr->s_exp;
+	mpd->nanoseconds = mpd_fltr->y;
+
+	pp_diag(ppi, servo, 1, "After avg(%i), meanPathDelay: %i\n",
+		(int)mpd_fltr->s_exp, mpd->nanoseconds);
+}
+
