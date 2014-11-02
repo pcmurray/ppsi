@@ -111,6 +111,7 @@ struct wr_operations {
 				    unsigned int calibrationPatternLen);
 	int (*calib_pattern_disable)(struct pp_instance *ppi);
 	int (*enable_timing_output)(struct pp_instance *ppi, int enable);
+	int (*active_poll)(void);
 };
 
 

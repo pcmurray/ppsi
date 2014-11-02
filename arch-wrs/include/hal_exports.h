@@ -157,6 +157,7 @@ extern int halexp_query_ports(hexp_port_list_t *list);
 extern int halexp_get_port_state(hexp_port_state_t *state, const char *port_name);
 extern int halexp_pps_cmd(int cmd, hexp_pps_params_t *params);
 extern int halexp_get_timing_state(hexp_timing_state_t *state);
+extern int halexp_swover_poll(void);
 
 
 /* Export structures, shared by server and client for argument matching */
@@ -238,6 +239,15 @@ struct minipc_pd __rpcdef_pps_cmd = {
 struct minipc_pd __rpcdef_get_timing_state = {
 	.name = "get_timing_state",
 	.retval = MINIPC_ARG_ENCODE(MINIPC_ATYPE_STRUCT, hexp_timing_state_t),
+	.args = {
+		MINIPC_ARG_END,
+	},
+};
+
+//int halexp_swover_cmd();
+struct minipc_pd __rpcdef_swover_cmd = {
+	.name = "swover_cmd",
+	.retval = MINIPC_ARG_ENCODE(MINIPC_ATYPE_INT, int),
 	.args = {
 		MINIPC_ARG_END,
 	},

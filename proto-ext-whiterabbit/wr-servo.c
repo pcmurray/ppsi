@@ -261,7 +261,8 @@ int wr_servo_update(struct pp_instance *ppi)
 	uint64_t delay_ms_fix;
 	static int errcount;
 	int tmp_setpoint;
-
+	int active_port = wrp->ops->active_poll();
+	pp_diag(ppi, servo, 1, "active_poll = %d, port_idx = %d\n",active_port, ppi->port_idx);
 	TimeInternal ts_offset, ts_offset_hw /*, ts_phase_adjust */;
 	pp_diag(ppi, servo, 1, "in wr servo update, got_sync=%d\n",got_sync);
 	
@@ -281,7 +282,8 @@ int wr_servo_update(struct pp_instance *ppi)
 	}
 	errcount = 0;
 
-	if(ppi->slave_prio == 0) // only for active slave
+// 	if(ppi->slave_prio == 0) // only for active slave
+	if(ppi->port_idx == active_port) // only for active slave
 		cur_servo_state.update_count++;
 
 	got_sync = 0;
@@ -309,7 +311,8 @@ int wr_servo_update(struct pp_instance *ppi)
 	                   (ts_offset.phase    + ts_offset.nanoseconds * 1000),
 	                   (ts_offset_hw.phase + ts_offset_hw.nanoseconds * 1000));
 
-	if(ppi->slave_prio == 0) // only for active slave
+// 	if(ppi->slave_prio == 0) // only for active slave
+	if(ppi->port_idx == active_port) // only for active slave
 	{
 		cur_servo_state.mu = (uint64_t)ts_to_picos(s->mu);
 		cur_servo_state.cur_offset = ts_to_picos(ts_offset);
@@ -355,7 +358,8 @@ int wr_servo_update(struct pp_instance *ppi)
 
 		if (ts_offset_hw.seconds != 0) {
 			pp_diag(ppi, servo, 1, " WR_SYNC_TAI-> counters touching at seconds\n");
-			if(ppi->slave_prio == 0) // only for active slave
+// 			if(ppi->slave_prio == 0) // only for active slave
+			if(ppi->port_idx == active_port) // only for active slave
 				strcpy(cur_servo_state.slave_servo_state, "SYNC_SEC");
 			wrp->ops->adjust_counters(ts_offset_hw.seconds, 0);
 			wrp->ops->adjust_phase(0, ppi->port_idx);
@@ -371,7 +375,8 @@ int wr_servo_update(struct pp_instance *ppi)
 
 	case WR_SYNC_NSEC:
 		pp_diag(ppi, servo, 1, " WR_SYNC_NSEC\n");
-		if(ppi->slave_prio == 0) // only for active slave
+// 		if(ppi->slave_prio == 0) // only for active slave
+		if(ppi->port_idx == active_port) // only for active slave
 			strcpy(cur_servo_state.slave_servo_state, "SYNC_NSEC");
 
 		if (ts_offset_hw.nanoseconds != 0) {
@@ -390,9 +395,11 @@ int wr_servo_update(struct pp_instance *ppi)
 
 	case WR_SYNC_PHASE:
 		pp_diag(ppi, servo, 1, " WR_SYNC_PHASE\n");
-		if(ppi->slave_prio == 0) // only for active slave
+// 		if(ppi->slave_prio == 0) // only for active slave
+		if(ppi->port_idx == active_port) // only for active slave
 			strcpy(cur_servo_state.slave_servo_state, "SYNC_PHASE");
-		if(ppi->slave_prio == 0)
+// 		if(ppi->slave_prio == 0)
+		if(ppi->port_idx == active_port) // only for active slave
 		{
 			s->cur_setpoint = ts_offset_hw.phase
 			      + ts_offset_hw.nanoseconds * 1000;
@@ -434,7 +441,8 @@ int wr_servo_update(struct pp_instance *ppi)
 			s->state = WR_SYNC_TAI;
 		else
 			if(remaining_offset < WR_SERVO_OFFSET_STABILITY_THRESHOLD || 
-				ppi->slave_prio > 0) 
+// 				ppi->slave_prio > 0) 
+				ppi->port_idx != active_port) 
 			{
 				wrp->ops->enable_timing_output(ppi, 1);
 				s->state = WR_TRACK_PHASE;
@@ -450,7 +458,8 @@ int wr_servo_update(struct pp_instance *ppi)
 
 	case WR_TRACK_PHASE:
 		pp_diag(ppi, servo, 1, "WR_TRACK_PHASE \n");
-		if(ppi->slave_prio == 0) // only for active slave
+// 		if(ppi->slave_prio == 0) // only for active slave
+		if(ppi->port_idx == active_port) // only for active slave
 		{
 			strcpy(cur_servo_state.slave_servo_state, "TRACK_PHASE");
 			cur_servo_state.cur_setpoint = s->cur_setpoint;
@@ -459,7 +468,7 @@ int wr_servo_update(struct pp_instance *ppi)
 
 		if (ts_offset_hw.seconds !=0 || ts_offset_hw.nanoseconds != 0)
 				s->state = WR_SYNC_TAI;
-
+		
 		if(tracking_enabled) {
 //         	shw_pps_gen_enable_output(1);
 			// just follow the changes of deltaMS

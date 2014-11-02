@@ -46,6 +46,7 @@ static struct wr_operations wrs_wr_operations = {
 	.calib_pattern_disable = wrs_calibration_pattern_disable,
 
 	.enable_timing_output = wrs_enable_timing_output,
+	.active_poll = wrs_active_poll,
 };
 
 /* ppg and fields */
