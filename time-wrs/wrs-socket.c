@@ -369,7 +369,11 @@ int wrs_net_send(struct pp_instance *ppi, void *pkt, int len,
 		if (drop)
 			hdr->h_proto++;
 
-		memcpy(hdr->h_dest, PP_MCAST_MACADDRESS, ETH_ALEN);
+                if (use_pdelay_addr)
+		        memcpy(hdr->h_dest, PP_PDELAY_MACADDRESS, ETH_ALEN);
+                else
+		        memcpy(hdr->h_dest, PP_MCAST_MACADDRESS, ETH_ALEN);
+
 		/* raw socket implementation always uses gen socket */
 		memcpy(hdr->h_source, NP(ppi)->ch[PP_NP_GEN].addr, ETH_ALEN);
 
@@ -394,7 +398,12 @@ int wrs_net_send(struct pp_instance *ppi, void *pkt, int len,
 	fd = NP(ppi)->ch[chtype].fd;
 	addr.sin_family = AF_INET;
 	addr.sin_port = htons(chtype == PP_NP_GEN ? PP_GEN_PORT : PP_EVT_PORT);
-	addr.sin_addr.s_addr = NP(ppi)->mcast_addr;
+
+        if (use_pdelay_addr)
+	        addr.sin_addr.s_addr = NP(ppi)->mcast_addr_peer;
+        else
+	        addr.sin_addr.s_addr = NP(ppi)->mcast_addr;
+
 	if (drop)
 		addr.sin_port = 3200;
 	ret = sendto(fd, pkt, len, 0,
