@@ -106,6 +106,11 @@ int main(int argc, char **argv)
 	ppg->timePropertiesDS = &timePropertiesDS;
 	ppg->servo = &servo;
 	ppg->rt_opts = &__pp_default_rt_opts;
+#ifdef CONFIG_P2P
+        ppg->delay_mech = PP_P2P_MECH;
+#else
+        ppg->delay_mech = PP_E2E_MECH;
+#endif
 
 	/* We are hosted, so we can allocate */
 	ppg->max_links = PP_MAX_LINKS;
