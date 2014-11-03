@@ -103,6 +103,7 @@ enum {
 struct pp_net_path {
 	struct pp_channel ch[__NR_PP_NP];	/* general and event ch */
 	Integer32 mcast_addr;			/* FIXME: only ipv4/udp */
+	Integer32 mcast_addr_peer;	        /* FIXME: only ipv4/udp */
 
 	int ptp_offset;
 };
