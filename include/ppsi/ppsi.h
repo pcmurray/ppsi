@@ -131,6 +131,8 @@ struct pp_ext_hooks {
 	void (*handle_announce)(struct pp_instance *ppi);
 	int (*handle_followup)(struct pp_instance *ppi, TimeInternal *orig,
 			       TimeInternal *correction_field);
+        int (*handle_preq)(struct pp_instance *ppi);
+        int (*handle_presp)(struct pp_instance *ppi);
 	int (*pack_announce)(struct pp_instance *ppi);
 	void (*unpack_announce)(void *buf, MsgAnnounce *ann);
 };
