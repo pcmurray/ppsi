@@ -13,7 +13,6 @@ int pp_pclock(struct pp_instance *ppi, unsigned char *pkt, int plen)
 
 	int e = 0; /* error var, to check errors in msg handling */
 	MsgHeader *hdr = &ppi->received_ptp_header;
-        MsgPDelayResp resp;
         MsgPDelayRespFollowUp respFllw;
 	int d1, d2;
 
@@ -55,36 +54,20 @@ int pp_pclock(struct pp_instance *ppi, unsigned char *pkt, int plen)
                 if (e)
                         break;
 
-                msg_copy_header(&ppi->pdelay_req_hdr,
-				&ppi->received_ptp_header);
-		msg_issue_pdelay_resp(ppi, &ppi->last_rcv_time);
-		msg_issue_pdelay_resp_followup(ppi, &ppi->last_snt_time);
+                if (pp_hooks.handle_preq)
+                        e = pp_hooks.handle_preq(ppi);
+                else
+                        e = st_com_peer_handle_preq(ppi, pkt, plen);
+
+                if (e)
+                        goto out;
+
 		break;
 
         case PPM_PDELAY_RESP:
-		e = (plen < PP_PDELAY_RESP_LENGTH);
-                if (e)
-			break;
 
-                msg_unpack_pdelay_resp(pkt, &resp);
-
-		if ((memcmp(&DSPOR(ppi)->portIdentity.clockIdentity,
-			&resp.requestingPortIdentity.clockIdentity,
-			PP_CLOCK_IDENTITY_LENGTH) == 0) &&
-			((ppi->sent_seq[PPM_PDELAY_REQ]) ==
-				hdr->sequenceId) &&
-			(DSPOR(ppi)->portIdentity.portNumber ==
-			        resp.requestingPortIdentity.portNumber) &&
-                        ppi->is_from_cur_par) {
-
-			to_TimeInternal(&ppi->t4, &resp.requestReceiptTimestamp);
-			ppi->t6 = ppi->last_rcv_time;
-
-		} else {
-			pp_diag(ppi, frames, 2, "pp_pclock : "
-			     "PDelay Resp doesn't match PDelay Req\n");
-		}
-                break;
+                e = st_com_peer_handle_pres(ppi, pkt, plen);
+		break;
 
         case PPM_PDELAY_RESP_FOLLOW_UP:
 		e = (plen < PP_PDELAY_RESP_FOLLOW_UP_LENGTH);
@@ -103,12 +86,18 @@ int pp_pclock(struct pp_instance *ppi, unsigned char *pkt, int plen)
                                 ppi->is_from_cur_par) {
 
 		        to_TimeInternal(&ppi->t5, &respFllw.responseOriginTimestamp);
+                        ppi->waiting_for_resp_follow = TRUE;
 
-		        pp_servo_got_presp(ppi);
+                        if (pp_hooks.handle_presp)
+                                e = pp_hooks.handle_presp(ppi);
+                        else
+		                pp_servo_got_presp(ppi);
+                        if (e)
+                                goto out;
 
 	        } else {
                         pp_diag(ppi, frames, 2, "pp_pclock : "
-			                "Delay Resp Follow doesn't match Delay Req\n");
+			                "PDelay Resp Follow doesn't match PDelay Req\n");
                 }
 	        break;
 
