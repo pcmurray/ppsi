@@ -225,25 +225,106 @@ int wr_servo_got_delay(struct pp_instance *ppi, Integer32 cf)
 	s->t4.correct = 1; /* clock->delay_req_receive_time.correct; */
 	s->t4.phase = (int64_t) cf * 1000LL / 65536LL;
 
+        if (GLBS(ppi)->delay_mech) {
+                s->t5 = ppi->t5;
+                s->t5.correct = 1;
+                s->t5.phase = 0;
+                s->t6 = ppi->t6;
+                s->t6.phase = (int64_t) ppi->t6_cf * 1000LL / 65536LL;
+
+                wr_p2p_delay(ppi, s);
+        }
+
 	return 0;
 }
 
-
-int wr_servo_update(struct pp_instance *ppi)
+int wr_p2p_delay(struct pp_instance *ppi, struct wr_servo_state_t *s)
 {
-	struct wr_dsport *wrp = WR_DSPOR(ppi);
-	struct wr_servo_state_t *s =
-			&((struct wr_data_t *)ppi->ext_data)->servo_state;
-
-	uint64_t tics;
-	uint64_t big_delta_fix;
-	uint64_t delay_ms_fix;
+        uint64_t big_delta_fix;
 	static int errcount;
 
-	TimeInternal ts_offset, ts_offset_hw /*, ts_phase_adjust */;
-
-	if(!got_sync)
+        if(!s->t3.correct || !s->t4.correct ||
+	   !s->t5.correct || !s->t6.correct) {
+		errcount++;
+		if (errcount > 5) /* a 2-3 in a row are expected */
+			pp_error("%s: TimestampsIncorrect: %d %d %d %d\n",
+				 __func__, s->t3.correct, s->t4.correct,
+				 s->t5.correct, s->t6.correct);
 		return 0;
+	}
+	errcount = 0;
+
+	cur_servo_state.update_count++;
+
+	if (__PP_DIAG_ALLOW_FLAGS(pp_global_flags, pp_dt_servo, 1)) {
+		dump_timestamp(ppi, "servo:t1", s->t1);
+		dump_timestamp(ppi, "servo:t2", s->t2);
+		dump_timestamp(ppi, "servo:t3", s->t3);
+		dump_timestamp(ppi, "servo:t4", s->t4);
+		dump_timestamp(ppi, "servo:t5", s->t5);
+		dump_timestamp(ppi, "servo:t6", s->t6);
+		dump_timestamp(ppi, "->mdelay", s->mu);
+	}
+
+        s->mu = ts_sub(ts_sub(s->t6, s->t3), ts_sub(s->t5, s->t4));
+
+	big_delta_fix =  s->delta_tx_m + s->delta_tx_s
+		       + s->delta_rx_m + s->delta_rx_s;
+
+        s->delta_ms = (((int64_t)(ts_to_picos(s->mu) - big_delta_fix) * (int64_t) s->fiber_fix_alpha) >> FIX_ALPHA_FRACBITS)
+		+ ((ts_to_picos(s->mu) - big_delta_fix) >> 1)
+		+ s->delta_tx_m + s->delta_rx_s + ph_adjust;
+
+        return 1;
+}
+
+int wr_p2p_offset(struct pp_instance *ppi,
+                        struct wr_servo_state_t *s, TimeInternal *ts_offset_hw)
+
+{
+        TimeInternal ts_offset;
+	static int errcount;
+
+        if(!s->t1.correct || !s->t2.correct) {
+		errcount++;
+		if (errcount > 5) /* a 2-3 in a row are expected */
+			pp_error("%s: TimestampsIncorrect: %d %d \n",
+				 __func__, s->t1.correct, s->t2.correct);
+		return 0;
+	}
+	errcount = 0;
+	got_sync = 0;
+
+	cur_servo_state.update_count++;
+
+        ts_offset = ts_add(ts_sub(s->t1, s->t2), picos_to_ts(s->delta_ms));
+	*ts_offset_hw = ts_hardwarize(ts_offset, s->clock_period_ps);
+
+	cur_servo_state.mu = (uint64_t)ts_to_picos(s->mu);
+	cur_servo_state.cur_offset = ts_to_picos(ts_offset);
+
+	cur_servo_state.delay_ms = s->delta_ms;
+	cur_servo_state.total_asymmetry =
+		(cur_servo_state.mu - 2LL * (int64_t)s->delta_ms);
+	cur_servo_state.fiber_asymmetry =
+		cur_servo_state.total_asymmetry
+		- (s->delta_tx_m + s->delta_rx_s)
+		+ (s->delta_rx_m + s->delta_tx_s);
+
+	cur_servo_state.tracking_enabled = tracking_enabled;
+
+        return 1;
+
+}
+
+int wr_e2e_offset(struct pp_instance *ppi,
+                        struct wr_servo_state_t *s, TimeInternal *ts_offset_hw)
+{
+
+        uint64_t big_delta_fix;
+	uint64_t delay_ms_fix;
+        TimeInternal ts_offset;
+	static int errcount;
 
 	if(!s->t1.correct || !s->t2.correct ||
 	   !s->t3.correct || !s->t4.correct) {
@@ -278,7 +359,7 @@ int wr_servo_update(struct pp_instance *ppi)
 		+ s->delta_tx_m + s->delta_rx_s + ph_adjust;
 
 	ts_offset = ts_add(ts_sub(s->t1, s->t2), picos_to_ts(delay_ms_fix));
-	ts_offset_hw = ts_hardwarize(ts_offset, s->clock_period_ps);
+	*ts_offset_hw = ts_hardwarize(ts_offset, s->clock_period_ps);
 
 	cur_servo_state.mu = (uint64_t)ts_to_picos(s->mu);
 	cur_servo_state.cur_offset = ts_to_picos(ts_offset);
@@ -293,7 +374,31 @@ int wr_servo_update(struct pp_instance *ppi)
 
 	cur_servo_state.tracking_enabled = tracking_enabled;
 
-	s->delta_ms = delay_ms_fix;
+        s->delta_ms = delay_ms_fix;
+
+        return 1;
+}
+
+int wr_servo_update(struct pp_instance *ppi)
+{
+	struct wr_dsport *wrp = WR_DSPOR(ppi);
+	struct wr_servo_state_t *s =
+			&((struct wr_data_t *)ppi->ext_data)->servo_state;
+
+	uint64_t tics;
+
+	TimeInternal ts_offset_hw /*, ts_phase_adjust */;
+
+	if (!got_sync)
+		return 0;
+
+        if (GLBS(ppi)->delay_mech) {
+                if (!wr_p2p_offset(ppi, s, &ts_offset_hw))
+                        return 0;
+        } else {
+                if (!wr_e2e_offset(ppi, s, &ts_offset_hw))
+                        return 0;
+        }
 
 	tics = ppi->t_ops->calc_timeout(ppi, 0);
 
