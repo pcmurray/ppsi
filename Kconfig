@@ -68,35 +68,34 @@ config ARCH
        default "sim" if ARCH_SIMULATOR
 
 menu "PTP Protocol Options"
-        choice
-                prompt "PTP Synchronization Mechanism"
-        config E2E
-                boolean "Delay-Request-Respond"
-                help
-                  Delay-Request-Response uses 4 timestamps
-                  for calculating the link delay and synchronizing.
-        config P2P
-                boolean "Peer Delay"
-                help
-                  Peer Delay uses 4 timestamps for calculating
-                  the link delay and another 2 for synchronizing.
-        endchoice
-
-        choice
-                prompt "PTP Clock Type"
-        config BOUDARY
-                boolean "Boundary Clock"
-                help
-                  The boundary clock implements a local PTP clock which
-                  can be synchronized to a master on one port and act
-                  as a master on other ports.
-        config TC
-                boolean "Peer-to-Peer Transparent Clock"
-                help
-                  A TC measures the local link delays using the peer
-                  delay mechanism and it must determine the residence
-                  time and make corrections to sync messages.
-        endchoice
+       choice
+         prompt "PTP Synchronization Mechanism"
+       config E2E
+         boolean "Delay-Request-Respond"
+         help
+           Delay-Request-Response uses 4 timestamps
+           for calculating the link delay and synchronizing.
+       config P2P
+         boolean "Peer Delay"
+         help
+           Peer Delay uses 4 timestamps for calculating
+           the link delay and another 2 for synchronizing.
+       endchoice
+       choice
+         prompt "PTP Clock Type"
+       config BOUDARY
+         boolean "Boundary Clock"
+         help
+            The boundary clock implements a local PTP clock which
+            can be synchronized to a master on one port and act
+            as a master on other ports.
+       config TC
+         boolean "Peer-to-Peer Transparent Clock"
+         help
+           A TC measures the local link delays using the peer
+           delay mechanism and it must determine the residence
+           time and make corrections to sync messages.
+       endchoice
 endmenu
 
 choice EXTENSION

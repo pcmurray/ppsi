@@ -149,10 +149,10 @@ static int unix_net_send(struct pp_instance *ppi, void *pkt, int len,
 	if (ppi->ethernet_mode) {
 		hdr->h_proto = htons(ETH_P_1588);
 
-                if (use_pdelay_addr)
-		        memcpy(hdr->h_dest, PP_PDELAY_MACADDRESS,  ETH_ALEN);
-                else
-		        memcpy(hdr->h_dest, PP_MCAST_MACADDRESS, ETH_ALEN);
+		if (use_pdelay_addr)
+			memcpy(hdr->h_dest, PP_PDELAY_MACADDRESS,  ETH_ALEN);
+		else
+			memcpy(hdr->h_dest, PP_MCAST_MACADDRESS, ETH_ALEN);
 
 		/* raw socket implementation always uses gen socket */
 		memcpy(hdr->h_source, NP(ppi)->ch[PP_NP_GEN].addr, ETH_ALEN);
@@ -170,10 +170,10 @@ static int unix_net_send(struct pp_instance *ppi, void *pkt, int len,
 	addr.sin_family = AF_INET;
 	addr.sin_port = htons(chtype == PP_NP_GEN ? PP_GEN_PORT : PP_EVT_PORT);
 
-        if (use_pdelay_addr)
-	        addr.sin_addr.s_addr = NP(ppi)->mcast_addr_peer;
-        else
-	        addr.sin_addr.s_addr = NP(ppi)->mcast_addr;
+	if (use_pdelay_addr)
+		addr.sin_addr.s_addr = NP(ppi)->mcast_addr_peer;
+	else
+		addr.sin_addr.s_addr = NP(ppi)->mcast_addr;
 
 	if (t)
 		ppi->t_ops->get(ppi, t);
@@ -239,8 +239,8 @@ static int unix_open_ch(struct pp_instance *ppi, char *ifname, int chtype)
 		memcpy(pmr.mr_address, PP_MCAST_MACADDRESS, ETH_ALEN);
 		setsockopt(sock, SOL_PACKET, PACKET_ADD_MEMBERSHIP,
 			   &pmr, sizeof(pmr)); /* lazily ignore errors */
-                /* add peer delay multicast address */
-                memcpy(pmr.mr_address, PP_PDELAY_MACADDRESS, ETH_ALEN);
+		/* add peer delay multicast address */
+		memcpy(pmr.mr_address, PP_PDELAY_MACADDRESS, ETH_ALEN);
 		setsockopt(sock, SOL_PACKET, PACKET_ADD_MEMBERSHIP,
 			   &pmr, sizeof(pmr)); /* lazily ignore errors */
 
@@ -323,7 +323,7 @@ static int unix_open_ch(struct pp_instance *ppi, char *ifname, int chtype)
 		       &imr, sizeof(struct ip_mreq)) < 0)
 		goto err_out;
 
-        /* Init Peer multicast IP address */
+	/* Init Peer multicast IP address */
 	memcpy(addr_str, PP_PDELAY_DOMAIN_ADDRESS, INET_ADDRSTRLEN);
 
 	context = addr_str; errno = EINVAL;
@@ -332,7 +332,7 @@ static int unix_open_ch(struct pp_instance *ppi, char *ifname, int chtype)
 	NP(ppi)->mcast_addr_peer = net_addr.s_addr;
 	imr.imr_multiaddr.s_addr = net_addr.s_addr;
 
-        /* join multicast group (for receiving) on specified interface */
+	/* join multicast group (for receiving) on specified interface */
 	context = "setsockopt(IP_ADD_MEMBERSHIP)";
 	if (setsockopt(sock, IPPROTO_IP, IP_ADD_MEMBERSHIP,
 		       &imr, sizeof(struct ip_mreq)) < 0)

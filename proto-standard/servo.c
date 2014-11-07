@@ -65,12 +65,12 @@ void pp_servo_got_sync(struct pp_instance *ppi)
 /* Called by slave and uncalib when we have t1 and t2 */
 void pp_servo_got_psync(struct pp_instance *ppi)
 {
-        TimeInternal *m_to_s_dly = &SRV(ppi)->m_to_s_dly;
+	TimeInternal *m_to_s_dly = &SRV(ppi)->m_to_s_dly;
 	TimeInternal *mpd = &DSCUR(ppi)->meanPathDelay;
 	TimeInternal *ofm = &DSCUR(ppi)->offsetFromMaster;
-        Integer32 adj;
+	Integer32 adj;
 
-        pp_diag(ppi, servo, 2, "T1: %s\n", fmt_TI(&ppi->t1));
+	pp_diag(ppi, servo, 2, "T1: %s\n", fmt_TI(&ppi->t1));
 	pp_diag(ppi, servo, 2, "T2: %s\n", fmt_TI(&ppi->t2));
 
 	/*
@@ -82,11 +82,11 @@ void pp_servo_got_psync(struct pp_instance *ppi)
 	pp_diag(ppi, servo, 3, "correction field 1: %s\n",
 		fmt_TI(&ppi->cField));
 
-        /* update 'offsetFromMaster', (End to End mode) */
-        pp_servo_offset_master(ppi, mpd, ofm, m_to_s_dly);
+	/* update 'offsetFromMaster', (End to End mode) */
+	pp_servo_offset_master(ppi, mpd, ofm, m_to_s_dly);
 
 	/* PI controller */
-        adj = pp_servo_pi_controller(ppi, ofm);
+	adj = pp_servo_pi_controller(ppi, ofm);
 
 	/* apply controller output as a clock tick rate adjustment, if
 	 * provided by arch, or as a raw offset otherwise */
@@ -169,14 +169,14 @@ void pp_servo_got_resp(struct pp_instance *ppi)
 	if (pp_servo_bad_event(ppi))
 		return;
 
-        /* mean path delay filtering */
-        pp_servo_mpd_fltr(ppi, mpd_fltr, mpd);
+	/* mean path delay filtering */
+	pp_servo_mpd_fltr(ppi, mpd_fltr, mpd);
 
-        /* update 'offsetFromMaster', (End to End mode) */
-        pp_servo_offset_master(ppi, mpd, ofm, m_to_s_dly);
+	/* update 'offsetFromMaster', (End to End mode) */
+	pp_servo_offset_master(ppi, mpd, ofm, m_to_s_dly);
 
-        /* PI controller */
-        adj = pp_servo_pi_controller(ppi, ofm);
+	/* PI controller */
+	adj = pp_servo_pi_controller(ppi, ofm);
 
 	/* apply controller output as a clock tick rate adjustment, if
 	 * provided by arch, or as a raw offset otherwise */
@@ -205,10 +205,10 @@ void pp_servo_got_presp(struct pp_instance *ppi)
 	 */
 	sub_TimeInternal(s_to_m_dly, &ppi->t6,	&ppi->t5);
 	sub_TimeInternal(s_to_m_dly, s_to_m_dly, &ppi->cField);
-        pp_diag(ppi, servo, 3, "correction field 2: %s\n",
+	pp_diag(ppi, servo, 3, "correction field 2: %s\n",
 		fmt_TI(&ppi->cField));
 
-        sub_TimeInternal(m_to_s_dly, &ppi->t4,	&ppi->t3);
+	sub_TimeInternal(m_to_s_dly, &ppi->t4,	&ppi->t3);
 
 	pp_diag(ppi, servo, 2, "T3: %s\n", fmt_TI(&ppi->t3));
 	pp_diag(ppi, servo, 2, "T4: %s\n", fmt_TI(&ppi->t4));
@@ -226,11 +226,11 @@ void pp_servo_got_presp(struct pp_instance *ppi)
 	if (pp_servo_bad_event(ppi))
 		return;
 
-        pp_servo_mpd_fltr(ppi, mpd_fltr, mpd);
+	pp_servo_mpd_fltr(ppi, mpd_fltr, mpd);
 }
 
 void pp_servo_mpd_fltr(struct pp_instance *ppi, struct pp_avg_fltr *mpd_fltr,
-                        TimeInternal *mpd)
+			TimeInternal *mpd)
 {
 	int s;
 
@@ -286,12 +286,12 @@ void pp_servo_mpd_fltr(struct pp_instance *ppi, struct pp_avg_fltr *mpd_fltr,
 }
 
 void pp_servo_offset_master(struct pp_instance *ppi, TimeInternal *mpd,
-                                TimeInternal *ofm, TimeInternal *m_to_s_dly)
+				TimeInternal *ofm, TimeInternal *m_to_s_dly)
 {
-        Integer32 adj;
+	Integer32 adj;
 
-        sub_TimeInternal(ofm, m_to_s_dly, mpd);
-	pp_diag(ppi, servo, 1, "Offset from master:     %s\n", fmt_TI(ofm));
+	sub_TimeInternal(ofm, m_to_s_dly, mpd);
+	pp_diag(ppi, servo, 1, "Offset from master:	%s\n", fmt_TI(ofm));
 
 	if (OPTS(ppi)->max_rst) { /* If max_rst is 0 then it's OFF */
 		if (ofm->seconds) {
@@ -336,12 +336,12 @@ void pp_servo_offset_master(struct pp_instance *ppi, TimeInternal *mpd,
 
 Integer32 pp_servo_pi_controller(struct pp_instance *ppi, TimeInternal *ofm)
 {
-        long long I_term;
+	long long I_term;
 	long long P_term;
 	long long tmp;
 	int I_sign;
 	int P_sign;
-        Integer32 adj;
+	Integer32 adj;
 
 	/* the accumulator for the I component, shift by 10 to avoid losing bits
 	 * later in the division */
@@ -385,5 +385,5 @@ Integer32 pp_servo_pi_controller(struct pp_instance *ppi, TimeInternal *ofm)
 	else
 		adj = -((-tmp) >> 10);
 
-        return adj;
+	return adj;
 }

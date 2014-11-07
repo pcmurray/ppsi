@@ -72,16 +72,16 @@ static int wr_listening(struct pp_instance *ppi, unsigned char *pkt, int plen)
 static int wr_handle_preq(struct pp_instance *ppi)
 {
 
-        msg_copy_header(&ppi->pdelay_req_hdr,
-                        &ppi->received_ptp_header);
-        ppi->pdelay_req_hdr.correctionfield.msb = 0;
-        ppi->pdelay_req_hdr.correctionfield.lsb =
-                phase_to_cf_units(ppi->last_rcv_time.phase);
+	msg_copy_header(&ppi->pdelay_req_hdr,
+			&ppi->received_ptp_header);
+	ppi->pdelay_req_hdr.correctionfield.msb = 0;
+	ppi->pdelay_req_hdr.correctionfield.lsb =
+		phase_to_cf_units(ppi->last_rcv_time.phase);
 
-        msg_issue_pdelay_resp(ppi, &ppi->last_rcv_time);
-        msg_issue_pdelay_resp_followup(ppi, &ppi->last_snt_time);
+	msg_issue_pdelay_resp(ppi, &ppi->last_rcv_time);
+	msg_issue_pdelay_resp_followup(ppi, &ppi->last_snt_time);
 
-        return 0;
+	return 0;
 }
 
 static int wr_master_msg(struct pp_instance *ppi, unsigned char *pkt, int plen,
@@ -103,10 +103,10 @@ static int wr_master_msg(struct pp_instance *ppi, unsigned char *pkt, int plen,
 		msgtype = PPM_NOTHING_TO_DO;
 		break;
 
-        case PPM_PDELAY_REQ:
-                wr_handle_preq(ppi);
+	case PPM_PDELAY_REQ:
+		wr_handle_preq(ppi);
 		msgtype = PPM_NOTHING_TO_DO;
-                break;
+		break;
 
 	/* This is missing in the standard protocol */
 	case PPM_SIGNALING:
@@ -214,35 +214,35 @@ static int wr_handle_followup(struct pp_instance *ppi,
 	/* TODO Check: generates instability (Tx timestamp invalid) */
 	/* return msg_issue_delay_req(ppi); */
 
-        if (GLBS(ppi)->delay_mech)
-                wr_servo_update(ppi);
+	if (GLBS(ppi)->delay_mech)
+		wr_servo_update(ppi);
 
 	return 1; /* the caller returns too */
 }
 
 static int wr_handle_presp(struct pp_instance *ppi)
 {
-        MsgHeader *hdr = &ppi->received_ptp_header;
-        TimeInternal correction_field;
-        struct wr_dsport *wrp = WR_DSPOR(ppi);
+	MsgHeader *hdr = &ppi->received_ptp_header;
+	TimeInternal correction_field;
+	struct wr_dsport *wrp = WR_DSPOR(ppi);
 	TimeInternal *ofm = &DSCUR(ppi)->offsetFromMaster;
 
-        /* FIXME: check sub-nano relevance of correction filed */
-        cField_to_TimeInternal(&correction_field, hdr->correctionfield);
+	/* FIXME: check sub-nano relevance of correction filed */
+	cField_to_TimeInternal(&correction_field, hdr->correctionfield);
 
-        /*
+	/*
 	 * If no WR mode is on, run normal code, if T2/T3 are valid.
 	 * After we adjusted the pps counter, stamps are invalid, so
 	 * we'll have the Unix time instead, marked by "correct"
 	 */
 
-        if (!wrp->wrModeOn) {
-                if (!ppi->t3.correct || !ppi->t6.correct) {
-                        pp_diag(ppi, servo, 1,
-                                "T3 or T6 incorrect, discarding tuple\n");
-                        return 0;
-                }
-                pp_servo_got_presp(ppi);
+	if (!wrp->wrModeOn) {
+		if (!ppi->t3.correct || !ppi->t6.correct) {
+			pp_diag(ppi, servo, 1,
+				"T3 or T6 incorrect, discarding tuple\n");
+			return 0;
+		}
+		pp_servo_got_presp(ppi);
 		/*
 		 * pps always on if offset less than 1 second,
 		 * until ve have a configurable threshold */
@@ -251,12 +251,12 @@ static int wr_handle_presp(struct pp_instance *ppi)
 		else
 			wrp->ops->enable_timing_output(ppi, 1);
 
-                return 0;
-        }
+		return 0;
+	}
 
-        ppi->t4_cf = hdr->correctionfield.lsb;
+	ppi->t4_cf = hdr->correctionfield.lsb;
 	wr_servo_got_delay(ppi, ppi->t4_cf);
-        return 0;
+	return 0;
 }
 
 int wr_pack_announce(struct pp_instance *ppi)
@@ -289,8 +289,8 @@ struct pp_ext_hooks pp_hooks = {
 	.execute_slave = wr_execute_slave,
 	.handle_announce = wr_handle_announce,
 	.handle_followup = wr_handle_followup,
-        .handle_preq = wr_handle_preq,
-        .handle_presp = wr_handle_presp,
+	.handle_preq = wr_handle_preq,
+	.handle_presp = wr_handle_presp,
 	.pack_announce = wr_pack_announce,
 	.unpack_announce = wr_unpack_announce,
 };

@@ -49,45 +49,45 @@ static struct wr_operations wrpc_wr_operations = {
 };
 
 /*ppi fields*/
-static DSDefault  defaultDS;
-static DSCurrent  currentDS;
-static DSParent   parentDS;
+static DSDefault defaultDS;
+static DSCurrent currentDS;
+static DSParent parentDS;
 static DSTimeProperties timePropertiesDS;
 static struct pp_servo servo;
 
 static struct wr_dsport wr_dsport = {
 	.ops = &wrpc_wr_operations,
 };
-static DSPort     portDS = {
+
+static DSPort portDS = {
 	.ext_dsport = &wr_dsport
 };
-
 
 static int delay_ms = PP_DEFAULT_NEXT_DELAY_MS;
 static int start_tics = 0;
 static int last_link_up = 0;
 
-static struct pp_globals ppg_static; /* forward declaration */
+static struct pp_globals ppg_static;	/* forward declaration */
 
 /* despite the name, ppi_static is not static: tests/measure_t24p.c uses it */
 struct pp_instance ppi_static = {
-	.glbs			= &ppg_static,
-	.portDS			= &portDS,
-	.n_ops			= &wrpc_net_ops,
-	.t_ops			= &wrpc_time_ops,
-	.iface_name		= "wr1",
-	.port_name		= "wr1",
+	.glbs = &ppg_static,
+	.portDS = &portDS,
+	.n_ops = &wrpc_net_ops,
+	.t_ops = &wrpc_time_ops,
+	.iface_name = "wr1",
+	.port_name = "wr1",
 };
 
 /* We now have a structure with all globals, and multiple ppi inside */
 static struct pp_globals ppg_static = {
-	.pp_instances		= &ppi_static,
-	.servo			= &servo,
-	.defaultDS		= &defaultDS,
-	.currentDS		= &currentDS,
-	.parentDS		= &parentDS,
-	.timePropertiesDS	= &timePropertiesDS,
-        .delay_mech             = WRC_E2E,
+	.pp_instances = &ppi_static,
+	.servo = &servo,
+	.defaultDS = &defaultDS,
+	.currentDS = &currentDS,
+	.parentDS = &parentDS,
+	.timePropertiesDS = &timePropertiesDS,
+	.delay_mech = WRC_E2E,
 };
 
 int wrc_ptp_init()
@@ -97,7 +97,7 @@ int wrc_ptp_init()
 	uart_init_sw();
 
 	pp_printf("PPSi for WRPC. Commit %s, built on " __DATE__ "\n",
-		PPSI_VERSION);
+		  PPSI_VERSION);
 
 	return 0;
 }
@@ -111,7 +111,7 @@ int wrc_ptp_set_mode(int mode)
 	struct pp_instance *ppi = &ppi_static;
 	struct pp_globals *ppg = ppi->glbs;
 	struct wr_dsport *wrp = WR_DSPOR(ppi);
-	typeof(ppg->rt_opts->clock_quality.clockClass) *class_ptr;
+	typeof(ppg->rt_opts->clock_quality.clockClass) * class_ptr;
 	int error = 0;
 	/*
 	 * We need to change the class in the default options.
@@ -154,7 +154,7 @@ int wrc_ptp_set_mode(int mode)
 	start_tics = timer_get_tics();
 
 	pp_printf("Locking PLL");
-	wrp->ops->enable_timing_output(ppi, 0); /* later, wr_init chooses */
+	wrp->ops->enable_timing_output(ppi, 0);	/* later, wr_init chooses */
 
 	while (!spll_check_lock(0) && lock_timeout) {
 		timer_delay(TICS_PER_SECOND);
@@ -187,13 +187,13 @@ void wrc_ptp_set_sync_mech(int mech)
 
 	wrc_ptp_stop();
 
-        ppg->delay_mech = mech;
-        ptp_sync_mech = mech;
+	ppg->delay_mech = mech;
+	ptp_sync_mech = mech;
 }
 
 int wrc_ptp_get_sync_mech()
 {
-        return ptp_sync_mech;
+	return ptp_sync_mech;
 }
 
 int wrc_ptp_start()
@@ -223,7 +223,7 @@ int wrc_ptp_stop()
 	/* Moving fiber: forget about this parent (FIXME: shouldn't be here) */
 	wrp->parentWrConfig = wrp->parentWrModeOn = 0;
 	memset(ppi->frgn_master, 0, sizeof(ppi->frgn_master));
-	ppi->frgn_rec_num = 0;          /* no known master */
+	ppi->frgn_rec_num = 0;	/* no known master */
 
 	ptp_enabled = 0;
 	wr_servo_reset();

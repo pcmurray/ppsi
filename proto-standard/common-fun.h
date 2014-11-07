@@ -44,10 +44,10 @@ int st_com_peer_handle_pres(struct pp_instance *ppi, unsigned char *buf,
 static inline int __send_and_log(struct pp_instance *ppi, int msglen,
 				 int msgtype, int chtype)
 {
-        int pdelay_addr = 0;
+	int pdelay_addr = 0;
 
-        if (msgtype == PPM_PDELAY_REQ || msgtype == PPM_PDELAY_RESP)
-                pdelay_addr = 1;
+	if (msgtype == PPM_PDELAY_REQ || msgtype == PPM_PDELAY_RESP)
+		pdelay_addr = 1;
 
 	if (ppi->n_ops->send(ppi, ppi->tx_frame, msglen + NP(ppi)->ptp_offset,
 			    &ppi->last_snt_time, chtype, pdelay_addr) < msglen) {

@@ -51,9 +51,9 @@ int main(int argc, char **argv)
 	ppg->servo = &servo;
 	ppg->rt_opts = &__pp_default_rt_opts;
 #ifdef CONFIG_P2P
-        ppg->delay_mech = PP_P2P_MECH;
+	ppg->delay_mech = PP_P2P_MECH;
 #else
-        ppg->delay_mech = PP_E2E_MECH;
+	ppg->delay_mech = PP_E2E_MECH;
 #endif
 
 	/* We are hosted, so we can allocate */
@@ -91,8 +91,7 @@ int main(int argc, char **argv)
 		if (ppi->cfg.role == PPSI_ROLE_MASTER) {
 			ppi->master_only = 1;
 			ppi->slave_only = 0;
-		}
-		else if (ppi->cfg.role == PPSI_ROLE_SLAVE) {
+		} else if (ppi->cfg.role == PPSI_ROLE_SLAVE) {
 			ppi->master_only = 0;
 			ppi->slave_only = 1;
 		}
@@ -117,5 +116,5 @@ int main(int argc, char **argv)
 	ppsi_drop_init(ppg, seed);
 
 	unix_main_loop(ppg);
-	return 0; /* never reached */
+	return 0;		/* never reached */
 }

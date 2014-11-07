@@ -148,10 +148,10 @@ int st_com_slave_handle_sync(struct pp_instance *ppi, unsigned char *buf,
 	to_TimeInternal(&ppi->t1,
 			&sync.originTimestamp);
 
-        if (GLBS(ppi)->delay_mech)
-	        pp_servo_got_psync(ppi);
-        else
-	        pp_servo_got_sync(ppi);
+	if (GLBS(ppi)->delay_mech)
+		pp_servo_got_psync(ppi);
+	else
+		pp_servo_got_sync(ppi);
 
 	return 0;
 }
@@ -159,13 +159,13 @@ int st_com_slave_handle_sync(struct pp_instance *ppi, unsigned char *buf,
 int st_com_peer_handle_pres(struct pp_instance *ppi, unsigned char *buf,
 			     int len)
 {
-        MsgPDelayResp resp;
+	MsgPDelayResp resp;
 	MsgHeader *hdr = &ppi->received_ptp_header;
 
 	if (len < PP_PDELAY_RESP_LENGTH)
 		return -1;
 
-        msg_unpack_pdelay_resp(buf, &resp);
+	msg_unpack_pdelay_resp(buf, &resp);
 
 	if ((memcmp(&DSPOR(ppi)->portIdentity.clockIdentity,
 		&resp.requestingPortIdentity.clockIdentity,
@@ -173,35 +173,35 @@ int st_com_peer_handle_pres(struct pp_instance *ppi, unsigned char *buf,
 		((ppi->sent_seq[PPM_PDELAY_REQ]) ==
 			hdr->sequenceId) &&
 		(DSPOR(ppi)->portIdentity.portNumber ==
-		        resp.requestingPortIdentity.portNumber) &&
-                ppi->is_from_cur_par) {
+			resp.requestingPortIdentity.portNumber) &&
+		ppi->is_from_cur_par) {
 
-                to_TimeInternal(&ppi->t4, &resp.requestReceiptTimestamp);
+		to_TimeInternal(&ppi->t4, &resp.requestReceiptTimestamp);
 		ppi->t6 = ppi->last_rcv_time;
-                ppi->t6_cf = phase_to_cf_units(ppi->last_rcv_time.phase);
-                ppi->waiting_for_resp_follow = TRUE;
+		ppi->t6_cf = phase_to_cf_units(ppi->last_rcv_time.phase);
+		ppi->waiting_for_resp_follow = TRUE;
 
-                /* todo: in one clock the presp carries t5-t4 */
+		/* todo: in one clock the presp carries t5-t4 */
 
 	} else {
 		pp_diag(ppi, frames, 2, "pp_pclock : "
 		     "PDelay Resp doesn't match PDelay Req\n");
 	}
-        return 0;
+	return 0;
 }
 
 int st_com_peer_handle_preq(struct pp_instance *ppi, unsigned char *buf,
 			     int len)
 {
-        if (len < PP_PDELAY_REQ_LENGTH)
+	if (len < PP_PDELAY_REQ_LENGTH)
 		return -1;
 
-        msg_copy_header(&ppi->pdelay_req_hdr,
+	msg_copy_header(&ppi->pdelay_req_hdr,
 			&ppi->received_ptp_header);
 	msg_issue_pdelay_resp(ppi, &ppi->last_rcv_time);
 	msg_issue_pdelay_resp_followup(ppi, &ppi->last_snt_time);
 
-        return 0;
+	return 0;
 }
 
 /* Called by slave and uncalibrated */
@@ -246,10 +246,10 @@ int st_com_slave_handle_followup(struct pp_instance *ppi, unsigned char *buf,
 	if (ret < 0)
 		return ret;
 
-        if (GLBS(ppi)->delay_mech)
-                pp_servo_got_psync(ppi);
-        else
-	        pp_servo_got_sync(ppi);
+	if (GLBS(ppi)->delay_mech)
+		pp_servo_got_psync(ppi);
+	else
+		pp_servo_got_sync(ppi);
 
 	return 0;
 }

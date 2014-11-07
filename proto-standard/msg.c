@@ -231,28 +231,28 @@ void msg_pack_pdelay_resp_follow_up(struct pp_instance *ppi,
 
 	buf = ppi->tx_ptp;
 
-        /* header */
+	/* header */
 	*(char *)(buf + 0) = *(char *)(buf + 0) & 0xF0;
 	/* RAZ messageType */
 	*(char *)(buf + 0) = *(char *)(buf + 0) | 0x0A;
 
 	*(UInteger16 *) (buf + 2) = htons(PP_PDELAY_RESP_LENGTH);
 	*(UInteger8 *) (buf + 4)  = hdr->domainNumber;
-        /* copy the correction field, 11.4.3 c.3) */
-        *(Integer32 *) (buf + 8)  = htonl(hdr->correctionfield.msb);
+	/* copy the correction field, 11.4.3 c.3) */
+	*(Integer32 *) (buf + 8)  = htonl(hdr->correctionfield.msb);
 	*(Integer32 *) (buf + 12) = htonl(hdr->correctionfield.lsb);
 
 	*(UInteger16 *) (buf + 30) = htons(hdr->sequenceId);
 	*(UInteger8 *) (buf + 32) = 0x05; /* controlField */
 
-        /* requestReceiptTimestamp */
+	/* requestReceiptTimestamp */
 	*(UInteger16 *) (buf + 34) =
 		htons(prec_orig_tstamp->secondsField.msb);
 	*(UInteger32 *) (buf + 36) = htonl(prec_orig_tstamp->secondsField.lsb);
 	*(UInteger32 *) (buf + 40) = htonl(prec_orig_tstamp->nanosecondsField);
 
-        /* requestingPortIdentity */
-        memcpy((buf + 44), &hdr->sourcePortIdentity.clockIdentity,
+	/* requestingPortIdentity */
+	memcpy((buf + 44), &hdr->sourcePortIdentity.clockIdentity,
 		  PP_CLOCK_IDENTITY_LENGTH);
 	*(UInteger16 *) (buf + 52) =
 		htons(hdr->sourcePortIdentity.portNumber);
@@ -330,7 +330,7 @@ void msg_pack_pdelay_req(struct pp_instance *ppi, Timestamp *orig_tstamp)
 	*(UInteger16 *) (buf + 2) = htons(PP_PDELAY_REQ_LENGTH);
 	ppi->sent_seq[PPM_DELAY_REQ]++;
 
-        /* TO DO, 11.4.3 a.1) if synthed peer-to-peer TC */
+	/* TO DO, 11.4.3 a.1) if synthed peer-to-peer TC */
 	/* *(char *)(buf + 4) = 0 .- not sythonized / X synt domain */
 
 	memset((buf + 8), 0, 8);
@@ -355,27 +355,27 @@ void msg_pack_pdelay_resp(struct pp_instance *ppi,
 
 	buf = ppi->tx_ptp;
 
-        /* header */
+	/* header */
 	*(char *)(buf + 0) = *(char *)(buf + 0) & 0xF0;
 	/* RAZ messageType */
 	*(char *)(buf + 0) = *(char *)(buf + 0) | 0x03;
 
 	*(UInteger16 *) (buf + 2) = htons(PP_PDELAY_RESP_LENGTH);
 	*(UInteger8 *) (buf + 4) = hdr->domainNumber;
-        /* set 0 the correction field, 11.4.3 c.3) */
+	/* set 0 the correction field, 11.4.3 c.3) */
 	memset((buf + 8), 0, 8);
 
 	*(UInteger16 *) (buf + 30) = htons(hdr->sequenceId);
 	*(UInteger8 *) (buf + 32) = 0x05; /* controlField */
 
-        /* requestReceiptTimestamp */
+	/* requestReceiptTimestamp */
 	*(UInteger16 *) (buf + 34) =
 		htons(rcv_tstamp->secondsField.msb);
 	*(UInteger32 *) (buf + 36) = htonl(rcv_tstamp->secondsField.lsb);
 	*(UInteger32 *) (buf + 40) = htonl(rcv_tstamp->nanosecondsField);
 
-        /* requestingPortIdentity */
-        memcpy((buf + 44), &hdr->sourcePortIdentity.clockIdentity,
+	/* requestingPortIdentity */
+	memcpy((buf + 44), &hdr->sourcePortIdentity.clockIdentity,
 		  PP_CLOCK_IDENTITY_LENGTH);
 	*(UInteger16 *) (buf + 52) =
 		htons(hdr->sourcePortIdentity.portNumber);

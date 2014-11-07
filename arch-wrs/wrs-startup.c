@@ -26,7 +26,7 @@
 #include <ppsi-wrs.h>
 
 #define WRSW_HAL_RETRIES 1000
-#define WRSW_HAL_TIMEOUT 2000000 /* us */
+#define WRSW_HAL_TIMEOUT 2000000	/* us */
 
 static struct wr_operations wrs_wr_operations = {
 	.locking_enable = wrs_locking_enable,
@@ -70,18 +70,17 @@ int main(int argc, char **argv)
 
 	setbuf(stdout, NULL);
 
-	pp_printf("PPSi. Commit %s, built on " __DATE__ "\n",
-		PPSI_VERSION);
+	pp_printf("PPSi. Commit %s, built on " __DATE__ "\n", PPSI_VERSION);
 
 	/* try connecting to HAL multiple times in case it's still not ready */
 	hal_retries = WRSW_HAL_RETRIES;
-	for(;;) {
+	for (;;) {
 		hal_ch = minipc_client_create(WRSW_HAL_SERVER_ADDR,
 					      MINIPC_FLAG_VERBOSE);
 		if (!hal_ch)
 			hal_retries--;
 
-		if(hal_ch || !hal_retries)
+		if (hal_ch || !hal_retries)
 			break;
 
 		usleep(WRSW_HAL_TIMEOUT);
@@ -93,7 +92,7 @@ int main(int argc, char **argv)
 	}
 
 	ppsi_ch = minipc_server_create("ptpd", 0);
-	if (!ppsi_ch) { /* FIXME should we retry with minipc_server_create? */
+	if (!ppsi_ch) {		/* FIXME should we retry with minipc_server_create? */
 		pp_printf("Fatal: could not create minipc server");
 		exit(__LINE__);
 	}
@@ -107,9 +106,9 @@ int main(int argc, char **argv)
 	ppg->servo = &servo;
 	ppg->rt_opts = &__pp_default_rt_opts;
 #ifdef CONFIG_P2P
-        ppg->delay_mech = PP_P2P_MECH;
+	ppg->delay_mech = PP_P2P_MECH;
 #else
-        ppg->delay_mech = PP_E2E_MECH;
+	ppg->delay_mech = PP_E2E_MECH;
 #endif
 
 	/* We are hosted, so we can allocate */
@@ -165,8 +164,7 @@ int main(int argc, char **argv)
 		if (ppi->cfg.role == PPSI_ROLE_MASTER) {
 			ppi->master_only = 1;
 			ppi->slave_only = 0;
-		}
-		else if (ppi->cfg.role == PPSI_ROLE_SLAVE) {
+		} else if (ppi->cfg.role == PPSI_ROLE_SLAVE) {
 			ppi->master_only = 0;
 			ppi->slave_only = 1;
 		}
@@ -178,7 +176,7 @@ int main(int argc, char **argv)
 		ppi->portDS->ext_dsport = calloc(1, sizeof(struct wr_dsport));
 		if (!ppi->portDS->ext_dsport)
 			exit(__LINE__);
-		wrp = WR_DSPOR(ppi); /* just allocated above */
+		wrp = WR_DSPOR(ppi);	/* just allocated above */
 		wrp->ops = &wrs_wr_operations;
 
 		/* The following default names depend on TIME= at build time */
@@ -195,5 +193,5 @@ int main(int argc, char **argv)
 	ppsi_drop_init(ppg, seed);
 
 	wrs_main_loop(ppg);
-	return 0; /* never reached */
+	return 0;		/* never reached */
 }

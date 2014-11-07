@@ -75,9 +75,9 @@ endif
 include proto-standard/Makefile
 
 ifeq ($(CONFIG_E2E),y)
- CFLAGS += -DCONFIG_E2E
+  CFLAGS += -DCONFIG_E2E
 else
- CFLAGS += -DCONFIG_P2P
+  CFLAGS += -DCONFIG_P2P
 endif
 
 # ...and the TIME choice sets the default operations

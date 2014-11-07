@@ -100,8 +100,8 @@ enum pp_timeouts {
 #define PP_MCAST_MACADDRESS		"\x01\x1B\x19\x00\x00\x00"
 #define PP_PDELAY_MACADDRESS		"\x01\x80\xC2\x00\x00\x0E"
 
-#define PP_E2E_MECH     0
-#define PP_P2P_MECH     1
+#define PP_E2E_MECH	0
+#define PP_P2P_MECH	1
 
 #include <arch/constants.h> /* architectures may override the defaults */
 

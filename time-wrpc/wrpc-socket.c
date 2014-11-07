@@ -22,10 +22,10 @@ static int wrpc_open_ch(struct pp_instance *ppi)
 	memcpy(addr.mac, PP_MCAST_MACADDRESS, sizeof(mac_addr_t));
 
 	sock = ptpd_netif_create_socket(PTPD_SOCK_RAW_ETHERNET,
-                                        PTPD_FLAGS_MULTICAST, &addr);
+					PTPD_FLAGS_MULTICAST, &addr);
 
 	memcpy(addr.mac, PP_PDELAY_MACADDRESS, sizeof(mac_addr_t));
-        ptpd_netif_multicast_group(sock, &addr);
+	ptpd_netif_multicast_group(sock, &addr);
 
 	if (!sock)
 		return -1;
