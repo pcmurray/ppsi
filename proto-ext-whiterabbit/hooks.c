@@ -16,6 +16,9 @@ static int wr_init(struct pp_instance *ppi, unsigned char *pkt, int plen)
 	wp->parentWrModeOn = 0;
 	wp->calibrated = !WR_DEFAULT_PHY_CALIBRATION_REQUIRED;
 
+	DSCUR(ppi)->primarySlavePortNumber   = -1;
+	DSCUR(ppi)->primarySlavePortPriority = -1;
+
 	if ((wp->wrConfig & WR_M_AND_S) == WR_M_ONLY)
 		wp->ops->enable_timing_output(ppi, 1);
 	else
@@ -158,6 +161,7 @@ static void wr_s1(struct pp_instance *ppi, MsgHeader *hdr, MsgAnnounce *ann)
 	WR_DSPOR(ppi)->parentWrConfig = ann->ext_specific & WR_NODE_MODE;
 	DSCUR(ppi)->primarySlavePortNumber =
 		DSPOR(ppi)->portIdentity.portNumber;
+	DSCUR(ppi)->primarySlavePortPriority = ppi->slave_prio;
 }
 
 static int wr_execute_slave(struct pp_instance *ppi)

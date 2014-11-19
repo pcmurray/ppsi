@@ -57,20 +57,22 @@ static int run_all_state_machines(struct pp_globals *ppg)
 // 				if (ppg->ebest_idx == ppi->port_idx)	
 // 					wr_servo_reset();
 				//ML: temp hack: when backup port 1 goes down, change it to slave
-				if( ppi->port_idx == 0)
-				{
-				    INST(ppg, 0)->slave_only  = 0;
-				    INST(ppg, 0)->backup_only = 1;
-				    INST(ppg, 1)->slave_only  = 1;
-				    INST(ppg, 1)->backup_only = 0;
-				}
-				else if(ppi->port_idx == 1)
-				{
-				    INST(ppg, 0)->slave_only  = 1;
-				    INST(ppg, 0)->backup_only = 0;
-				    INST(ppg, 1)->slave_only  = 0;
-				    INST(ppg, 1)->backup_only = 1;
-				}
+// 				if( ppi->port_idx == 0)
+// 				{
+// 				    INST(ppg, 0)->slave_only  = 0;
+// 				    INST(ppg, 0)->backup_only = 1;
+// 				    INST(ppg, 1)->slave_only  = 1;
+// 				    INST(ppg, 1)->backup_only = 0;
+// 				}
+// 				else if(ppi->port_idx == 1)
+// 				{
+// 				    INST(ppg, 0)->slave_only  = 1;
+// 				    INST(ppg, 0)->backup_only = 0;
+// 				    INST(ppg, 1)->slave_only  = 0;
+// 				    INST(ppg, 1)->backup_only = 1;
+// 				}
+// 				DSCUR(ppi)->primarySlavePortNumber   = -1;
+// 				DSCUR(ppi)->primarySlavePortPriority = -1; 
 
 			}
 		}
@@ -151,7 +153,14 @@ void wrs_main_loop(struct pp_globals *ppg)
 			delay_ms = run_all_state_machines(ppg);
 			continue;
 		}
-
+		//TODO: if works, make it sexy, now it's a hack
+// 		if(WR_DSPOR(INST(ppg, 0))->ops->active_poll() < 0) // no active port
+// 		{
+// 			pp_printf("[Switchover] reset primarySlavePortNumber/Priority\n");
+// 			DSCUR(INST(ppg, 0))->primarySlavePortNumber   = -1;
+// 			DSCUR(INST(ppg, 0))->primarySlavePortPriority = -1; 
+// 		}
+		
 		/* If delay_ms is -1, the above ops.check_packet will continue
 		 * consuming the previous timeout (see its implementation).
 		 * This ensures that every state machine is called at least once

@@ -491,6 +491,8 @@ int wr_servo_update(struct pp_instance *ppi)
 				tmp_setpoint,s->cur_setpoint ,(s->delta_ms - s->delta_ms_prev));
 				s->cur_setpoint = tmp_setpoint + ts_offset_hw.phase;
 				tmp_setpoint = wrp->ops->adjust_phase(s->cur_setpoint, ppi->port_idx);
+				DSCUR(ppi)->primarySlavePortNumber   = ppi->port_idx;
+				DSCUR(ppi)->primarySlavePortPriority = ppi->slave_prio;
 			}
 			else
 

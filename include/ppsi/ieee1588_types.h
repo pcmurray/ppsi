@@ -234,6 +234,7 @@ typedef struct DSCurrent {		/* page 67 */
 	TimeInternal	meanPathDelay; /* oneWayDelay */
 	/* White Rabbit extension begin */
 	UInteger16	primarySlavePortNumber;
+	UInteger16	primarySlavePortPriority;
 	/* White Rabbit extension end */
 } DSCurrent;
 

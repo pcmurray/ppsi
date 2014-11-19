@@ -76,7 +76,7 @@ static void s1(struct pp_instance *ppi, MsgHeader *hdr, MsgAnnounce *ann)
 	prop->frequencyTraceable = ((hdr->flagField[1] & FFB_FTRA) != 0);
 	prop->ptpTimescale = ((hdr->flagField[1] & FFB_PTP) != 0);
 
-	ppi->slave_prio = 0;
+// 	ppi->slave_prio = 0;
 
 	if (pp_hooks.s1)
 		pp_hooks.s1(ppi, hdr, ann);
@@ -85,7 +85,7 @@ static void s1(struct pp_instance *ppi, MsgHeader *hdr, MsgAnnounce *ann)
 /*ML: backup slave according to the WRSPEC. */
 static void s2(struct pp_instance *ppi, MsgHeader *hdr, MsgAnnounce *ann)
 {
-	ppi->slave_prio=1; // important, it is used later everyhwere to recognize backup port
+// 	ppi->slave_prio=1; // important, it is used later everyhwere to recognize backup port
 	
 	pp_diag(ppi, bmc, 1,"backup slave at port: %d\n",ppi->port_idx);
 	
@@ -205,6 +205,18 @@ static int bmc_state_decision(struct pp_instance *ppi,
 	int cmpres;
 	struct pp_frgn_master myself;
 
+// 	if (ppi->master_only)
+// 		goto master;
+// 
+// 	if (ppi->slave_only)
+// 		goto slave;
+// 	
+// 	if (ppi->backup_only)
+// 		goto backup;
+	
+	if ((!ppi->frgn_rec_num) && (ppi->state == PPS_LISTENING))
+		return PPS_LISTENING;
+
 	if (ppi->master_only)
 		goto master;
 
@@ -214,9 +226,6 @@ static int bmc_state_decision(struct pp_instance *ppi,
 	if (ppi->backup_only)
 		goto backup;
 	
-	if ((!ppi->frgn_rec_num) && (ppi->state == PPS_LISTENING))
-		return PPS_LISTENING;
-
 	/* copy local information to a foreign_master structure */
 	copy_d0(ppi, &myself);
 
@@ -264,7 +273,7 @@ passive:
 
 backup: // according to WRSPEC, instead of PASSIVE
 	s2(ppi, &m->hdr, &m->ann);
-	pp_diag(ppi, bmc, 1,"%s: backup slave\n", __func__);
+	pp_diag(ppi, bmc, 1,"%s: backup-only slave\n", __func__);
 	return PPS_SLAVE;
 	
 master:
@@ -273,9 +282,31 @@ master:
 	return PPS_MASTER;
 
 slave:
-	s1(ppi, &m->hdr, &m->ann);
-	pp_diag(ppi, bmc, 1,"%s: slave\n", __func__);
-	return PPS_SLAVE;
+	// TODO: WR-proto
+	
+	// first slave port to go up  OR
+	// port configuration forces single slave (prio=0)
+	if(DSCUR(ppi)->primarySlavePortNumber < 0 || ppi->slave_prio == 0 || 
+	    DSCUR(ppi)->primarySlavePortNumber == ppi->port_idx) 
+	{
+		s1(ppi, &m->hdr, &m->ann);
+		pp_diag(ppi, bmc, 1,"%s: slave (prio %d)\n", __func__, ppi->slave_prio);
+		return PPS_SLAVE;
+	}
+	// port that should be active slave (better prio) 
+	else if(ppi->slave_prio < DSCUR(ppi)->primarySlavePortPriority) 
+	{
+		s1(ppi, &m->hdr, &m->ann);
+		pp_diag(ppi, bmc, 1,"%s: slave (prio %d)\n", __func__, ppi->slave_prio);
+		return PPS_SLAVE;
+	}
+	else // this is just a backup
+	{
+		s2(ppi, &m->hdr, &m->ann);
+		pp_diag(ppi, bmc, 1,"%s: backup slave (prio %d)\n", __func__, ppi->slave_prio);
+		return PPS_SLAVE;
+	}
+	
 
 }
 
@@ -310,7 +341,8 @@ int bmc(struct pp_instance *ppi)
 	int i, best;
 
 	if (!ppi->frgn_rec_num)
-		if (ppi->state == PPS_MASTER)	{
+// 		if (ppi->state == PPS_MASTER)	//ML: when starting with our forcing fo states strange things happen
+		{
 			m1(ppi);
 			return ppi->state;
 		}
