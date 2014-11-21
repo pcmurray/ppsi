@@ -34,6 +34,7 @@ struct pp_runtime_opts {
 	UInteger8 prio1;
 	UInteger8 prio2;
 	UInteger8 domain_number;
+	int wr_red; /*FIXME: put it to a proper extension funct*/
 	void *arch_opts;
 };
 
@@ -219,6 +220,7 @@ struct pp_globals {
 	int rxdrop, txdrop;		/* fault injection, per thousand */
 
 	void *arch_data;		/* if arch needs it */
+	void *ext_data;			/* if protocol ext needs it */
 	/* FIXME Here include all is common to many interfaces */
 };
 

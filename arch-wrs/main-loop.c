@@ -55,25 +55,7 @@ static int run_all_state_machines(struct pp_globals *ppg)
 				//ML: temp hack to make sure we don't reset servo when switchover
 				//TODO: detect whether we have backup and reset only if we don't
 // 				if (ppg->ebest_idx == ppi->port_idx)	
-// 					wr_servo_reset();
-				//ML: temp hack: when backup port 1 goes down, change it to slave
-// 				if( ppi->port_idx == 0)
-// 				{
-// 				    INST(ppg, 0)->slave_only  = 0;
-// 				    INST(ppg, 0)->backup_only = 1;
-// 				    INST(ppg, 1)->slave_only  = 1;
-// 				    INST(ppg, 1)->backup_only = 0;
-// 				}
-// 				else if(ppi->port_idx == 1)
-// 				{
-// 				    INST(ppg, 0)->slave_only  = 1;
-// 				    INST(ppg, 0)->backup_only = 0;
-// 				    INST(ppg, 1)->slave_only  = 0;
-// 				    INST(ppg, 1)->backup_only = 1;
-// 				}
-// 				DSCUR(ppi)->primarySlavePortNumber   = -1;
-// 				DSCUR(ppi)->primarySlavePortPriority = -1; 
-
+// 					wr_servo_reset();	
 			}
 		}
 
@@ -89,6 +71,12 @@ static int run_all_state_machines(struct pp_globals *ppg)
 		if (delay_ms_j < delay_ms)
 			delay_ms = delay_ms_j;
 	}
+		//TODO: hooks
+		if(WR_DSPOR(INST(ppg, 0))->ops->active_poll() < 0){
+			pp_printf( "resetting primarySlavePortNumber \n");
+			WR_DSCUR(INST(ppg, 0))->primarySlavePortNumber   = -1;
+			WR_DSCUR(INST(ppg, 0))->primarySlavePortPriority = -1;
+		}
 
 	return delay_ms;
 }

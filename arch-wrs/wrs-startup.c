@@ -65,6 +65,7 @@ int main(int argc, char **argv)
 	struct pp_globals *ppg;
 	struct pp_instance *ppi;
 	struct wr_dsport *wrp;
+	struct wr_dscurrent *wrc;
 	unsigned long seed;
 	struct timex t;
 	int i, hal_retries;
@@ -111,9 +112,10 @@ int main(int argc, char **argv)
 	/* We are hosted, so we can allocate */
 	ppg->max_links = PP_MAX_LINKS;
 	ppg->arch_data = calloc(1, sizeof(struct unix_arch_data));
+	ppg->ext_data  = calloc(1, sizeof(struct wr_dscurrent));
 	ppg->pp_instances = calloc(ppg->max_links, sizeof(struct pp_instance));
 
-	if ((!ppg->arch_data) || (!ppg->pp_instances))
+	if ((!ppg->arch_data) || (!ppg->pp_instances) || (!ppg->ext_data))
 		exit(__LINE__);
 
 	/* Set offset here, so config parsing can override it */
@@ -177,6 +179,12 @@ int main(int argc, char **argv)
 			ppi->slave_prio = 1;
 			pp_printf("Startup: port %d is Backup\n", i);
 		}
+		else
+			ppi->slave_prio = 7;
+		
+		//FIXME: move it to WR ext
+		if(ppg->rt_opts->wr_red == PPSI_EXT_RED_DIS) 
+			ppi->slave_prio = -1;
 		pp_printf("Startup: port %d prio: %d | slave: %d | master: %d\n", i,
 			ppi->slave_prio, ppi->slave_only, ppi->master_only);
 		
@@ -198,6 +206,9 @@ int main(int argc, char **argv)
 
 	}
 
+	WR_DSCUR(ppi)->primarySlavePortNumber   = -1;
+	WR_DSCUR(ppi)->primarySlavePortPriority = -1;
+	
 	pp_init_globals(ppg, &__pp_default_rt_opts);
 
 	seed = time(NULL);

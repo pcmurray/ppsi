@@ -48,11 +48,24 @@ struct wr_dsport {
 	Boolean linkUP;
 };
 
+/* Current Data Set */
+struct wr_dscurrent {		/* page 67 */
+	Integer16	primarySlavePortNumber;
+	Integer16	primarySlavePortPriority;
+};
+
 /* This uppercase name matches "DSPOR(ppi)" used by standard protocol */
 static inline struct wr_dsport *WR_DSPOR(struct pp_instance *ppi)
 {
 	return ppi->portDS->ext_dsport;
 }
+
+/* This uppercase name matches "DSPOR(ppi)" used by standard protocol */
+static inline struct wr_dscurrent *WR_DSCUR(struct pp_instance *ppi)
+{
+	return ppi->glbs->ext_data;
+}
+
 
 static inline Integer32 phase_to_cf_units(Integer32 phase)
 {
