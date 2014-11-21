@@ -58,7 +58,7 @@ int msg_unpack_header(struct pp_instance *ppi, void *buf, int plen)
 			PP_CLOCK_IDENTITY_LENGTH) &&
 			(DSPAR(ppi)->parentPortIdentity.portNumber ==
 			 hdr->sourcePortIdentity.portNumber)))
-			 || ppi->slave_prio > 0) // ML very bad hack
+			 || ppi->slave_prio >= 0) // FIXME: ML very bad hack
 		ppi->is_from_cur_par = 1;
 	else
 		ppi->is_from_cur_par = 0;
