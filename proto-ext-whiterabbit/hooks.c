@@ -16,9 +16,6 @@ static int wr_init(struct pp_instance *ppi, unsigned char *pkt, int plen)
 	wp->parentWrModeOn = 0;
 	wp->calibrated = !WR_DEFAULT_PHY_CALIBRATION_REQUIRED;
 
-	DSCUR(ppi)->primarySlavePortNumber   = -1;
-	DSCUR(ppi)->primarySlavePortPriority = -1;
-
 	if ((wp->wrConfig & WR_M_AND_S) == WR_M_ONLY)
 		wp->ops->enable_timing_output(ppi, 1);
 	else
@@ -61,7 +58,7 @@ static int wr_open(struct pp_globals *ppg, struct pp_runtime_opts *rt_opts)
 		else
 			WR_DSPOR(ppi)->wrConfig = NON_WR;
 	}
-
+	
 	return 0;
 }
 
@@ -159,9 +156,19 @@ static void wr_s1(struct pp_instance *ppi, MsgHeader *hdr, MsgAnnounce *ann)
 	WR_DSPOR(ppi)->parentCalibrated =
 			((ann->ext_specific & WR_IS_CALIBRATED) ? 1 : 0);
 	WR_DSPOR(ppi)->parentWrConfig = ann->ext_specific & WR_NODE_MODE;
-	DSCUR(ppi)->primarySlavePortNumber =
-		DSPOR(ppi)->portIdentity.portNumber;
-	DSCUR(ppi)->primarySlavePortPriority = ppi->slave_prio;
+	WR_DSCUR(ppi)->primarySlavePortNumber   = ppi->port_idx;
+	WR_DSCUR(ppi)->primarySlavePortPriority = ppi->slave_prio;
+}
+
+static void wr_s2(struct pp_instance *ppi, MsgHeader *hdr, MsgAnnounce *ann)
+{
+	WR_DSPOR(ppi)->parentIsWRnode =
+		((ann->ext_specific & WR_NODE_MODE) != NON_WR);
+	WR_DSPOR(ppi)->parentWrModeOn =
+		(ann->ext_specific & WR_IS_WR_MODE) ? TRUE : FALSE;
+	WR_DSPOR(ppi)->parentCalibrated =
+			((ann->ext_specific & WR_IS_CALIBRATED) ? 1 : 0);
+	WR_DSPOR(ppi)->parentWrConfig = ann->ext_specific & WR_NODE_MODE;
 }
 
 static int wr_execute_slave(struct pp_instance *ppi)
@@ -227,6 +234,7 @@ struct pp_ext_hooks pp_hooks = {
 	.new_slave = wr_new_slave,
 	.handle_resp = wr_handle_resp,
 	.s1 = wr_s1,
+	.s2 = wr_s2,
 	.execute_slave = wr_execute_slave,
 	.handle_announce = wr_handle_announce,
 	.handle_followup = wr_handle_followup,

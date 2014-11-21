@@ -171,7 +171,8 @@ int wr_servo_init(struct pp_instance *ppi)
 	s->delta_tx_s = ((((int32_t)WR_DSPOR(ppi)->deltaTx.scaledPicoseconds.lsb) >> 16) & 0xffff) | (((int32_t)WR_DSPOR(ppi)->deltaTx.scaledPicoseconds.msb) << 16);
 	s->delta_rx_s = ((((int32_t)WR_DSPOR(ppi)->deltaRx.scaledPicoseconds.lsb) >> 16) & 0xffff) | (((int32_t)WR_DSPOR(ppi)->deltaRx.scaledPicoseconds.msb) << 16);
 
-	if(ppi->slave_prio != 0 ) // only for active slave
+// 	if(ppi->slave_prio != 0 ) // only for active slave
+	if(ppi->port_idx != wrp->ops->active_poll())
 		return 0;
 	cur_servo_state.delta_tx_m = (int64_t)s->delta_tx_m;
 	cur_servo_state.delta_rx_m = (int64_t)s->delta_rx_m;

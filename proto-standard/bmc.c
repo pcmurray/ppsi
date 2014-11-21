@@ -89,8 +89,8 @@ static void s2(struct pp_instance *ppi, MsgHeader *hdr, MsgAnnounce *ann)
 	
 	pp_diag(ppi, bmc, 1,"backup slave at port: %d\n",ppi->port_idx);
 	
-	if (pp_hooks.s1)
-		pp_hooks.s1(ppi, hdr, ann);
+	if (pp_hooks.s2)
+		pp_hooks.s2(ppi, hdr, ann);
 }
 
 static void p1(struct pp_instance *ppi, MsgHeader *hdr, MsgAnnounce *ann)
@@ -282,24 +282,34 @@ master:
 	return PPS_MASTER;
 
 slave:
-	// TODO: WR-proto
+	// TODO: should be in the WR-proto
+	// probably, it will still change 
+	pp_diag(ppi, bmc, 1,"%s: slave decision: port_slave_prio=%d, primarySlavePortPriority=%d "
+			    "primarySlavePortNumber=%d\n",__func__, ppi->slave_prio, 
+			    WR_DSCUR(ppi)->primarySlavePortPriority,WR_DSCUR(ppi)->primarySlavePortNumber);
 	
 	// first slave port to go up  OR
 	// port configuration forces single slave (prio=0)
-	if(DSCUR(ppi)->primarySlavePortNumber < 0 || ppi->slave_prio == 0 || 
-	    DSCUR(ppi)->primarySlavePortNumber == ppi->port_idx) 
+	if(WR_DSCUR(ppi)->primarySlavePortNumber < 0 ||    // no slaves yet
+	   ppi->slave_prio < 0 ||                          // prio disabled, single slave allowed
+	    WR_DSCUR(ppi)->primarySlavePortNumber == ppi->port_idx)  // already active slave
 	{
 		s1(ppi, &m->hdr, &m->ann);
-		pp_diag(ppi, bmc, 1,"%s: slave (prio %d)\n", __func__, ppi->slave_prio);
+		pp_diag(ppi, bmc, 1,"%s: slave (prio %d)"
+			" [redundancy disabled OR no slaves yet OR this is primary slave]\n",
+			__func__, ppi->slave_prio);
 		return PPS_SLAVE;
 	}
+/** this might be solved in hal/softPLL
 	// port that should be active slave (better prio) 
-	else if(ppi->slave_prio < DSCUR(ppi)->primarySlavePortPriority) 
+	else if(ppi->slave_prio < WR_DSCUR(ppi)->primarySlavePortPriority) 
 	{
 		s1(ppi, &m->hdr, &m->ann);
-		pp_diag(ppi, bmc, 1,"%s: slave (prio %d)\n", __func__, ppi->slave_prio);
+		pp_diag(ppi, bmc, 1,"%s: slave (prio %d) [better prio than current slave]\n", 
+			__func__, ppi->slave_prio);
 		return PPS_SLAVE;
 	}
+*/
 	else // this is just a backup
 	{
 		s2(ppi, &m->hdr, &m->ann);
