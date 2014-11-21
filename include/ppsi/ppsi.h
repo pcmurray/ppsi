@@ -126,6 +126,7 @@ struct pp_ext_hooks {
 	int (*new_slave)(struct pp_instance *ppi, unsigned char *pkt, int plen);
 	int (*handle_resp)(struct pp_instance *ppi);
 	void (*s1)(struct pp_instance *ppi, MsgHeader *hdr, MsgAnnounce *ann);
+	void (*s2)(struct pp_instance *ppi, MsgHeader *hdr, MsgAnnounce *ann);
 	int (*execute_slave)(struct pp_instance *ppi);
 	void (*handle_announce)(struct pp_instance *ppi);
 	int (*handle_followup)(struct pp_instance *ppi, TimeInternal *orig,
@@ -319,6 +320,10 @@ extern int pp_config_file(struct pp_globals *ppg, int force, char *fname);
 
 #define PPSI_EXT_NONE		0
 #define PPSI_EXT_WR		1
+
+//ML: should go elsewhere
+#define PPSI_EXT_RED_ENA      1
+#define PPSI_EXT_RED_DIS      0
 
 
 /* Servo */

@@ -105,6 +105,12 @@ static int f_accuracy(int lineno, struct pp_globals *ppg, union pp_cfg_arg *arg)
 	GOPTS(ppg)->clock_quality.clockAccuracy = arg->i;
 	return 0;
 }
+static int f_wr_red(int lineno, struct pp_globals *ppg, union pp_cfg_arg *arg)
+{
+	CHECK_PPI(0);
+	GOPTS(ppg)->wr_red = arg->i;
+	return 0;
+}
 
 /* Diagnostics can be per-port or global */
 static int f_diag(int lineno, struct pp_globals *ppg, union pp_cfg_arg *arg)
@@ -137,6 +143,13 @@ static struct pp_argname arg_ext[] = {
 	{},
 };
 
+//ML: this must go later to proper arch-dep place
+static struct pp_argname arg_wr_red[] = {
+	{"disabled",  PPSI_EXT_RED_DIS},
+	{"enabled", PPSI_EXT_RED_ENA},
+	{},
+};
+
 static struct pp_argline pp_global_arglines[] = {
 	{ f_port,	"port",		ARG_STR},
 	{ f_port,	"link",		ARG_STR}, /* old name for "port" */
@@ -147,6 +160,7 @@ static struct pp_argline pp_global_arglines[] = {
 	{ f_diag,	"diagnostics",	ARG_STR},
 	{ f_class,	"clock-class",	ARG_INT},
 	{ f_accuracy,	"clock-accuracy", ARG_INT},
+	{ f_wr_red,	"wr-redundancy", ARG_NAMES,	arg_wr_red},
 	{}
 };
 
