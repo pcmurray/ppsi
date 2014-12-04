@@ -261,7 +261,7 @@ int wr_servo_update(struct pp_instance *ppi)
 	uint64_t big_delta_fix;
 	uint64_t delay_ms_fix;
 	static int errcount;
-	int tmp_setpoint;
+	int32_t tmp_setpoint;
 	int active_port = wrp->ops->active_poll();
 	pp_diag(ppi, servo, 1, "active_poll = %d, port_idx = %d\n",active_port, ppi->port_idx);
 	TimeInternal ts_offset, ts_offset_hw /*, ts_phase_adjust */;
@@ -482,24 +482,41 @@ int wr_servo_update(struct pp_instance *ppi)
 			
 			
 			s->cur_setpoint += offset_change;// (s->delta_ms - s->delta_ms_prev);
-			tmp_setpoint = (int)wrp->ops->adjust_phase(s->cur_setpoint, ppi->port_idx);
+			tmp_setpoint = (int32_t)wrp->ops->adjust_phase(s->cur_setpoint, ppi->port_idx);
 // 			while(tmp_setpoint > 0)
 			if(tmp_setpoint > 0)
 			{
 			
 				pp_diag(ppi, servo, 1, "Switchover: good_phase_val=%d,"
-				" cur_setpoint=%d, ptp_offset: %d\n",
-				tmp_setpoint,s->cur_setpoint ,(s->delta_ms - s->delta_ms_prev));
+				" cur_setpoint=%d, ptp_offset: %d, ts_offset=%d\n",
+				(int)tmp_setpoint,(int)s->cur_setpoint ,(int)(s->delta_ms - s->delta_ms_prev),
+				(int)ts_offset_hw.phase);
 				s->cur_setpoint = tmp_setpoint + ts_offset_hw.phase;
+				pp_diag(ppi, servo, 1, "Switchover: cur_setpoint=%d\n",(int)s->cur_setpoint);
 				tmp_setpoint = wrp->ops->adjust_phase(s->cur_setpoint, ppi->port_idx);
-				DSCUR(ppi)->primarySlavePortNumber   = ppi->port_idx;
-				DSCUR(ppi)->primarySlavePortPriority = ppi->slave_prio;
+				
+				s->next_state = WR_TRACK_PHASE;
+				s->state = WR_WAIT_SYNC_IDLE;
+			}
+			else if(tmp_setpoint < 0)
+			{
+				pp_diag(ppi, servo, 1, "Switchover: good_phase_val=%d,"
+				" cur_setpoint=%d, ptp_offset: %d, ts_offset=%d\n",
+				(int)tmp_setpoint,(int)s->cur_setpoint ,(int)(s->delta_ms - s->delta_ms_prev),
+				(int)ts_offset_hw.phase);
+
+				s->state = WR_SYNC_PHASE;
 			}
 			else
+			{
+				s->next_state = WR_TRACK_PHASE;
+				s->state = WR_WAIT_SYNC_IDLE;
+			}
+			
 
 			s->delta_ms_prev = s->delta_ms;			  
-			s->next_state = WR_TRACK_PHASE;
-			s->state = WR_WAIT_SYNC_IDLE;
+// 			s->next_state = WR_TRACK_PHASE;
+// 			s->state = WR_WAIT_SYNC_IDLE;
 			s->last_tics = tics;
 		}
 		break;
