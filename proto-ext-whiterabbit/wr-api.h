@@ -150,6 +150,7 @@ struct wr_servo_state_t {
 	int32_t delta_tx_s;
 	int32_t delta_rx_s;
 	int32_t cur_setpoint;
+	int32_t bck_setpoint;
 	int64_t delta_ms;
 	int64_t delta_ms_prev;
 	TimeInternal t1, t2, t3, t4;
