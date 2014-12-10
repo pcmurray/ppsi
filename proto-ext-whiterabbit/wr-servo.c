@@ -136,7 +136,7 @@ static TimeInternal ts_hardwarize(TimeInternal ts, int clock_period_ps)
 
 /* end my own timestamp arithmetic functions */
 
-static int got_sync = 0;
+static int got_sync[18] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}; //FIXME: this f*sucks and I've made it suck more
 
 void wr_servo_reset()
 {
@@ -190,7 +190,7 @@ int wr_servo_init(struct pp_instance *ppi)
 	cur_servo_state.valid = 1;
 	cur_servo_state.update_count = 0;
 
-	got_sync = 0;
+	got_sync[ppi->port_idx] = 0;
 	return 0;
 }
 
@@ -212,7 +212,7 @@ int wr_servo_got_sync(struct pp_instance *ppi, TimeInternal *t1,
 	s->t1.correct = 1;
 	s->t2 = *t2;
 
-	got_sync = 1;
+	got_sync[ppi->port_idx] = 1;
 
 	return 0;
 }
@@ -265,9 +265,9 @@ int wr_servo_update(struct pp_instance *ppi)
 	int active_port = wrp->ops->active_poll();
 	pp_diag(ppi, servo, 1, "active_poll = %d, port_idx = %d\n",active_port, ppi->port_idx);
 	TimeInternal ts_offset, ts_offset_hw /*, ts_phase_adjust */;
-	pp_diag(ppi, servo, 1, "in wr servo update, got_sync=%d\n",got_sync);
+	pp_diag(ppi, servo, 1, "in wr servo update, got_sync=%d\n",got_sync[ppi->port_idx]);
 	
-	if(!got_sync)
+	if(!got_sync[ppi->port_idx])
 		return 0;
 
 	if(!s->t1.correct || !s->t2.correct ||
@@ -287,7 +287,7 @@ int wr_servo_update(struct pp_instance *ppi)
 	if(ppi->port_idx == active_port) // only for active slave
 		cur_servo_state.update_count++;
 
-	got_sync = 0;
+	got_sync[ppi->port_idx] = 0;
 
 	if (__PP_DIAG_ALLOW_FLAGS(pp_global_flags, pp_dt_servo, 1)) {
 		dump_timestamp(ppi, "servo:t1", s->t1);
@@ -309,8 +309,12 @@ int wr_servo_update(struct pp_instance *ppi)
 	ts_offset = ts_add(ts_sub(s->t1, s->t2), picos_to_ts(delay_ms_fix));
 	ts_offset_hw = ts_hardwarize(ts_offset, s->clock_period_ps);
 	pp_diag(ppi, servo, 1, "offset: %d [hw:%d]\n", 
-	                   (ts_offset.phase    + ts_offset.nanoseconds * 1000),
-	                   (ts_offset_hw.phase + ts_offset_hw.nanoseconds * 1000));
+	                   (int)(ts_offset.phase    + ts_offset.nanoseconds * 1000),
+	                   (int)(ts_offset_hw.phase + ts_offset_hw.nanoseconds * 1000));
+	pp_diag(ppi, servo, 2, "ts_hardwarize (before):  %d [s] %d [ns] %d [ps] \n", 
+	          (int)ts_offset.seconds, (int)ts_offset.nanoseconds, (int)ts_offset.phase);
+	pp_diag(ppi, servo, 2, "ts_hardwarize (after):  %d [s] %d [ns] %d [ps] \n", 
+	          (int)ts_offset_hw.seconds, (int)ts_offset_hw.nanoseconds, (int)ts_offset_hw.phase);	
 
 // 	if(ppi->slave_prio == 0) // only for active slave
 	if(ppi->port_idx == active_port) // only for active slave
@@ -391,20 +395,20 @@ int wr_servo_update(struct pp_instance *ppi)
 
 		} else {
 			s->state = WR_SYNC_PHASE;
+			s->cur_setpoint = 0;
 		}
 		break;
 
 	case WR_SYNC_PHASE:
 		pp_diag(ppi, servo, 1, " WR_SYNC_PHASE\n");
-// 		if(ppi->slave_prio == 0) // only for active slave
+
 		if(ppi->port_idx == active_port) // only for active slave
 			strcpy(cur_servo_state.slave_servo_state, "SYNC_PHASE");
-// 		if(ppi->slave_prio == 0)
+
 		if(ppi->port_idx == active_port) // only for active slave
 		{
-			s->cur_setpoint = ts_offset_hw.phase
+			s->cur_setpoint += ts_offset_hw.phase
 			      + ts_offset_hw.nanoseconds * 1000;
-			s->bck_setpoint = 0;
 		}
 		else
 		{
@@ -424,18 +428,9 @@ int wr_servo_update(struct pp_instance *ppi)
 			 */
 			ss = (struct wrs_socket*)NP(ppi)->ch[PP_NP_GEN].arch_data;
 			s->cur_setpoint = ss->dmtd_phase;
-			s->bck_setpoint = ss->dmtd_phase;
+
 		}
 		tmp_setpoint = (int32_t)wrp->ops->adjust_phase(s->cur_setpoint, ppi->port_idx);
-
-		if(tmp_setpoint)
-		{
-			pp_diag(ppi, servo, 1, " update cur_setpoint on WR_SYNC_PHASE: old = %d, new = %d\n",
-			s->cur_setpoint, tmp_setpoint);
-			s->cur_setpoint = tmp_setpoint;
-			s->bck_setpoint = tmp_setpoint;
-			wrp->ops->adjust_phase(s->cur_setpoint, ppi->port_idx);//FIXME:this is a bit stupid..
-		}
 
 		s->next_state = WR_WAIT_OFFSET_STABLE;
 		s->state = WR_WAIT_SYNC_IDLE;
@@ -452,7 +447,6 @@ int wr_servo_update(struct pp_instance *ppi)
 			s->state = WR_SYNC_TAI;
 		else
 			if(remaining_offset < WR_SERVO_OFFSET_STABILITY_THRESHOLD || 
-// 				ppi->slave_prio > 0) 
 				ppi->port_idx != active_port) 
 			{
 				wrp->ops->enable_timing_output(ppi, 1);
@@ -484,40 +478,29 @@ int wr_servo_update(struct pp_instance *ppi)
 			int32_t offset_change = (s->delta_ms - s->delta_ms_prev);
 			ss = (struct wrs_socket*)NP(ppi)->ch[PP_NP_GEN].arch_data;
 			pp_diag(ppi, servo, 1, "in servo cur_setpoint (before update)=%d, "
-			"update =%d, cur_dmtd_phase = %d\n",
-			s->cur_setpoint, offset_change , ss->dmtd_phase);
+			"update =%d, cur_dmtd_phase = %d\n", 	s->cur_setpoint, offset_change, 
+			 ss->dmtd_phase);
 			
 			s->cur_setpoint += offset_change;// (s->delta_ms - s->delta_ms_prev);
-			s->bck_setpoint += offset_change;
 			tmp_setpoint = (int32_t)wrp->ops->adjust_phase(s->cur_setpoint, ppi->port_idx);
-
-			if(tmp_setpoint > 0) // this should happen only for backups
-			{
-				pp_diag(ppi, servo, 1, "@BACKUP phase offset update:"
-				" good_phase_val (new phase) = %d, cur_setpoint=%d, ptp_offset: %d, ts_offset=%d\n",
-				(int)tmp_setpoint,(int)s->cur_setpoint ,(int)(s->delta_ms - s->delta_ms_prev),
-				(int)ts_offset_hw.phase);
-				
-				s->cur_setpoint = tmp_setpoint += offset_change;
-				s->bck_setpoint = tmp_setpoint + ts_offset_hw.phase;				
-				tmp_setpoint = wrp->ops->adjust_phase(s->cur_setpoint, ppi->port_idx);
-
-			}
-			else if(tmp_setpoint < 0)
-			{
-				pp_diag(ppi, servo, 1, "@Switchover: old cur_setpoint=%d new cur_setpoint=%d]\n",
-				(int)s->cur_setpoint, (int)s->bck_setpoint);		
-				s->cur_setpoint = s->bck_setpoint;
-				tmp_setpoint = wrp->ops->adjust_phase(s->cur_setpoint, ppi->port_idx);
-			}
 			
-			pp_diag(ppi, servo, 1, "cur_setpoint(after update)=%d [tmp_setpoint=%d, bck_setpoint=%d]\n",
-			(int)s->cur_setpoint, (int)tmp_setpoint, (int)s->bck_setpoint);
-			
-			s->next_state = WR_TRACK_PHASE;
-			s->state = WR_WAIT_SYNC_IDLE;
+			if(tmp_setpoint == 0)
+			{
+				s->next_state = WR_TRACK_PHASE;
+				s->state = WR_WAIT_SYNC_IDLE;
+			}
+			else 
+			{
+				s->state = WR_SYNC_PHASE;
+			}
 			s->delta_ms_prev = s->delta_ms;			  
 			s->last_tics = tics;
+
+			if(tmp_setpoint == -1) 
+				pp_diag(ppi, servo, 1, "@Switchover => resync\n");
+			if(tmp_setpoint == -2) 
+				pp_diag(ppi, servo, 1, "@Backup unlocked => resync\n");
+
 		}
 		break;
 
