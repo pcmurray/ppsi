@@ -287,14 +287,6 @@ int wr_servo_update(struct pp_instance *ppi)
 
 	got_sync[ppi->port_idx] = 0;
 
-	if (__PP_DIAG_ALLOW_FLAGS(pp_global_flags, pp_dt_servo, 1)) {
-		dump_timestamp(ppi, "servo:t1", s->t1);
-		dump_timestamp(ppi, "servo:t2", s->t2);
-		dump_timestamp(ppi, "servo:t3", s->t3);
-		dump_timestamp(ppi, "servo:t4", s->t4);
-		dump_timestamp(ppi, "->mdelay", s->mu);
-	}
-
 	s->mu = ts_sub(ts_sub(s->t4, s->t1), ts_sub(s->t3, s->t2));
 
 	big_delta_fix =  s->delta_tx_m + s->delta_tx_s
@@ -303,12 +295,27 @@ int wr_servo_update(struct pp_instance *ppi)
 	delay_ms_fix = (((int64_t)(ts_to_picos(s->mu) - big_delta_fix) * (int64_t) s->fiber_fix_alpha) >> FIX_ALPHA_FRACBITS)
 		+ ((ts_to_picos(s->mu) - big_delta_fix) >> 1)
 		+ s->delta_tx_m + s->delta_rx_s + ph_adjust;
-
+	
+	if (__PP_DIAG_ALLOW_FLAGS(pp_global_flags, pp_dt_servo, 1)) {
+		dump_timestamp(ppi, "servo:t1", s->t1);
+		dump_timestamp(ppi, "servo:t2", s->t2);
+		dump_timestamp(ppi, "servo:t3", s->t3);
+		dump_timestamp(ppi, "servo:t4", s->t4);
+		dump_timestamp(ppi, "->mdelay", s->mu);
+		dump_timestamp(ppi, "->delay_ms_fix",  picos_to_ts(delay_ms_fix));
+	}
+	
 	ts_offset = ts_add(ts_sub(s->t1, s->t2), picos_to_ts(delay_ms_fix));
 	ts_offset_hw = ts_hardwarize(ts_offset, s->clock_period_ps);
 	pp_diag(ppi, servo, 1, "offset: %d [hw:%d]\n", 
 	                   (ts_offset.phase    + ts_offset.nanoseconds * 1000),
 	                   (ts_offset_hw.phase + ts_offset_hw.nanoseconds * 1000));
+	pp_diag(ppi, servo, 2, "ts_hardwarize (before):  %d [s] %d [ns] %d [ps] \n", 
+                           ts_offset.seconds, ts_offset.nanoseconds, ts_offset.phase);
+	pp_diag(ppi, servo, 2, "ts_hardwarize (after):  %d [s] %d [ns] %d [ps] \n", 
+                           ts_offset_hw.seconds, ts_offset_hw.nanoseconds, ts_offset_hw.phase);	
+	pp_diag(ppi, servo, 2, "->mu=%d | big_delta_fix: %d | delay_ms_fix: %d\n",
+                           s->mu,big_delta_fix, delay_ms_fix);
 
 	if(ppi->port_idx == active_port) // only for active slave
 	{
@@ -476,12 +483,12 @@ int wr_servo_update(struct pp_instance *ppi)
 			if(tmp_setpoint > 0)
 			{
 			
-				pp_diag(ppi, servo, 1, "Switchover: good_phase_val=%d,"
+				pp_diag(ppi, servo, 1, "@Switchover: good_phase_val=%d,"
 				" cur_setpoint=%d, ptp_offset: %d, ts_offset=%d\n",
 				(int)tmp_setpoint,(int)s->cur_setpoint ,(int)(s->delta_ms - s->delta_ms_prev),
 				(int)ts_offset_hw.phase);
 				s->cur_setpoint = tmp_setpoint + ts_offset_hw.phase;
-				pp_diag(ppi, servo, 1, "Switchover: cur_setpoint=%d\n",(int)s->cur_setpoint);
+				pp_diag(ppi, servo, 1, "@Switchover: cur_setpoint=%d\n",(int)s->cur_setpoint);
 				tmp_setpoint = wrp->ops->adjust_phase(s->cur_setpoint, ppi->port_idx);
 				
 				s->next_state = WR_TRACK_PHASE;
@@ -489,7 +496,7 @@ int wr_servo_update(struct pp_instance *ppi)
 			}
 			else if(tmp_setpoint < 0)
 			{
-				pp_diag(ppi, servo, 1, "Switchover: good_phase_val=%d,"
+				pp_diag(ppi, servo, 1, "@UpdateBackup: good_phase_val=%d,"
 				" cur_setpoint=%d, ptp_offset: %d, ts_offset=%d\n",
 				(int)tmp_setpoint,(int)s->cur_setpoint ,(int)(s->delta_ms - s->delta_ms_prev),
 				(int)ts_offset_hw.phase);
