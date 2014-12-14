@@ -386,6 +386,7 @@ int wr_servo_update(struct pp_instance *ppi)
 
 		} else {
 			s->state = WR_SYNC_PHASE;
+			s->cur_setpoint = 0;
 		}
 		break;
 
@@ -395,8 +396,8 @@ int wr_servo_update(struct pp_instance *ppi)
 			strcpy(cur_servo_state.slave_servo_state, "SYNC_PHASE");
 		if(ppi->port_idx == active_port) // only for active slave
 		{
-			s->cur_setpoint = ts_offset_hw.phase
-			      + ts_offset_hw.nanoseconds * 1000;
+			s->cur_setpoint += ts_offset_hw.phase
+			      + ts_offset_hw.nanoseconds * 1000; //ML: there should be no ns ??
 		}
 		else
 		{
