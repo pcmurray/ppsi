@@ -136,7 +136,7 @@ static TimeInternal ts_hardwarize(TimeInternal ts, int clock_period_ps)
 
 /* end my own timestamp arithmetic functions */
 
-static int got_sync = 0;
+static int got_sync[18] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}; //FIXME: this f*sucks 
 
 void wr_servo_reset()
 {
@@ -189,7 +189,7 @@ int wr_servo_init(struct pp_instance *ppi)
 	cur_servo_state.valid = 1;
 	cur_servo_state.update_count = 0;
 
-	got_sync = 0;
+	got_sync[ppi->port_idx] = 0;
 	return 0;
 }
 
@@ -211,7 +211,7 @@ int wr_servo_got_sync(struct pp_instance *ppi, TimeInternal *t1,
 	s->t1.correct = 1;
 	s->t2 = *t2;
 
-	got_sync = 1;
+	got_sync[ppi->port_idx] = 1;
 
 	return 0;
 }
@@ -264,9 +264,9 @@ int wr_servo_update(struct pp_instance *ppi)
 	int active_port = wrp->ops->active_poll();
 	pp_diag(ppi, servo, 1, "active_poll = %d, port_idx = %d\n",active_port, ppi->port_idx);
 	TimeInternal ts_offset, ts_offset_hw /*, ts_phase_adjust */;
-	pp_diag(ppi, servo, 1, "in wr servo update, got_sync=%d\n",got_sync);
+	pp_diag(ppi, servo, 1, "in wr servo update, got_sync=%d\n",got_sync[ppi->port_idx]);
 	
-	if(!got_sync)
+	if(!got_sync[ppi->port_idx])
 		return 0;
 
 	if(!s->t1.correct || !s->t2.correct ||
@@ -285,7 +285,7 @@ int wr_servo_update(struct pp_instance *ppi)
 	if(ppi->port_idx == active_port) // only for active slave
 		cur_servo_state.update_count++;
 
-	got_sync = 0;
+	got_sync[ppi->port_idx] = 0;
 
 	if (__PP_DIAG_ALLOW_FLAGS(pp_global_flags, pp_dt_servo, 1)) {
 		dump_timestamp(ppi, "servo:t1", s->t1);
