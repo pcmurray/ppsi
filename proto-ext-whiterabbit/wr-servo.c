@@ -472,52 +472,51 @@ int wr_servo_update(struct pp_instance *ppi)
 		if(tracking_enabled) {
 			// just follow the changes of deltaMS
 			int32_t offset_change = (s->delta_ms - s->delta_ms_prev);
-			ss = (struct wrs_socket*)NP(ppi)->ch[PP_NP_GEN].arch_data;
+			int ret = 0;
+			
 			pp_diag(ppi, servo, 1, "in servo cur_setpoint(before update)=%d, "
-			"update =%d, cur_dmtd_phase = %d\n",
-			s->cur_setpoint, offset_change , ss->dmtd_phase);
-			
-			
-			///testing
-			int tmp_phase=0, tmp_swover_flag=0, tmp_resync_flag=0;
-			
-			wrp->ops->backup_state(ppi->port_idx, &tmp_phase,&tmp_swover_flag,&tmp_resync_flag);
-			pp_diag(ppi, servo, 1,"\n\ntesting bkcup state func: good_phase=%d, swover=%d, resync=%d\n\n",
-			tmp_phase, tmp_swover_flag, tmp_resync_flag);
-
-			
-			/// ////////////////////////////////////////////////////////////////////
+			"update =%d\n", s->cur_setpoint, offset_change);
 			
 			s->cur_setpoint += offset_change;// (s->delta_ms - s->delta_ms_prev);
-			tmp_setpoint = (int32_t)wrp->ops->adjust_phase(s->cur_setpoint, ppi->port_idx);
-			if(tmp_setpoint > 0)
-			{
 			
-				pp_diag(ppi, servo, 1, "@Switchover: good_phase_val=%d,"
-				" cur_setpoint=%d, ptp_offset: %d, ts_offset=%d\n",
-				(int)tmp_setpoint,(int)s->cur_setpoint ,(int)(s->delta_ms - s->delta_ms_prev),
-				(int)ts_offset_hw.phase);
-				s->cur_setpoint = tmp_setpoint + ts_offset_hw.phase;
-				pp_diag(ppi, servo, 1, "@Switchover: cur_setpoint=%d\n",(int)s->cur_setpoint);
-				tmp_setpoint = wrp->ops->adjust_phase(s->cur_setpoint, ppi->port_idx);
+			//if ret is not zero, it means something is to be done for backup stuff
+			ret = wrp->ops->adjust_phase(s->cur_setpoint, ppi->port_idx);
+
+			// default, might change if resync requested from backup_state
+			s->next_state = WR_TRACK_PHASE;
+			s->state = WR_WAIT_SYNC_IDLE;
+
+			if(ret) // check what is up 
+			{
+				uint32_t phase=0;
+				int swover=0, resync=0;
+				ss = (struct wrs_socket*)NP(ppi)->ch[PP_NP_GEN].arch_data;
 				
-				s->next_state = WR_TRACK_PHASE;
-				s->state = WR_WAIT_SYNC_IDLE;
+				wrp->ops->backup_state(ppi->port_idx, &phase,&swover,&resync);
+
+				pp_diag(ppi, servo, 1, "backup_state: good_phase_val=%d,"
+					" cur_setpoint=%d, offset_change: %d, ts_offset=%d, "
+					" dmtd_phase=%d\n",
+					phase,s->cur_setpoint ,offset_change, ts_offset_hw.phase,
+					ss->dmtd_phase);
+				if(swover) // switchover occured and this is the new active channel
+				{
+					pp_diag(ppi, servo, 1, "@Switchover\n");
+					if(s->cur_setpoint < 0)
+					{
+						pp_diag(ppi, servo, 1, "we have a problem.. "
+						"setpoint is negative: %d \n",s->cur_setpoint);
+					}
+					else
+						s->cur_setpoint = phase + ts_offset_hw.phase;
+				}
+				else if(resync) // this is backup and needs resynchronization
+				{
+					pp_diag(ppi, servo, 1, "@Resync\n");
+					s->state = WR_SYNC_PHASE;
+					
+				}		
 			}
-			else if(tmp_setpoint < 0)
-			{
-				pp_diag(ppi, servo, 1, "@UpdateBackup: good_phase_val=%d,"
-				" cur_setpoint=%d, ptp_offset: %d, ts_offset=%d\n",
-				(int)tmp_setpoint,(int)s->cur_setpoint ,(int)(s->delta_ms - s->delta_ms_prev),
-				(int)ts_offset_hw.phase);
-				s->state = WR_SYNC_PHASE;
-			}
-			else
-			{
-				s->next_state = WR_TRACK_PHASE;
-				s->state = WR_WAIT_SYNC_IDLE;
-			}
-			
 			s->delta_ms_prev = s->delta_ms;			  
 			s->last_tics = tics;
 		}
