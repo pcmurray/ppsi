@@ -125,6 +125,9 @@ struct wr_operations {
 	int (*calib_pattern_disable)(struct pp_instance *ppi);
 	int (*enable_timing_output)(struct pp_instance *ppi, int enable);
 	int (*active_poll)(void);
+	int (*backup_state)(int channel, uint32_t *good_phase_val, int *swover_flag,
+		      int *resync_flag)
+	
 };
 
 

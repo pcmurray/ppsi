@@ -21,11 +21,40 @@ extern struct minipc_pd __rpcdef_swover_cmd;
 
 int wrs_active_poll()
 {
-	int act, rval;
+	int ret,rval, cmd = HEXP_BCKP_CMD_GET_ACTIVE;
+	hexp_backup_state_t p;
+	
+	ret = minipc_call(hal_ch, DEFAULT_TO, &__rpcdef_swover_cmd,
+			&p, cmd, 0);
+	
+	if (ret < 0 || rval < 0) {
+		pp_printf("%s: error (local %i remote %i)\n",
+			  __func__, ret, rval);
+		return -1;
+	}
+	return p.active_chan;
+}
 
-	act = minipc_call(hal_ch, DEFAULT_TO, &__rpcdef_swover_cmd,
-			&rval, 0);
-	return rval;
+int wrs_backup_state(int channel, uint32_t *good_phase_val, int *swover_flag,
+		      int *resync_flag)
+{
+	int ret,rval, cmd = HEXP_BCKP_CMD_GET_STATE;
+	hexp_backup_state_t p;
+	
+	ret = minipc_call(hal_ch, DEFAULT_TO, &__rpcdef_swover_cmd, &p, cmd, channel);
+	
+	if(good_phase_val) *good_phase_val = p.phase_good_val;
+	if(swover_flag)
+		*swover_flag =(p.flags & BPLL_SWITCHOVER)? 1 : 0;
+	if(resync_flag)
+		*resync_flag =(p.flags & (BPLL_UPDATE_PHASE | BPLL_UNLOCKED))? 1 : 0;
+	
+	if (ret < 0 || rval < 0) {
+		pp_printf("%s: error (local %i remote %i)\n",
+			  __func__, ret, rval);
+		return -1;
+	}
+	return ret;
 }
 
 int wrs_adjust_counters(int64_t adjust_sec, int32_t adjust_nsec)

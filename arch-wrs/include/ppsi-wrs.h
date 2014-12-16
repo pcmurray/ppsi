@@ -67,3 +67,5 @@ int wrs_adjust_counters(int64_t adjust_sec, int32_t adjust_nsec);
 int wrs_adjust_phase(int32_t phase_ps,  int channel);
 int wrs_enable_timing_output(struct pp_instance *ppi, int enable);
 int wrs_active_poll();
+int wrs_backup_state(int channel, uint32_t *good_phase_val, int *swover_flag,
+		      int *resync_flag);

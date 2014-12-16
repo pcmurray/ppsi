@@ -54,6 +54,9 @@
 #define HEXP_EXTSRC_STATUS_NOSRC  2
 /////////////////////////////////////
 
+#define HEXP_BCKP_CMD_GET_ACTIVE 0
+#define HEXP_BCKP_CMD_GET_STATE  1
+/////////////////////////////////////
 
 #define HAL_TIMING_MODE_GRAND_MASTER 0
 #define HAL_TIMING_MODE_FREE_MASTER 1
@@ -148,6 +151,20 @@ typedef struct {
 
 } hexp_timing_state_t;
 
+/* backup-chan-related flags that are passed "directly" to PPSi
+ * (wrpc-sw/rt_ipc  => wrsw_hal/rt_client  => wrsw_hal/hal_exports  => ppsi/time-wrs/wrs-time)
+ */
+#define BPLL_SWITCHOVER   (1<<0)
+#define BPLL_UPDATE_PHASE (1<<1)
+#define BPLL_UNLOCKED     (1<<2)
+/* state of backup stuff read from SoftPLL (directly)*/
+typedef struct {
+  int flags;
+  int32_t phase_good_val;
+  int active_chan;
+} hexp_backup_state_t;
+
+
 /* Prototypes of functions that call on rpc */
 extern int halexp_check_running(void);
 extern int halexp_reset_port(const char *port_name);
@@ -157,7 +174,8 @@ extern int halexp_query_ports(hexp_port_list_t *list);
 extern int halexp_get_port_state(hexp_port_state_t *state, const char *port_name);
 extern int halexp_pps_cmd(int cmd, hexp_pps_params_t *params);
 extern int halexp_get_timing_state(hexp_timing_state_t *state);
-extern int halexp_swover_poll(void);
+extern int halexp_swover_cmd(int cmd, int channel, hexp_backup_state_t *s);
+
 
 
 /* Export structures, shared by server and client for argument matching */
@@ -247,12 +265,13 @@ struct minipc_pd __rpcdef_get_timing_state = {
 //int halexp_swover_cmd();
 struct minipc_pd __rpcdef_swover_cmd = {
 	.name = "swover_cmd",
-	.retval = MINIPC_ARG_ENCODE(MINIPC_ATYPE_INT, int),
+	.retval = MINIPC_ARG_ENCODE(MINIPC_ATYPE_STRUCT, hexp_backup_state_t),
 	.args = {
+		MINIPC_ARG_ENCODE(MINIPC_ATYPE_INT, int),
+		MINIPC_ARG_ENCODE(MINIPC_ATYPE_INT, int),
 		MINIPC_ARG_END,
 	},
 };
-
 
 #endif /* HAL_EXPORT_STRUCTURES */
 

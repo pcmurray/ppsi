@@ -47,6 +47,7 @@ static struct wr_operations wrs_wr_operations = {
 
 	.enable_timing_output = wrs_enable_timing_output,
 	.active_poll = wrs_active_poll,
+	.backup_state = wrs_backup_state,
 };
 
 /* ppg and fields */

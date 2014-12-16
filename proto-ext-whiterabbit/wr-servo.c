@@ -438,7 +438,7 @@ int wr_servo_update(struct pp_instance *ppi)
 	{
 		int64_t remaining_offset = abs(ts_to_picos(ts_offset_hw));
 
-		pp_diag(ppi, servo, 1, " WR_WAIT_OFFSET_STABLE (offset=%d)\n",remaining_offset);
+		pp_diag(ppi, servo, 1, " WR_WAIT_OFFSET_STABLE (offset=%d)\n",(int)remaining_offset);
 		if (ts_offset_hw.seconds !=0 || ts_offset_hw.nanoseconds != 0)
 			s->state = WR_SYNC_TAI;
 		else
@@ -477,6 +477,16 @@ int wr_servo_update(struct pp_instance *ppi)
 			"update =%d, cur_dmtd_phase = %d\n",
 			s->cur_setpoint, offset_change , ss->dmtd_phase);
 			
+			
+			///testing
+			int tmp_phase=0, tmp_swover_flag=0, tmp_resync_flag=0;
+			
+			wrp->ops->backup_state(ppi->port_idx, &tmp_phase,&tmp_swover_flag,&tmp_resync_flag);
+			pp_diag(ppi, servo, 1,"\n\ntesting bkcup state func: good_phase=%d, swover=%d, resync=%d\n\n",
+			tmp_phase, tmp_swover_flag, tmp_resync_flag);
+
+			
+			/// ////////////////////////////////////////////////////////////////////
 			
 			s->cur_setpoint += offset_change;// (s->delta_ms - s->delta_ms_prev);
 			tmp_setpoint = (int32_t)wrp->ops->adjust_phase(s->cur_setpoint, ppi->port_idx);
