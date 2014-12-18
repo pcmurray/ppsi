@@ -10,6 +10,7 @@
 
 static char *timeout_names[__PP_TO_ARRAY_SIZE] __attribute__((used)) = {
 	N(PP_TO_DELAYREQ),
+	N(PP_TO_PDELAYREQ),
 	N(PP_TO_SYNC),
 	N(PP_TO_ANN_RECEIPT),
 	N(PP_TO_ANN_INTERVAL),
