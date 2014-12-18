@@ -287,15 +287,15 @@ int wr_p2p_offset(struct pp_instance *ppi,
 	TimeInternal ts_offset;
 	static int errcount;
 
-	if(!s->t1.correct || !s->t2.correct) {
-		errcount++;
-		if (errcount > 5) /* a 2-3 in a row are expected */
-			pp_error("%s: TimestampsIncorrect: %d %d \n",
-				 __func__, s->t1.correct, s->t2.correct);
-		return 0;
-	}
-	errcount = 0;
-	got_sync = 0;
+// 	if(!s->t1.correct || !s->t2.correct) {
+// 		errcount++;
+// 		if (errcount > 5) /* a 2-3 in a row are expected */
+// 			pp_error("%s: TimestampsIncorrect: %d %d \n",
+// 				 __func__, s->t1.correct, s->t2.correct);
+// 		return 0;
+// 	}
+// 	errcount = 0;
+	got_sync[ppi->port_idx] = 0;
 
 	cur_servo_state.update_count++;
 
@@ -341,7 +341,7 @@ int wr_e2e_offset(struct pp_instance *ppi,
 
 	cur_servo_state.update_count++;
 
-	got_sync = 0;
+	got_sync[ppi->port_idx] = 0;
 
 	if (__PP_DIAG_ALLOW_FLAGS(pp_global_flags, pp_dt_servo, 1)) {
 		dump_timestamp(ppi, "servo:t1", s->t1);
@@ -399,8 +399,148 @@ struct wrs_socket {
 	timeout_t dmtd_update_tmo;
 };
 /*******************************************************************************************/
+/// finction with no switchover but P2P support
+int wr_servo_update(struct pp_instance *ppi)
+{
+	struct wr_dsport *wrp = WR_DSPOR(ppi);
+	struct wr_servo_state_t *s =
+			&((struct wr_data_t *)ppi->ext_data)->servo_state[ppi->port_idx];
 
+	uint64_t tics;
 
+	TimeInternal ts_offset_hw /*, ts_phase_adjust */;
+
+	if (!got_sync[ppi->port_idx])
+		return 0;
+
+	if (GLBS(ppi)->delay_mech) {
+		if (!wr_p2p_offset(ppi, s, &ts_offset_hw))
+			return 0;
+	} else {
+		if (!wr_e2e_offset(ppi, s, &ts_offset_hw))
+			return 0;
+	}
+
+	tics = ppi->t_ops->calc_timeout(ppi, 0);
+
+	if (wrp->ops->locking_poll(ppi, 0) != WR_SPLL_READY) {
+		pp_diag(ppi, servo, 1, "PLL OutOfLock, should restart sync\n");
+		wrp->ops->enable_timing_output(ppi, 0);
+		/* TODO check
+		 * DSPOR(ppi)->doRestart = TRUE; */
+	}
+
+	pp_diag(ppi, servo, 1, "wr_servo state: %s [s->state = %d]\n",
+		cur_servo_state.slave_servo_state, s->state);
+
+	switch (s->state) {
+	case WR_WAIT_SYNC_IDLE:
+		pp_diag(ppi, servo, 1, "WR_WAIT_SYNC_IDLE \n");
+		if (!wrp->ops->adjust_in_progress()) {
+			s->state = s->next_state;
+		} else {
+			pp_diag(ppi, servo, 1, "servo:busy\n");
+		}
+		break;
+
+	case WR_SYNC_TAI:
+		pp_diag(ppi, servo, 1, "WR_SYNC_TAI \n");
+		wrp->ops->enable_timing_output(ppi, 0);
+
+		if (ts_offset_hw.seconds != 0) {
+			strcpy(cur_servo_state.slave_servo_state, "SYNC_SEC");
+			wrp->ops->adjust_counters(ts_offset_hw.seconds, 0);
+			wrp->ops->adjust_phase(0, ppi->port_idx);
+
+			s->next_state = WR_SYNC_NSEC;
+			s->state = WR_WAIT_SYNC_IDLE;
+			s->last_tics = tics;
+
+		} else {
+			s->state = WR_SYNC_NSEC;
+		}
+		break;
+
+	case WR_SYNC_NSEC:
+		pp_diag(ppi, servo, 1, "WR_SYNC_NSEC \n");
+		strcpy(cur_servo_state.slave_servo_state, "SYNC_NSEC");
+
+		if (ts_offset_hw.nanoseconds != 0) {
+			wrp->ops->adjust_counters(0, ts_offset_hw.nanoseconds);
+
+			s->next_state = WR_SYNC_NSEC;
+			s->state = WR_WAIT_SYNC_IDLE;
+			s->last_tics = tics;
+
+		} else {
+			s->state = WR_SYNC_PHASE;
+		}
+		break;
+
+	case WR_SYNC_PHASE:
+		pp_diag(ppi, servo, 1, "WR_SYNC_PHASE \n");
+		strcpy(cur_servo_state.slave_servo_state, "SYNC_PHASE");
+		s->cur_setpoint = ts_offset_hw.phase
+			+ ts_offset_hw.nanoseconds * 1000;
+
+		wrp->ops->adjust_phase(s->cur_setpoint, ppi->port_idx);
+
+		s->next_state = WR_WAIT_OFFSET_STABLE;
+		s->state = WR_WAIT_SYNC_IDLE;
+		s->last_tics = tics;
+		s->delta_ms_prev = s->delta_ms;
+		break;
+
+	case WR_WAIT_OFFSET_STABLE:
+		pp_diag(ppi, servo, 1, "WR_WAIT_OFFSET_STABLE \n");
+	{
+		int64_t remaining_offset = abs(ts_to_picos(ts_offset_hw));
+
+		if (ts_offset_hw.seconds !=0 || ts_offset_hw.nanoseconds != 0)
+			s->state = WR_SYNC_TAI;
+		else
+			if(remaining_offset < WR_SERVO_OFFSET_STABILITY_THRESHOLD) {
+				wrp->ops->enable_timing_output(ppi, 1);
+				s->state = WR_TRACK_PHASE;
+			} else {
+				s->missed_iters++;
+			}
+
+		if (s->missed_iters >= 10)
+			s->state = WR_SYNC_TAI;
+		break;
+	}
+
+	case WR_TRACK_PHASE:
+		pp_diag(ppi, servo, 1, "WR_TRACK_PHASE \n");
+		strcpy(cur_servo_state.slave_servo_state, "TRACK_PHASE");
+		cur_servo_state.cur_setpoint = s->cur_setpoint;
+		cur_servo_state.cur_skew = s->delta_ms - s->delta_ms_prev;
+
+		if (ts_offset_hw.seconds !=0 || ts_offset_hw.nanoseconds != 0)
+				s->state = WR_SYNC_TAI;
+
+		if(tracking_enabled) {
+//		shw_pps_gen_enable_output(1);
+			// just follow the changes of deltaMS
+			s->cur_setpoint += (s->delta_ms - s->delta_ms_prev);
+
+			wrp->ops->adjust_phase(s->cur_setpoint, ppi->port_idx);
+
+			s->delta_ms_prev = s->delta_ms;
+			s->next_state = WR_TRACK_PHASE;
+			s->state = WR_WAIT_SYNC_IDLE;
+			s->last_tics = tics;
+		}
+		break;
+	default:
+		pp_diag(ppi, servo, 1, "WTF: %d \n", s->state);
+
+	}
+	return 0;
+}
+
+#ifdef OLD_CRAP
 int wr_servo_update(struct pp_instance *ppi)
 {
 	struct wr_dsport *wrp = WR_DSPOR(ppi);
@@ -685,3 +825,4 @@ int wr_servo_update(struct pp_instance *ppi)
 	}
 	return 0;
 }
+#endif
