@@ -24,7 +24,7 @@ struct pp_state_table_item pp_state_table[] = {
 #ifdef CONFIG_E2E
 	{ PPS_SLAVE,		"slave",	pp_slave,},
 #elif CONFIG_P2P
-	{ PPS_SLAVE,		"slave",	pp_pclock,},
+	{ PPS_SLAVE,		"pclock",	pp_pclock,},
 #endif
 	{ WRS_PRESENT,		"uncalibrated/wr-present",	wr_present,},
 	{ WRS_M_LOCK,		"master/wr-m-lock",	wr_m_lock,},
