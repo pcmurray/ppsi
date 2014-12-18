@@ -15,7 +15,8 @@ int pp_pclock(struct pp_instance *ppi, unsigned char *pkt, int plen)
 	MsgHeader *hdr = &ppi->received_ptp_header;
         MsgPDelayRespFollowUp respFllw;
 	int d1, d2;
-
+	pp_diag(ppi, fsm, 1,"\n\nin pp_clock: is_new_state=%d\n\n",ppi->is_new_state);
+	
 	if (ppi->is_new_state) {
                 pp_servo_init(ppi);
 

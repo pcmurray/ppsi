@@ -34,6 +34,11 @@ int wr_link_on(struct pp_instance *ppi, unsigned char *pkt, int plen)
 	if (wrp->wrMode == WR_SLAVE)
 		ppi->next_state = PPS_SLAVE;
 	else
+	{
 		ppi->next_state = PPS_MASTER;
+		wr_servo_init(ppi);
+		  pp_diag(ppi, ext, 1,"servo on for wr master \n");
+		
+	}
 	return 0;
 }

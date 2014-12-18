@@ -12,13 +12,17 @@
 int pp_master(struct pp_instance *ppi, unsigned char *pkt, int plen)
 {
 	TimeInternal *time_snt;
-	int msgtype, d1, d2;
+	int msgtype, d1, d2, d3;
+	MsgHeader *hdr = &ppi->received_ptp_header;
+	MsgPDelayRespFollowUp respFllw;
 	int e = 0; /* error var, to check errors in msg handling */
 
 	if (ppi->is_new_state) {
 		pp_timeout_rand(ppi, PP_TO_SYNC, DSPOR(ppi)->logSyncInterval);
 		pp_timeout_rand(ppi, PP_TO_ANN_INTERVAL,
 				DSPOR(ppi)->logAnnounceInterval);
+		pp_timeout_rand(ppi, PP_TO_PDELAYREQ,
+				DSPOR(ppi)->logMinPDelayReqInterval);
 
 		/* Send an announce immediately, when becomes master */
 		if ((e = msg_issue_announce(ppi)) < 0)
@@ -46,6 +50,17 @@ int pp_master(struct pp_instance *ppi, unsigned char *pkt, int plen)
 		/* Restart the timeout for next time */
 		pp_timeout_rand(ppi, PP_TO_ANN_INTERVAL,
 				DSPOR(ppi)->logAnnounceInterval);
+	}
+
+        if (pp_timeout_z(ppi, PP_TO_PDELAYREQ)) {
+		if((e = msg_issue_pdelay_req(ppi) < 0))
+			goto out;
+
+		ppi->t3 = ppi->last_snt_time;
+
+		/* Restart the timeout for next time */
+		pp_timeout_rand(ppi, PP_TO_PDELAYREQ,
+				DSPOR(ppi)->logMinPDelayReqInterval);
 	}
 
 	if (plen == 0)
@@ -84,11 +99,50 @@ int pp_master(struct pp_instance *ppi, unsigned char *pkt, int plen)
 		break;
 
         case PPM_PDELAY_REQ:
-                msg_copy_header(&ppi->pdelay_req_hdr,
-                                &ppi->received_ptp_header);
-                msg_issue_pdelay_resp(ppi, &ppi->last_rcv_time);
-                msg_issue_pdelay_resp_followup(ppi, &ppi->last_snt_time);
+                e = (plen < PP_PDELAY_RESP_LENGTH);
+                if (e)
+                        break;
+
+                if (pp_hooks.handle_preq)
+                        e = pp_hooks.handle_preq(ppi);
+                else
+                        e = st_com_peer_handle_preq(ppi, pkt, plen);
+
+                if (e)
+                        goto out;
+
                 break;
+        case PPM_PDELAY_RESP_FOLLOW_UP:
+		e = (plen < PP_PDELAY_RESP_FOLLOW_UP_LENGTH);
+                if (e)
+			break;
+
+                msg_unpack_pdelay_resp_follow_up(pkt, &respFllw);
+
+		if ((memcmp(&DSPOR(ppi)->portIdentity.clockIdentity,
+			&respFllw.requestingPortIdentity.clockIdentity,
+			PP_CLOCK_IDENTITY_LENGTH) == 0) &&
+			((ppi->sent_seq[PPM_PDELAY_REQ]) ==
+				hdr->sequenceId) &&
+			(DSPOR(ppi)->portIdentity.portNumber ==
+			respFllw.requestingPortIdentity.portNumber) &&
+                                ppi->is_from_cur_par) {
+
+		        to_TimeInternal(&ppi->t5, &respFllw.responseOriginTimestamp);
+                        ppi->waiting_for_resp_follow = TRUE;
+
+                        if (pp_hooks.handle_presp)
+                                e = pp_hooks.handle_presp(ppi);
+                        else
+		                pp_servo_got_presp(ppi);
+                        if (e)
+                                goto out;
+
+	        } else {
+                        pp_diag(ppi, frames, 2, "pp_pclock : "
+			                "PDelay Resp Follow doesn't match PDelay Req\n");
+                }
+	        break;
 
 	default:
 		/* disregard, nothing to do */
@@ -106,6 +160,7 @@ out:
 
 	d1 = pp_ms_to_timeout(ppi, PP_TO_ANN_INTERVAL);
 	d2 = pp_ms_to_timeout(ppi, PP_TO_SYNC);
-	ppi->next_delay = d1 < d2 ? d1 : d2;
+	d3 = pp_ms_to_timeout(ppi, PP_TO_PDELAYREQ);
+	ppi->next_delay = d1 < d2 ? d1 : (d2 < d3 ? d2 : d3);
 	return 0;
 }

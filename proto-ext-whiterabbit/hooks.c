@@ -126,7 +126,7 @@ static int wr_master_msg(struct pp_instance *ppi, unsigned char *pkt, int plen,
 
 static int wr_new_slave(struct pp_instance *ppi, unsigned char *pkt, int plen)
 {
-	wr_servo_init(ppi);
+// 	wr_servo_init(ppi);
 	return 0;
 }
 
@@ -256,10 +256,10 @@ static int wr_handle_presp(struct pp_instance *ppi)
 		/*
 		 * pps always on if offset less than 1 second,
 		 * until ve have a configurable threshold */
-		if (ofm->seconds)
-			wrp->ops->enable_timing_output(ppi, 0);
-		else
-			wrp->ops->enable_timing_output(ppi, 1);
+// 		if (ofm->seconds)
+// 			wrp->ops->enable_timing_output(ppi, 0);
+// 		else
+// 			wrp->ops->enable_timing_output(ppi, 1);
 
                 return 0;
         }
