@@ -180,6 +180,7 @@ typedef struct{
 	int64_t cur_setpoint;
 	int64_t cur_skew;
 	int64_t update_count;
+	int active_port;
 }  ptpdexp_sync_state_t ;
 
 /* All data used as extension ppsi-wr must be put here */
