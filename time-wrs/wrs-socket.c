@@ -306,8 +306,12 @@ static void poll_tx_timestamp(struct pp_instance *ppi,
 
 	res = recvmsg(fd, &msg, MSG_ERRQUEUE);
 
-	if (t)
+	if (t) {
 		t->correct = 0;
+		t->seconds = 0;
+		t->nanoseconds = 0;
+		t->phase = 0;
+	}
 
 	if (res <= 0 || !t)
 		return;
