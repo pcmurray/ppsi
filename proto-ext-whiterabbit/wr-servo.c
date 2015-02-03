@@ -260,6 +260,8 @@ int wr_servo_update(struct pp_instance *ppi)
 
 	got_sync = 0;
 
+	s->mu = ts_sub(ts_sub(s->t4, s->t1), ts_sub(s->t3, s->t2));
+
 	if (__PP_DIAG_ALLOW_FLAGS(pp_global_flags, pp_dt_servo, 1)) {
 		dump_timestamp(ppi, "servo:t1", s->t1);
 		dump_timestamp(ppi, "servo:t2", s->t2);
@@ -267,8 +269,6 @@ int wr_servo_update(struct pp_instance *ppi)
 		dump_timestamp(ppi, "servo:t4", s->t4);
 		dump_timestamp(ppi, "->mdelay", s->mu);
 	}
-
-	s->mu = ts_sub(ts_sub(s->t4, s->t1), ts_sub(s->t3, s->t2));
 
 	big_delta_fix =  s->delta_tx_m + s->delta_tx_s
 		       + s->delta_rx_m + s->delta_rx_s;
