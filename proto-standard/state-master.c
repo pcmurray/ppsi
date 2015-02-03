@@ -30,6 +30,11 @@ int pp_master(struct pp_instance *ppi, unsigned char *pkt, int plen)
 			goto out;
 
 		time_snt = &ppi->last_snt_time;
+		if (!time_snt->correct) {
+			pp_timeout_rand(ppi, PP_TO_SYNC,
+					DSPOR(ppi)->logSyncInterval);
+			goto out;
+		}
 		add_TimeInternal(time_snt, time_snt,
 				 &OPTS(ppi)->outbound_latency);
 		if ((e = msg_issue_followup(ppi, time_snt)))
