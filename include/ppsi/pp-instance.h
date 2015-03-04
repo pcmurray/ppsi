@@ -212,6 +212,7 @@ struct pp_globals {
 	/* Index of the pp_instance receiving the "Ebest" clock */
 	int ebest_idx;
 	int ebest_updated; /* set to 1 when ebest_idx changes */
+	int classClass_update;/*set to 1 when ClockClass is degradated (holdover)*/
 
 	int nlinks;
 	int max_links;

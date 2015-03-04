@@ -298,6 +298,8 @@ slave:
 		pp_diag(ppi, bmc, 1,"%s: slave (prio %d)"
 			" [redundancy disabled OR no slaves yet OR this is primary slave]\n",
 			__func__, ppi->slave_prio);
+		
+		
 		return PPS_SLAVE;
 	}
 /** this might be solved in hal/softPLL

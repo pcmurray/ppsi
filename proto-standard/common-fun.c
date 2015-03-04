@@ -75,6 +75,7 @@ static void st_com_add_foreign(struct pp_instance *ppi, unsigned char *buf)
 			/* already in Foreign master data set, update info */
 			msg_copy_header(&ppi->frgn_master[i].hdr, hdr);
 			msg_unpack_announce(buf, &ppi->frgn_master[i].ann);
+			pp_diag(ppi, bmc, 1, "Updated existing foreign Master %i added\n", i);
 			return;
 		}
 	}
