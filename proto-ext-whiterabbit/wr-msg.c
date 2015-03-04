@@ -63,6 +63,9 @@ void msg_pack_announce_wr_tlv(struct pp_instance *ppi)
 	buf = ppi->tx_ptp;
 
 	/* GM: update clock Class, according to whether we are locked or not */
+	
+//ML: it does not seem the best place to to that... this is holdover stuff
+#if 0 
 	if (class < PP_CLASS_DEFAULT) {
 		locked = wrp->ops->locking_poll(ppi, 1);
 		if (locked > 0)
@@ -75,7 +78,7 @@ void msg_pack_announce_wr_tlv(struct pp_instance *ppi)
 			*(UInteger8 *) (buf + 48) = class;
 		}
 	}
-
+#endif
 	/* Change length */
 	*(UInteger16 *)(buf + 2) = htons(WR_ANNOUNCE_LENGTH);
 
