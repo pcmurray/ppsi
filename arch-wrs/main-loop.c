@@ -97,7 +97,7 @@ int wrs_holdover_check(struct pp_globals *ppg)
 		pp_printf( "minipc_call() bad, err:%d, errno: %d\n",ret, errno);
 		return 0;
 	}
-	pp_printf( " holdover enabled=%d | state = %d | err %d | errno %d \n",s.enabled,s.state, ret, errno);
+	pp_printf( "\nholdover enabled=%d | state = %d | err %d | errno %d  \n",s.enabled,s.state, ret, errno);
 	if(!s.enabled || s.state == HEXP_HDOVER_INACTIVE) return 0;
 	
 	if(s.state == HEXP_HDOVER_ACTIVE) 
@@ -156,7 +156,9 @@ void wrs_main_loop(struct pp_globals *ppg)
 		int i;
 
 		minipc_server_action(ppsi_ch, 10 /* ms */);
-			
+		pp_printf( "\n[MainLoop] CC update=%d | def->clkClass = %d | par->clkClass %d\n\n",
+		ppg->classClass_update, ppg->defaultDS->clockQuality.clockClass, 
+		ppg->parentDS->grandmasterClockQuality.clockClass);
 		/*
 		 * If Ebest was changed in previous loop, run best
 		 * master clock before checking for new packets, which
@@ -194,7 +196,8 @@ void wrs_main_loop(struct pp_globals *ppg)
 			* 3. 
 			*/
 			if(wrs_holdover_check(ppg)){ 
-				
+				//TODO: first go to BMCA (so that ID of local is in Annouce ???
+				//      not sure, cause this might confuse node below????
 				for (j = 0; j < ppg->nlinks; j++)
 				{
 					struct pp_instance *ppi = INST(ppg, j);
