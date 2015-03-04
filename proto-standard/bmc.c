@@ -16,7 +16,7 @@
 #define FFB_TTRA	0x10
 #define FFB_FTRA	0x20
 
-/* ppi->port_idx port is becoming Master. Table 13 (9.3.5) of the spec. */
+/* ppi->port_idx port is becoming Master (when it is GM). Table 13 (9.3.5) of the spec. */
 void m1(struct pp_instance *ppi)
 {
 	struct DSParent *parent = DSPAR(ppi);
@@ -41,7 +41,6 @@ void m1(struct pp_instance *ppi)
 	/* Time Properties data set */
 	DSPRO(ppi)->timeSource = INTERNAL_OSCILLATOR;
 }
-
 
 /* ppi->port_idx port is synchronized to Ebest Table 16 (9.3.5) of the spec. */
 static void s1(struct pp_instance *ppi, MsgHeader *hdr, MsgAnnounce *ann)
@@ -204,15 +203,6 @@ static int bmc_state_decision(struct pp_instance *ppi,
 {
 	int cmpres;
 	struct pp_frgn_master myself;
-
-// 	if (ppi->master_only)
-// 		goto master;
-// 
-// 	if (ppi->slave_only)
-// 		goto slave;
-// 	
-// 	if (ppi->backup_only)
-// 		goto backup;
 	
 	if ((!ppi->frgn_rec_num) && (ppi->state == PPS_LISTENING))
 		return PPS_LISTENING;
@@ -277,7 +267,9 @@ backup: // according to WRSPEC, instead of PASSIVE
 	return PPS_SLAVE;
 	
 master:
-	m1(ppi);
+	//TODO: make it smarter
+	if(cmpres < 0) // it is M1 and M2, see IEEE1588-2008, page 87, in short switch is a GM
+		m1(ppi); //GM
 	pp_diag(ppi, bmc, 1,"%s: master\n", __func__);
 	return PPS_MASTER;
 
