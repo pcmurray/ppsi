@@ -35,6 +35,25 @@ int wrs_active_poll()
 	return p.active_chan;
 }
 
+int wrs_swover_ctr(int new_ref)
+{
+	int cmd, ret=0;
+	hexp_backup_state_t p;
+	if (new_ref < 0) //switchover
+		cmd = HEXP_BCKP_CMD_SET_SWITCHOVER;
+	else
+		cmd = 0xFF;//TODO: 
+
+	ret = minipc_call(hal_ch, DEFAULT_TO, &__rpcdef_swover_cmd, &p, cmd, new_ref);
+	
+	if (ret < 0 ) {
+		pp_printf("%s: error (ret %i)\n",
+			  __func__, ret);
+		return -1;
+	}
+	return 0;
+}
+
 int wrs_backup_state(int channel, uint32_t *good_phase_val, int *swover_flag,
 		      int *resync_flag)
 {

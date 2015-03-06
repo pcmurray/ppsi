@@ -127,7 +127,7 @@ struct wr_operations {
 	int (*active_poll)(void);
 	int (*backup_state)(int channel, uint32_t *good_phase_val, int *swover_flag,
 		      int *resync_flag);
-	
+	int (*swover_ctr)(int new_ref);
 };
 
 

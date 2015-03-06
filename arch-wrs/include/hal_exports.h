@@ -56,6 +56,7 @@
 
 #define HEXP_BCKP_CMD_GET_ACTIVE 0
 #define HEXP_BCKP_CMD_GET_STATE  1
+#define HEXP_BCKP_CMD_SET_SWITCHOVER  2
 /////////////////////////////////////
 
 #define HEXP_HDOVER_CMD_GET_STATE 0
