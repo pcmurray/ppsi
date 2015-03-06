@@ -160,7 +160,11 @@ static void wr_s1(struct pp_instance *ppi, MsgHeader *hdr, MsgAnnounce *ann)
 	WR_DSCUR(ppi)->primarySlavePortPriority = ppi->slave_prio;
 	
 	if(ann->grandmasterClockQuality.clockClass == 7)
+	{
 	    pp_diag(ppi, ext, 1, "\n received clockClass = 7\n\n");
+	    struct wr_dsport *wrp = WR_DSPOR(ppi);
+	    wrp->ops->swover_ctr(-1);
+	}
 }
 
 static void wr_s2(struct pp_instance *ppi, MsgHeader *hdr, MsgAnnounce *ann)
