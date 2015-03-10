@@ -89,7 +89,9 @@ int wrs_holdover_check(struct pp_globals *ppg)
 	struct pp_instance *ppi = INST(ppg, 0);
 	struct DSDefault *def = ppg->defaultDS;
 	struct DSParent  *par = ppg->parentDS;
+	int32_t diff_ns = 0;
 	int ret_time_get=0;
+	int j=0;
 	TimeInternal t;
 	int old_ClockClass = def->clockQuality.clockClass;
 	int ret =0;
@@ -100,6 +102,24 @@ int wrs_holdover_check(struct pp_globals *ppg)
 		pp_printf( "minipc_call() bad, err:%d, errno: %d\n",ret, errno);
 		return 0;
 	}
+
+	ppi->t_ops->get(ppi,&t);
+	
+	if(t.correct ==1)
+	{
+		if(ppg->t.seconds != 0)
+			diff_ns = (t.seconds     - ppg->t.seconds)*1000000000L + 
+			          (t.nanoseconds - ppg->t.nanoseconds); //ns
+		if(diff_ns > ppg->max_holdover_interv) 
+			ppg->max_holdover_interv = diff_ns;
+		ppg->t.seconds     = t.seconds;
+		ppg->t.nanoseconds = t.nanoseconds;
+		pp_printf( "[wrs_holdover_check %d] interval = %9li us [max val =+ %9li us]\n",
+		s.state, ((long)diff_ns/1000), (long)ppg->max_holdover_interv/1000);
+
+	}else
+	ppg->incorrect_cnt++;
+	
 	if(!s.enabled || s.state == HEXP_HDOVER_INACTIVE) return 0;
 	
 	if(s.state == HEXP_HDOVER_ACTIVE) 
@@ -122,6 +142,22 @@ int wrs_holdover_check(struct pp_globals *ppg)
 // 		if(def->clockQuality.clockClass == 14) def->clockQuality.clockClass == 58;
 // 	}
 	ppg->classClass_update = (old_ClockClass!=def->clockQuality.clockClass);
+	if(!ppg->classClass_update) return 0;
+	pp_printf( "[wrs_holdover_check %d] retire ANN timeouts\n");
+	for (j = 0; j < ppg->nlinks; j++)
+	{
+		struct pp_instance *ppi = INST(ppg, j);
+		if(!WR_DSPOR(ppi)->linkUP) continue;
+		
+		/* force sending on all ports announce as soon as possible*/
+		pp_timeout_set(ppi, PP_TO_ANN_INTERVAL, 0 /* now*/);
+		
+		/* forget old announces, this means that the BC will become GM
+		* in the BMCA we run below. this will happen through m1()
+		* and the defaultDS with updated clockClass will be copied
+		*/
+		ppi->frgn_rec_num = 0;
+	}
 	return ppg->classClass_update;
 }
 
@@ -133,13 +169,12 @@ void wrs_main_loop(struct pp_globals *ppg)
 	int32_t avg_us_loop =0;
 	int32_t diff_us = 0;
 	int incorrect_cnt=0;
-	TimeInternal prev_t;
+	TimeInternal t, prev_t;
 
 	/* Initialize each link's state machine */
 	for (j = 0; j < ppg->nlinks; j++) {
 
 		ppi = INST(ppg, j);
-
 		/*
 		* If we are sending or receiving raw ethernet frames,
 		* the ptp payload is one-eth-header bytes into the frame
@@ -157,25 +192,29 @@ void wrs_main_loop(struct pp_globals *ppg)
 
 	delay_ms = run_all_state_machines(ppg);
 	ppg->classClass_update = 0;
+	ppg->t.seconds = 0;
+	ppg->max_holdover_interv =0;
+	ppg->incorrect_cnt =0;
 	prev_t.seconds = 0;
+	
 	while (1) {
 		int i;
 		TimeInternal t;
 		
 		minipc_server_action(ppsi_ch, 10 /* ms */);
 		
-		ppi->t_ops->get(ppi,&t);
-
-		if(t.correct ==1)
-		{
-			if(prev_t.seconds != 0)
-				diff_us = (t.seconds-prev_t.seconds)*1000000000 + (t.nanoseconds-prev_t.nanoseconds); //us
-			if(diff_us !=0 && avg_us_loop == 0) avg_us_loop = diff_us;
-			else                                avg_us_loop = (avg_us_loop+diff_us)>>1;
-			prev_t.seconds     = t.seconds;
-			prev_t.nanoseconds = t.nanoseconds;
-		}else
-		incorrect_cnt++;
+// 		ppi->t_ops->get(ppi,&t);
+// 
+// 		if(t.correct ==1)
+// 		{
+// 			if(prev_t.seconds != 0)
+// 				diff_us = (t.seconds-prev_t.seconds)*1000000000 + (t.nanoseconds-prev_t.nanoseconds); //us
+// 			if(diff_us !=0 && avg_us_loop == 0) avg_us_loop = diff_us;
+// 			else                                avg_us_loop = (avg_us_loop+diff_us)>>1;
+// 			prev_t.seconds     = t.seconds;
+// 			prev_t.nanoseconds = t.nanoseconds;
+// 		}else
+// 		incorrect_cnt++;
 		
 		/*
 		 * If Ebest was changed in previous loop, run best
@@ -199,42 +238,22 @@ void wrs_main_loop(struct pp_globals *ppg)
 				ppg->classClass_update = 0;
 			}
 		}
-
+		if(wrs_holdover_check(ppg)) 
+			continue;
+		
 		i = wrs_net_ops.check_packet(ppg, delay_ms);
-
+		
+		if(wrs_holdover_check(ppg)) 
+			continue;
+		
 		if (i < 0)
 			continue;
 
 		if (i == 0) {
-		  		/*
-			* check holdover. If any holdover-related ClockClass degradation is required,
-			* the function will do it and return 1. In such case, 
-			* 1. announce timeout is expired
-			* 2 announce is sent (immediatelly)
-			* 3. 
-			*/
-			if(wrs_holdover_check(ppg)){ 
-				//TODO: first go to BMCA (so that ID of local is in Annouce ???
-				//      not sure, cause this might confuse node below????
-				for (j = 0; j < ppg->nlinks; j++)
-				{
-					struct pp_instance *ppi = INST(ppg, j);
-					/* force sending on all ports announce as soon as possible*/
-					pp_timeout_set(ppi, PP_TO_ANN_INTERVAL, 0 /* now*/);
-					
-					/* forget old announces, this means that the BC will become GM
-					* in the BMCA we run below. this will happen through m1()
-					* and the defaultDS with updated clockClass will be copied
-					*/
-					ppi->frgn_rec_num = 0;
-					continue;
-				}
-
-			}
 			delay_ms = run_all_state_machines(ppg);
 			continue;
 		}
-		pp_printf( "\n[MainLoop] avg=%d ms [avg_diff=%9li ns curr_diff=%9li incorrect_cnt=%d]\n\n",((long)avg_us_loop/1000000), (long)avg_us_loop,(long)diff_us,incorrect_cnt);
+// 		pp_printf( "\n[MainLoop] avg=%d ms [avg_diff=%9li ns curr_diff=%9li incorrect_cnt=%d]\n\n",((long)avg_us_loop/1000000), (long)avg_us_loop,(long)diff_us,incorrect_cnt);
 		//TODO: if works, make it sexy, now it's a hack
 // 		if(WR_DSPOR(INST(ppg, 0))->ops->active_poll() < 0) // no active port
 // 		{
@@ -249,6 +268,9 @@ void wrs_main_loop(struct pp_globals *ppg)
 		 * every delay_ms */
 		delay_ms = -1;
 
+		if(wrs_holdover_check(ppg)) 
+			continue;
+		
 		for (j = 0; j < ppg->nlinks; j++) {
 			int tmp_d;
 			ppi = INST(ppg, j);

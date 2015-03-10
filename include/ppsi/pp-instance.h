@@ -223,6 +223,11 @@ struct pp_globals {
 	void *arch_data;		/* if arch needs it */
 	void *ext_data;			/* if protocol ext needs it */
 	/* FIXME Here include all is common to many interfaces */
+	
+	//ML: tmp stuff, really TODO: remove
+	TimeInternal t;
+	int incorrect_cnt;
+	int32_t max_holdover_interv;
 };
 
 #endif /* __PPSI_PP_INSTANCE_H__ */
