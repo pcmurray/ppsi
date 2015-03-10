@@ -86,18 +86,20 @@ int wrs_holdover_check(struct pp_globals *ppg)
 {
 	hexp_holdover_state_t s;
 	int cmd = HEXP_HDOVER_CMD_GET_STATE;
+	struct pp_instance *ppi = INST(ppg, 0);
 	struct DSDefault *def = ppg->defaultDS;
 	struct DSParent  *par = ppg->parentDS;
+	int ret_time_get=0;
+	TimeInternal t;
 	int old_ClockClass = def->clockQuality.clockClass;
 	int ret =0;
 	
-	pp_printf( "wrs_holdover_check(): ");
-	if( ret=minipc_call(hal_ch, DEFAULT_TO, &__rpcdef_hdover_cmd, &s, cmd, 0 /*value (unused)*/) < 0)
+	ret=minipc_call(hal_ch, DEFAULT_TO, &__rpcdef_hdover_cmd, &s, cmd, 0 /*value (unused)*/);
+	if(ret < 0)
 	{
 		pp_printf( "minipc_call() bad, err:%d, errno: %d\n",ret, errno);
 		return 0;
 	}
-	pp_printf( "\nholdover enabled=%d | state = %d | err %d | errno %d  \n",s.enabled,s.state, ret, errno);
 	if(!s.enabled || s.state == HEXP_HDOVER_INACTIVE) return 0;
 	
 	if(s.state == HEXP_HDOVER_ACTIVE) 
@@ -128,6 +130,10 @@ void wrs_main_loop(struct pp_globals *ppg)
 	struct pp_instance *ppi;
 	int delay_ms;
 	int j;
+	int32_t avg_us_loop =0;
+	int32_t diff_us = 0;
+	int incorrect_cnt=0;
+	TimeInternal prev_t;
 
 	/* Initialize each link's state machine */
 	for (j = 0; j < ppg->nlinks; j++) {
@@ -151,14 +157,26 @@ void wrs_main_loop(struct pp_globals *ppg)
 
 	delay_ms = run_all_state_machines(ppg);
 	ppg->classClass_update = 0;
-	
+	prev_t.seconds = 0;
 	while (1) {
 		int i;
-
+		TimeInternal t;
+		
 		minipc_server_action(ppsi_ch, 10 /* ms */);
-		pp_printf( "\n[MainLoop] CC update=%d | def->clkClass = %d | par->clkClass %d\n\n",
-		ppg->classClass_update, ppg->defaultDS->clockQuality.clockClass, 
-		ppg->parentDS->grandmasterClockQuality.clockClass);
+		
+		ppi->t_ops->get(ppi,&t);
+
+		if(t.correct ==1)
+		{
+			if(prev_t.seconds != 0)
+				diff_us = (t.seconds-prev_t.seconds)*1000000000 + (t.nanoseconds-prev_t.nanoseconds); //us
+			if(diff_us !=0 && avg_us_loop == 0) avg_us_loop = diff_us;
+			else                                avg_us_loop = (avg_us_loop+diff_us)>>1;
+			prev_t.seconds     = t.seconds;
+			prev_t.nanoseconds = t.nanoseconds;
+		}else
+		incorrect_cnt++;
+		
 		/*
 		 * If Ebest was changed in previous loop, run best
 		 * master clock before checking for new packets, which
@@ -216,6 +234,7 @@ void wrs_main_loop(struct pp_globals *ppg)
 			delay_ms = run_all_state_machines(ppg);
 			continue;
 		}
+		pp_printf( "\n[MainLoop] avg=%d ms [avg_diff=%9li ns curr_diff=%9li incorrect_cnt=%d]\n\n",((long)avg_us_loop/1000000), (long)avg_us_loop,(long)diff_us,incorrect_cnt);
 		//TODO: if works, make it sexy, now it's a hack
 // 		if(WR_DSPOR(INST(ppg, 0))->ops->active_poll() < 0) // no active port
 // 		{
