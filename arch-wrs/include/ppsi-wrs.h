@@ -70,3 +70,9 @@ int wrs_active_poll();
 int wrs_backup_state(int channel, uint32_t *good_phase_val, int *swover_flag,
 		      int *resync_flag);
 int wrs_swover_ctr(int new_ref);
+
+/* PSU staff */
+int wrs_psu_init(int hClkCls, int inj_prio);
+int wrs_psu_add_master_port(int port);
+int wrs_psu_remove_master_port(int port);
+int wrs_psu_set_active_slave_port(int port);

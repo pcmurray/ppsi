@@ -70,6 +70,11 @@ endif
 # We need this -I so <arch/arch.h> can be found
 CFLAGS += -Iarch-$(ARCH)/include
 
+#######################################################################################
+# temp hack ...
+CFLAGS += -I../include -L../libswitchhw  -lswitchhw
+#######################################################################################
+
 # proto-standard is always included, as it provides default function
 # so the extension can avoid duplication of code.
 ifneq ($(PROTO_EXT),)
@@ -92,7 +97,8 @@ export CFLAGS
 
 $(TARGET).o: silentoldconfig $(OBJ-y)
 	$(LD) -Map $(TARGET).map1 -r -o $@ $(PPSI_O_LDFLAGS) \
-		--start-group $(OBJ-y) --end-group
+		--start-group $(OBJ-y) --end-group \
+		-I../include  -L../libswitchhw  -lswitchhw  # temp hack
 
 # Finally, "make clean" is expected to work
 clean:
