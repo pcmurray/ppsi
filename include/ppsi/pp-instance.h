@@ -228,6 +228,7 @@ struct pp_globals {
 	TimeInternal t;
 	int incorrect_cnt;
 	int32_t max_holdover_interv;
+	int holdover;
 };
 
 #endif /* __PPSI_PP_INSTANCE_H__ */

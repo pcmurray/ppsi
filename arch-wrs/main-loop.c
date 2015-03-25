@@ -103,27 +103,11 @@ int wrs_holdover_check(struct pp_globals *ppg)
 		return 0;
 	}
 
-	ppi->t_ops->get(ppi,&t);
-	
-	if(t.correct ==1)
-	{
-		if(ppg->t.seconds != 0)
-			diff_ns = (t.seconds     - ppg->t.seconds)*1000000000L + 
-			          (t.nanoseconds - ppg->t.nanoseconds); //ns
-		if(diff_ns > ppg->max_holdover_interv) 
-			ppg->max_holdover_interv = diff_ns;
-		ppg->t.seconds     = t.seconds;
-		ppg->t.nanoseconds = t.nanoseconds;
-		pp_printf( "[wrs_holdover_check %d] interval = %9li us [max val =+ %9li us]\n",
-		s.state, ((long)diff_ns/1000), (long)ppg->max_holdover_interv/1000);
-
-	}else
-	ppg->incorrect_cnt++;
-	
 	if(!s.enabled || s.state == HEXP_HDOVER_INACTIVE) return 0;
 	
 	if(s.state == HEXP_HDOVER_ACTIVE) 
 	{
+		ppg->holdover =1;
 		if(par->grandmasterClockQuality.clockClass == 6)  
 		{
 			def->clockQuality.clockClass            = 7;
@@ -143,7 +127,7 @@ int wrs_holdover_check(struct pp_globals *ppg)
 // 	}
 	ppg->classClass_update = (old_ClockClass!=def->clockQuality.clockClass);
 	if(!ppg->classClass_update) return 0;
-	pp_printf( "[wrs_holdover_check %d] retire ANN timeouts\n");
+// 	pp_printf( "[wrs_holdover_check %d] retire ANN timeouts\n");
 	for (j = 0; j < ppg->nlinks; j++)
 	{
 		struct pp_instance *ppi = INST(ppg, j);
@@ -170,6 +154,7 @@ void wrs_main_loop(struct pp_globals *ppg)
 	int32_t diff_us = 0;
 	int incorrect_cnt=0;
 	TimeInternal t, prev_t;
+	ppg->holdover = 0;
 
 	/* Initialize each link's state machine */
 	for (j = 0; j < ppg->nlinks; j++) {
@@ -203,18 +188,6 @@ void wrs_main_loop(struct pp_globals *ppg)
 		
 		minipc_server_action(ppsi_ch, 10 /* ms */);
 		
-// 		ppi->t_ops->get(ppi,&t);
-// 
-// 		if(t.correct ==1)
-// 		{
-// 			if(prev_t.seconds != 0)
-// 				diff_us = (t.seconds-prev_t.seconds)*1000000000 + (t.nanoseconds-prev_t.nanoseconds); //us
-// 			if(diff_us !=0 && avg_us_loop == 0) avg_us_loop = diff_us;
-// 			else                                avg_us_loop = (avg_us_loop+diff_us)>>1;
-// 			prev_t.seconds     = t.seconds;
-// 			prev_t.nanoseconds = t.nanoseconds;
-// 		}else
-// 		incorrect_cnt++;
 		
 		/*
 		 * If Ebest was changed in previous loop, run best
@@ -234,22 +207,20 @@ void wrs_main_loop(struct pp_globals *ppg)
 			ppg->ebest_updated = 0;
 			
 			if(ppg->classClass_update){
+// 				pp_printf( "ClockClass update -> should send announes\n");
 				delay_ms = run_all_state_machines(ppg); //announces sent here
 				ppg->classClass_update = 0;
 			}
 		}
-		if(wrs_holdover_check(ppg)) 
-			continue;
 		
 		i = wrs_net_ops.check_packet(ppg, delay_ms);
-		
-		if(wrs_holdover_check(ppg)) 
-			continue;
-		
+			
 		if (i < 0)
 			continue;
 
 		if (i == 0) {
+			if(wrs_holdover_check(ppg)) 
+				continue;
 			delay_ms = run_all_state_machines(ppg);
 			continue;
 		}
@@ -268,9 +239,6 @@ void wrs_main_loop(struct pp_globals *ppg)
 		 * every delay_ms */
 		delay_ms = -1;
 
-		if(wrs_holdover_check(ppg)) 
-			continue;
-		
 		for (j = 0; j < ppg->nlinks; j++) {
 			int tmp_d;
 			ppi = INST(ppg, j);
