@@ -32,7 +32,10 @@ int wr_link_on(struct pp_instance *ppi, unsigned char *pkt, int plen)
 	wrp->wrPortState = WRS_IDLE;
 
 	if (wrp->wrMode == WR_SLAVE)
+	{
 		ppi->next_state = PPS_SLAVE;
+		ppi->glbs->holdover = 0;
+	}
 	else
 		ppi->next_state = PPS_MASTER;
 	return 0;

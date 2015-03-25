@@ -212,7 +212,9 @@ int main(int argc, char **argv)
 	WR_DSCUR(ppi)->primarySlavePortPriority = -1;
 	
 	pp_init_globals(ppg, &__pp_default_rt_opts);
-
+	
+	wrs_psu_init(7, 0);
+       
 	seed = time(NULL);
 	if (getenv("PPSI_DROP_SEED"))
 		seed = atoi(getenv("PPSI_DROP_SEED"));

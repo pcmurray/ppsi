@@ -20,6 +20,9 @@ static int wr_init(struct pp_instance *ppi, unsigned char *pkt, int plen)
 		wp->ops->enable_timing_output(ppi, 1);
 	else
 		wp->ops->enable_timing_output(ppi, 0);
+		
+	/// ADD port to PSU announcing ports
+	wrs_psu_add_master_port(ppi->port_idx);
 	return 0;
 }
 
@@ -107,6 +110,7 @@ static int wr_master_msg(struct pp_instance *ppi, unsigned char *pkt, int plen,
 static int wr_new_slave(struct pp_instance *ppi, unsigned char *pkt, int plen)
 {
 	wr_servo_init(ppi);
+	
 	return 0;
 }
 
@@ -159,12 +163,12 @@ static void wr_s1(struct pp_instance *ppi, MsgHeader *hdr, MsgAnnounce *ann)
 	WR_DSCUR(ppi)->primarySlavePortNumber   = ppi->port_idx;
 	WR_DSCUR(ppi)->primarySlavePortPriority = ppi->slave_prio;
 	
-	if(ann->grandmasterClockQuality.clockClass == 7)
-	{
-	    pp_diag(ppi, ext, 1, "\n received clockClass = 7\n\n");
-	    struct wr_dsport *wrp = WR_DSPOR(ppi);
-	    wrp->ops->swover_ctr(-1);
-	}
+// 	if(ann->grandmasterClockQuality.clockClass == 7)
+// 	{
+// 	    pp_diag(ppi, ext, 1, "\n received clockClass = 7\n\n");
+// 	    struct wr_dsport *wrp = WR_DSPOR(ppi);
+// 	    wrp->ops->swover_ctr(-1);
+// 	}
 }
 
 static void wr_s2(struct pp_instance *ppi, MsgHeader *hdr, MsgAnnounce *ann)

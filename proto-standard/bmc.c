@@ -290,7 +290,8 @@ slave:
 		pp_diag(ppi, bmc, 1,"%s: slave (prio %d)"
 			" [redundancy disabled OR no slaves yet OR this is primary slave]\n",
 			__func__, ppi->slave_prio);
-		
+		wrs_psu_remove_master_port(ppi->port_idx);
+		wrs_psu_set_active_slave_port(ppi->port_idx);
 		
 		return PPS_SLAVE;
 	}
@@ -308,6 +309,7 @@ slave:
 	{
 		s2(ppi, &m->hdr, &m->ann);
 		pp_diag(ppi, bmc, 1,"%s: backup slave (prio %d)\n", __func__, ppi->slave_prio);
+		wrs_psu_remove_master_port(ppi->port_idx);
 		return PPS_SLAVE;
 	}
 	
