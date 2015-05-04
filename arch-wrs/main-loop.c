@@ -20,6 +20,10 @@
 #include <hal_exports.h>
 extern struct minipc_pd __rpcdef_get_port_state;
 
+#ifndef ETH_HSR_HLEN
+#define ETH_HSR_HLEN	6
+#endif
+
 /* Call pp_state_machine for each instance. To be called periodically,
  * when no packets are incoming */
 static int run_all_state_machines(struct pp_globals *ppg)
@@ -89,7 +93,7 @@ void wrs_main_loop(struct pp_globals *ppg)
 		* the ptp payload is one-eth-header bytes into the frame
 		*/
 		if (ppi->ethernet_mode)
-			NP(ppi)->ptp_offset = ETH_HLEN;
+			NP(ppi)->ptp_offset = ETH_HLEN + ETH_HSR_HLEN;
 
 		/*
 		* The main loop here is based on select. While we are not
