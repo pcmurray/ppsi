@@ -156,6 +156,41 @@ int st_com_slave_handle_sync(struct pp_instance *ppi, unsigned char *buf,
 	return 0;
 }
 
+int st_com_pclock_handle_sync(struct pp_instance *ppi, unsigned char *buf,
+			     int len)
+{
+	MsgHeader *hdr = &ppi->received_ptp_header;
+	MsgSync sync;
+
+	if (len < PP_SYNC_LENGTH)
+		return -1;
+	if (!ppi->is_from_cur_par)
+		return 0;
+
+	/* t2 may be overriden by follow-up, cField is always valid */
+	ppi->t2 = ppi->last_rcv_time;
+	cField_to_TimeInternal(&ppi->cField, hdr->correctionfield);
+	
+	/* t5 must be kept when sync arrives and t6 right after leaving */
+
+	if ((hdr->flagField[0] & PP_TWO_STEP_FLAG) != 0) {
+		ppi->waiting_for_follow = TRUE;
+		ppi->recv_sync_sequence_id = hdr->sequenceId;
+		return 0;
+	}
+	msg_unpack_sync(buf, &sync);
+	ppi->waiting_for_follow = FALSE;
+	to_TimeInternal(&ppi->t1,
+			&sync.originTimestamp);
+
+	if (GLBS(ppi)->delay_mech)
+		pp_servo_got_psync(ppi);
+	else
+		pp_servo_got_sync(ppi);
+
+	return 0;
+}
+
 int st_com_peer_handle_pres(struct pp_instance *ppi, unsigned char *buf,
 			     int len)
 {
@@ -250,6 +285,57 @@ int st_com_slave_handle_followup(struct pp_instance *ppi, unsigned char *buf,
 		pp_servo_got_psync(ppi);
 	else
 		pp_servo_got_sync(ppi);
+
+	return 0;
+}
+
+/* Called by slave and uncalibrated */
+int st_com_pclock_handle_followup(struct pp_instance *ppi, unsigned char *buf,
+				 int len)
+{
+	MsgFollowUp follow;
+	int ret = 0;
+
+	MsgHeader *hdr = &ppi->received_ptp_header;
+
+	if (len < PP_FOLLOW_UP_LENGTH)
+		return -1;
+
+	if (!ppi->is_from_cur_par) {
+		pp_error("%s: Follow up message is not from current parent\n",
+			__func__);
+		return 0;
+	}
+
+	if (!ppi->waiting_for_follow) {
+		pp_error("%s: Slave was not waiting a follow up message\n",
+			__func__);
+		return 0;
+	}
+
+	if (ppi->recv_sync_sequence_id != hdr->sequenceId) {
+		pp_error("%s: SequenceID %d doesn't match last Sync message %d\n",
+				 __func__, hdr->sequenceId, ppi->recv_sync_sequence_id);
+		return 0;
+	}
+
+	msg_unpack_follow_up(buf, &follow);
+	ppi->waiting_for_follow = FALSE;
+	to_TimeInternal(&ppi->t1, &follow.preciseOriginTimestamp);
+
+	/* Call the extension; it may do it all and ask to return */
+	if (pp_hooks.handle_followup)
+		ret = pp_hooks.handle_followup(ppi, &ppi->t1, &ppi->cField);
+	if (ret == 1)
+		return 0;
+	if (ret < 0)
+		return ret;
+
+	if (GLBS(ppi)->delay_mech){
+		pp_servo_got_psync(ppi);
+	}else{
+		pp_servo_got_sync(ppi);
+	}
 
 	return 0;
 }

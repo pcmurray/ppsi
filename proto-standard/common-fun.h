@@ -29,11 +29,17 @@ int st_com_master_handle_announce(struct pp_instance *ppi, unsigned char *buf,
 int st_com_slave_handle_sync(struct pp_instance *ppi, unsigned char *buf,
 			     int len);
 
+int st_com_pclock_handle_sync(struct pp_instance *ppi, unsigned char *buf,
+			     int len);
+
 int st_com_master_handle_sync(struct pp_instance *ppi, unsigned char *buf,
 			      int len);
 
 int st_com_slave_handle_followup(struct pp_instance *ppi, unsigned char *buf,
 				 int len);
+
+int st_com_pclock_handle_followup(struct pp_instance *ppi, unsigned char *buf,
+				int len);
 
 int st_com_peer_handle_preq(struct pp_instance *ppi, unsigned char *buf,
 			     int len);

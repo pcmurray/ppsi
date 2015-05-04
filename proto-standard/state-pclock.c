@@ -42,11 +42,11 @@ int pp_pclock(struct pp_instance *ppi, unsigned char *pkt, int plen)
 		break;
 
 	case PPM_SYNC:
-		e = st_com_slave_handle_sync(ppi, pkt, plen);
+		e = st_com_pclock_handle_sync(ppi, pkt, plen);
 		break;
 
 	case PPM_FOLLOW_UP:
-		e = st_com_slave_handle_followup(ppi, pkt, plen);
+		e = st_com_pclock_handle_followup(ppi, pkt, plen);
 		break;
 
 	case PPM_PDELAY_REQ:
