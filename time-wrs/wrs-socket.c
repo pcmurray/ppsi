@@ -390,7 +390,7 @@ int wrs_net_send(struct pp_instance *ppi, void *pkt, int len,
 							(ppi->port_idx << 12));
 		hdr->hsrtag.path_and_LSDU_size = htons(
 							(ntohs(hdr->hsrtag.path_and_LSDU_size) & 0xF000) |
-							(46 & 0x0FFF)); /* FIXME: (LSDU_size & 0x0FFF));*/
+							(len-14 & 0x0FFF));
 		hdr->hsrtag.sequence_nr = htons(GLBS(ppi)->hsr_seq_number);
 		GLBS(ppi)->hsr_seq_number++; 
 		hdr->hsrtag.encap_proto = htons(ETH_P_1588);
