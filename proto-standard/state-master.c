@@ -15,6 +15,30 @@ int pp_master(struct pp_instance *ppi, unsigned char *pkt, int plen)
 	int msgtype, d1, d2;
 	int e = 0; /* error var, to check errors in msg handling */
 
+	/* forwarding is the first priority */
+	if (ppi->fwd_sync_flag) { /* forward sync */
+		memcpy(ppi->tx_backup, ppi->tx_buffer,
+			PP_MAX_FRAME_LENGTH);
+		memcpy(ppi->tx_buffer, ppi->fwd_sync_buffer,
+			PP_MAX_FRAME_LENGTH);
+		__send_and_log(ppi, PP_SYNC_LENGTH, PPM_SYNC, PP_NP_EVT);
+		memcpy(ppi->tx_buffer, ppi->tx_backup,
+			PP_MAX_FRAME_LENGTH);
+		ppi->fwd_sync_flag = 0;
+	}
+	if (ppi->fwd_fup_flag) { /* forward follow_up */
+		memcpy(ppi->tx_backup, ppi->tx_buffer,
+			PP_MAX_FRAME_LENGTH);
+		memcpy(ppi->tx_buffer, ppi->fwd_fup_buffer,
+			PP_MAX_FRAME_LENGTH);
+		 __send_and_log(ppi, PP_FOLLOW_UP_LENGTH, PPM_FOLLOW_UP,
+				PP_NP_EVT);
+		memcpy(ppi->tx_buffer, ppi->tx_backup,
+			PP_MAX_FRAME_LENGTH);
+		ppi->fwd_fup_flag = 0;
+	}
+	/* end of forwarding */
+	
 	if (ppi->is_new_state) {
 		pp_timeout_rand(ppi, PP_TO_SYNC, DSPOR(ppi)->logSyncInterval);
 		pp_timeout_rand(ppi, PP_TO_ANN_INTERVAL,
@@ -64,6 +88,7 @@ int pp_master(struct pp_instance *ppi, unsigned char *pkt, int plen)
 		goto out;
 	}
 
+	
 	switch (msgtype) {
 
 	case PPM_NOTHING_TO_DO:

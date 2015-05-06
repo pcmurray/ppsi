@@ -16,6 +16,30 @@ int pp_slave(struct pp_instance *ppi, unsigned char *pkt, int plen)
 	MsgDelayResp resp;
 	int d1, d2;
 
+	/* forwarding is the first priority */
+	if (ppi->fwd_sync_flag) { /* forward sync */
+		memcpy(ppi->tx_backup, ppi->tx_buffer,
+			PP_MAX_FRAME_LENGTH);
+		memcpy(ppi->tx_buffer, ppi->fwd_sync_buffer,
+			PP_MAX_FRAME_LENGTH);
+		__send_and_log(ppi, PP_SYNC_LENGTH, PPM_SYNC, PP_NP_EVT);
+		memcpy(ppi->tx_buffer, ppi->tx_backup,
+			PP_MAX_FRAME_LENGTH);
+		ppi->fwd_sync_flag = 0;
+	}
+	if (ppi->fwd_fup_flag) { /* forward follow_up */
+		memcpy(ppi->tx_backup, ppi->tx_buffer,
+			PP_MAX_FRAME_LENGTH);
+		memcpy(ppi->tx_buffer, ppi->fwd_fup_buffer,
+			PP_MAX_FRAME_LENGTH);
+		 __send_and_log(ppi, PP_FOLLOW_UP_LENGTH, PPM_FOLLOW_UP,
+				PP_NP_EVT);
+		memcpy(ppi->tx_buffer, ppi->tx_backup,
+			PP_MAX_FRAME_LENGTH);
+		ppi->fwd_fup_flag = 0;
+	}
+	/* end of forwarding */
+	
 	if (ppi->is_new_state) {
 		pp_servo_init(ppi);
 
@@ -42,10 +66,21 @@ int pp_slave(struct pp_instance *ppi, unsigned char *pkt, int plen)
 		break;
 
 	case PPM_SYNC:
+		/* forward before is processed by slave */
+		memcpy(INST(ppi->glbs, 2)->fwd_sync_buffer, ppi->rx_buffer,
+				PP_MAX_FRAME_LENGTH);
+		INST(ppi->glbs, 2)->fwd_sync_flag = 1; // master is in charge of = 0
+		/* end of forwarding */
 		e = st_com_slave_handle_sync(ppi, pkt, plen);
+		
 		break;
 
 	case PPM_FOLLOW_UP:
+		/* forward before is processed by slave */
+		memcpy(INST(ppi->glbs, 2)->fwd_fup_buffer, ppi->rx_buffer,
+				PP_MAX_FRAME_LENGTH);
+		INST(ppi->glbs, 2)->fwd_fup_flag = 1; // master is in charge of = 0
+		/* end of forwarding */
 		e = st_com_slave_handle_followup(ppi, pkt, plen);
 		break;
 

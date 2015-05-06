@@ -363,20 +363,24 @@ int wrs_net_send(struct pp_instance *ppi, void *pkt, int len,
 
 	if (ppi->ethernet_mode) {
 		fd = NP(ppi)->ch[PP_NP_GEN].fd;
-		hdr->h_proto = htons(ETH_P_1588);
-		if (drop)
-			hdr->h_proto++;
+		
+		if (!(ppi->fwd_sync_flag || ppi->fwd_fup_flag)) {
+			
+			hdr->h_proto = htons(ETH_P_1588);
+			if (drop)
+				hdr->h_proto++;
 
-		if (use_pdelay_addr)
-			memcpy(hdr->h_dest, PP_PDELAY_MACADDRESS, ETH_ALEN);
-		else
-			memcpy(hdr->h_dest, PP_MCAST_MACADDRESS, ETH_ALEN);
+			if (use_pdelay_addr)
+				memcpy(hdr->h_dest, PP_PDELAY_MACADDRESS, ETH_ALEN);
+			else
+				memcpy(hdr->h_dest, PP_MCAST_MACADDRESS, ETH_ALEN);
 
-		/* raw socket implementation always uses gen socket */
-		memcpy(hdr->h_source, NP(ppi)->ch[PP_NP_GEN].addr, ETH_ALEN);
+			/* raw socket implementation always uses gen socket */
+			memcpy(hdr->h_source, NP(ppi)->ch[PP_NP_GEN].addr, ETH_ALEN);
 
-		if (t)
-			ppi->t_ops->get(ppi, t);
+			if (t)
+				ppi->t_ops->get(ppi, t);
+		}
 
 		ret = send(fd, hdr, len, 0);
 		poll_tx_timestamp(ppi, s, fd, t);
