@@ -25,7 +25,7 @@ struct pp_state_table_item pp_state_table[] __attribute__((weak)) = {
 #ifdef CONFIG_E2E
 	{ PPS_SLAVE,		"slave",	pp_slave,},
 #elif CONFIG_P2P
-	{ PPS_SLAVE,		"pclock",	pp_pclock,},
+	{ PPS_SLAVE,		"slave",	pp_pclock,},
 #endif
 	{ PPS_END_OF_TABLE,}
 };
