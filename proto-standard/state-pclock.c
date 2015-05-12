@@ -16,7 +16,18 @@ int pp_pclock(struct pp_instance *ppi, unsigned char *pkt, int plen)
 	MsgPDelayRespFollowUp respFllw;
 	int d1, d2;
 
+#ifdef CONFIG_P2P
 	/* forwarding is the first priority */
+	if (ppi->fwd_ann_flag) { /* forward ann */
+		memcpy(ppi->tx_backup, ppi->tx_buffer,
+			PP_MAX_FRAME_LENGTH);
+		memcpy(ppi->tx_buffer, ppi->fwd_ann_buffer,
+			PP_MAX_FRAME_LENGTH);
+		__send_and_log(ppi, PP_ANNOUNCE_LENGTH, PPM_ANNOUNCE, PP_NP_GEN);
+		memcpy(ppi->tx_buffer, ppi->tx_backup,
+			PP_MAX_FRAME_LENGTH);
+		ppi->fwd_ann_flag = 0;
+	}
 	if (ppi->fwd_sync_flag) { /* forward sync */
 		memcpy(ppi->tx_backup, ppi->tx_buffer,
 			PP_MAX_FRAME_LENGTH);
@@ -39,7 +50,8 @@ int pp_pclock(struct pp_instance *ppi, unsigned char *pkt, int plen)
 		ppi->fwd_fup_flag = 0;
 	}
 	/* end of forwarding */
-	
+#endif
+
 	if (ppi->is_new_state) {
 		pp_servo_init(ppi);
 
@@ -62,24 +74,36 @@ int pp_pclock(struct pp_instance *ppi, unsigned char *pkt, int plen)
 	switch (hdr->messageType) {
 
 	case PPM_ANNOUNCE:
+#ifdef CONFIG_P2P
+		/* forward before is processed by slave */
+		memcpy(INST(ppi->glbs, ppi->fwd_port)->fwd_ann_buffer, ppi->rx_buffer,
+				PP_MAX_FRAME_LENGTH);
+		INST(ppi->glbs, ppi->fwd_port)->fwd_ann_flag = 1; // master is in charge of = 0
+		/* end of forwarding */
+#endif
 		e = st_com_slave_handle_announce(ppi, pkt, plen);
 		break;
 
 	case PPM_SYNC:
+#ifdef CONFIG_P2P
 		/* forward before is processed by slave */
 		memcpy(INST(ppi->glbs, ppi->fwd_port)->fwd_sync_buffer, ppi->rx_buffer,
 				PP_MAX_FRAME_LENGTH);
 		INST(ppi->glbs, ppi->fwd_port)->fwd_sync_flag = 1; // master is in charge of = 0
+		INST(ppi->glbs, ppi->fwd_port)->sync_t5 = ppi->last_rcv_time;
 		/* end of forwarding */
+#endif
 		e = st_com_slave_handle_sync(ppi, pkt, plen);
 		break;
 
 	case PPM_FOLLOW_UP:
+#ifdef CONFIG_P2P
 		/* forward before is processed by slave */
 		memcpy(INST(ppi->glbs, ppi->fwd_port)->fwd_fup_buffer, ppi->rx_buffer,
 				PP_MAX_FRAME_LENGTH);
 		INST(ppi->glbs, ppi->fwd_port)->fwd_fup_flag = 1; // master is in charge of = 0
 		/* end of forwarding */
+#endif
 		e = st_com_slave_handle_followup(ppi, pkt, plen);
 		break;
 

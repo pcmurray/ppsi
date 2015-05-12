@@ -183,13 +183,15 @@ struct pp_instance {
 	char *iface_name; /* for direct actions on hardware */
 	char *port_name; /* for diagnostics, mainly */
 	int port_idx;
-	
+
 	/* forwarding stuff */
+	unsigned char fwd_ann_buffer[PP_MAX_FRAME_LENGTH];
 	unsigned char fwd_sync_buffer[PP_MAX_FRAME_LENGTH];
 	unsigned char fwd_fup_buffer[PP_MAX_FRAME_LENGTH];
 	unsigned char tx_backup[PP_MAX_FRAME_LENGTH];
 
-	UInteger4 fwd_sync_flag, fwd_fup_flag, fwd_port;
+	UInteger4 fwd_sync_flag, fwd_fup_flag, fwd_ann_flag, fwd_port;
+	TimeInternal sync_t5, sync_t6;
 	/* forwarding stuff */
 
 	struct pp_instance_cfg cfg;
