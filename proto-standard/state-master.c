@@ -18,37 +18,37 @@ int pp_master(struct pp_instance *ppi, unsigned char *pkt, int plen)
 #ifdef CONFIG_P2P
 	/* FIXME: masters should not fwd but no other choice by now */
 	/* forwarding is the first priority */
-	if (ppi->fwd_ann_flag) { /* forward ann */
-		memcpy(ppi->tx_backup, ppi->tx_buffer,
-			PP_MAX_FRAME_LENGTH);
-		memcpy(ppi->tx_buffer, ppi->fwd_ann_buffer,
-			PP_MAX_FRAME_LENGTH);
-		__send_and_log(ppi, PP_ANNOUNCE_LENGTH, PPM_ANNOUNCE, PP_NP_GEN);
-		memcpy(ppi->tx_buffer, ppi->tx_backup,
-			PP_MAX_FRAME_LENGTH);
-		ppi->fwd_ann_flag = 0;
-	}
-	if (ppi->fwd_sync_flag) { /* forward sync */
-		memcpy(ppi->tx_backup, ppi->tx_buffer,
-			PP_MAX_FRAME_LENGTH);
-		memcpy(ppi->tx_buffer, ppi->fwd_sync_buffer,
-			PP_MAX_FRAME_LENGTH);
-		__send_and_log(ppi, PP_SYNC_LENGTH, PPM_SYNC, PP_NP_EVT);
-		memcpy(ppi->tx_buffer, ppi->tx_backup,
-			PP_MAX_FRAME_LENGTH);
-		ppi->fwd_sync_flag = 0;
-	}
-	if (ppi->fwd_fup_flag) { /* forward follow_up */
-		memcpy(ppi->tx_backup, ppi->tx_buffer,
-			PP_MAX_FRAME_LENGTH);
-		memcpy(ppi->tx_buffer, ppi->fwd_fup_buffer,
-			PP_MAX_FRAME_LENGTH);
-		 __send_and_log(ppi, PP_FOLLOW_UP_LENGTH, PPM_FOLLOW_UP,
-				PP_NP_EVT);
-		memcpy(ppi->tx_buffer, ppi->tx_backup,
-			PP_MAX_FRAME_LENGTH);
-		ppi->fwd_fup_flag = 0;
-	}
+	//if (ppi->fwd_ann_flag) { /* forward ann */
+		//memcpy(ppi->tx_backup, ppi->tx_buffer,
+			//PP_MAX_FRAME_LENGTH);
+		//memcpy(ppi->tx_buffer, ppi->fwd_ann_buffer,
+			//PP_MAX_FRAME_LENGTH);
+		//__send_and_log(ppi, PP_ANNOUNCE_LENGTH, PPM_ANNOUNCE, PP_NP_GEN);
+		//memcpy(ppi->tx_buffer, ppi->tx_backup,
+			//PP_MAX_FRAME_LENGTH);
+		//ppi->fwd_ann_flag = 0;
+	//}
+	//if (ppi->fwd_sync_flag) { /* forward sync */
+		//memcpy(ppi->tx_backup, ppi->tx_buffer,
+			//PP_MAX_FRAME_LENGTH);
+		//memcpy(ppi->tx_buffer, ppi->fwd_sync_buffer,
+			//PP_MAX_FRAME_LENGTH);
+		//__send_and_log(ppi, PP_SYNC_LENGTH, PPM_SYNC, PP_NP_EVT);
+		//memcpy(ppi->tx_buffer, ppi->tx_backup,
+			//PP_MAX_FRAME_LENGTH);
+		//ppi->fwd_sync_flag = 0;
+	//}
+	//if (ppi->fwd_fup_flag) { /* forward follow_up */
+		//memcpy(ppi->tx_backup, ppi->tx_buffer,
+			//PP_MAX_FRAME_LENGTH);
+		//memcpy(ppi->tx_buffer, ppi->fwd_fup_buffer,
+			//PP_MAX_FRAME_LENGTH);
+		 //__send_and_log(ppi, PP_FOLLOW_UP_LENGTH, PPM_FOLLOW_UP,
+				//PP_NP_EVT);
+		//memcpy(ppi->tx_buffer, ppi->tx_backup,
+			//PP_MAX_FRAME_LENGTH);
+		//ppi->fwd_fup_flag = 0;
+	//}
 	/* end of forwarding */
 #endif
 
@@ -57,35 +57,27 @@ int pp_master(struct pp_instance *ppi, unsigned char *pkt, int plen)
 		pp_timeout_rand(ppi, PP_TO_ANN_INTERVAL,
 				DSPOR(ppi)->logAnnounceInterval);
 
-#ifdef CONFIG_E2E
 		/* Send an announce immediately, when becomes master */
 		if ((e = msg_issue_announce(ppi)) < 0)
 			goto out;
-#endif
 	}
 
 	if (pp_timeout_z(ppi, PP_TO_SYNC)) {
-#ifdef CONFIG_E2E
 		if ((e = msg_issue_sync(ppi) < 0))
 			goto out;
-#endif
 
 		time_snt = &ppi->last_snt_time;
 		add_TimeInternal(time_snt, time_snt,
 				 &OPTS(ppi)->outbound_latency);
-#ifdef CONFIG_E2E
 		if ((e = msg_issue_followup(ppi, time_snt)))
 			goto out;
-#endif
 		/* Restart the timeout for next time */
 		pp_timeout_rand(ppi, PP_TO_SYNC, DSPOR(ppi)->logSyncInterval);
 	}
 
 	if (pp_timeout_z(ppi, PP_TO_ANN_INTERVAL)) {
-#ifdef CONFIG_E2E
 		if ((e = msg_issue_announce(ppi) < 0))
 			goto out;
-#endif
 
 		/* Restart the timeout for next time */
 		pp_timeout_rand(ppi, PP_TO_ANN_INTERVAL,

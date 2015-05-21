@@ -14,6 +14,7 @@ OBJ-y += $D/fsm-table.o \
 	$D/state-uncalibrated.o \
 	$D/state-slave.o \
 	$D/state-pclock.o \
+	$D/state-pmaster.o \
 	$D/common-fun.o \
 	$D/bmc.o \
 	$D/msg.o \

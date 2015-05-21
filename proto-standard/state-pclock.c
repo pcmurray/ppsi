@@ -23,7 +23,8 @@ int pp_pclock(struct pp_instance *ppi, unsigned char *pkt, int plen)
 			PP_MAX_FRAME_LENGTH);
 		memcpy(ppi->tx_buffer, ppi->fwd_ann_buffer,
 			PP_MAX_FRAME_LENGTH);
-		__send_and_log(ppi, PP_ANNOUNCE_LENGTH, PPM_ANNOUNCE, PP_NP_GEN);
+		__send_and_log(ppi, PP_ANNOUNCE_LENGTH+14, PPM_ANNOUNCE, PP_NP_GEN);
+			/* FIXME: why + 14? */
 		memcpy(ppi->tx_buffer, ppi->tx_backup,
 			PP_MAX_FRAME_LENGTH);
 		ppi->fwd_ann_flag = 0;
@@ -123,7 +124,6 @@ int pp_pclock(struct pp_instance *ppi, unsigned char *pkt, int plen)
 		break;
 
 	case PPM_PDELAY_RESP:
-
 		e = st_com_peer_handle_pres(ppi, pkt, plen);
 		break;
 
@@ -171,7 +171,6 @@ out:
 
 	if (pp_timeout_z(ppi, PP_TO_PDELAYREQ)) {
 		e = msg_issue_pdelay_req(ppi);
-
 		ppi->t3 = ppi->last_snt_time;
 
 		/* Restart the timeout for next time */

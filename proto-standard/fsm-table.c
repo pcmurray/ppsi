@@ -19,13 +19,13 @@ struct pp_state_table_item pp_state_table[] __attribute__((weak)) = {
 	{ PPS_DISABLED,		"disabled",	pp_disabled,},
 	{ PPS_LISTENING,	"listening",	pp_listening,},
 	{ PPS_PRE_MASTER,	"pre-master",	pp_pre_master,},
-	{ PPS_MASTER,		"master",	pp_master,},
+	{ PPS_MASTER,		"pclockm",	pp_pmaster,},
 	{ PPS_PASSIVE,		"passive",	pp_passive,},
 	{ PPS_UNCALIBRATED,	"uncalibrated",	pp_uncalibrated,},
 #ifdef CONFIG_E2E
 	{ PPS_SLAVE,		"slave",	pp_slave,},
 #elif CONFIG_P2P
-	{ PPS_SLAVE,		"pclock",	pp_pclock,},
+	{ PPS_SLAVE,		"pclocks",	pp_pclock,},
 #endif
 	{ PPS_END_OF_TABLE,}
 };
