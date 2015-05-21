@@ -61,23 +61,21 @@ int pp_pmaster(struct pp_instance *ppi, unsigned char *pkt, int plen)
 
 #ifdef CONFIG_E2E
 		/* Send an announce immediately, when becomes master */
-		//if ((e = msg_issue_announce(ppi)) < 0)
-			//goto out;
+		if ((e = msg_issue_announce(ppi)) < 0)
+			goto out;
 #endif
 	}
 
 	if (pp_timeout_z(ppi, PP_TO_SYNC)) {
 #ifdef CONFIG_E2E
-		//if ((e = msg_issue_sync(ppi) < 0))
-			//goto out;
-#endif
+		if ((e = msg_issue_sync(ppi) < 0))
+			goto out;
 
 		time_snt = &ppi->last_snt_time;
 		add_TimeInternal(time_snt, time_snt,
 				 &OPTS(ppi)->outbound_latency);
-#ifdef CONFIG_E2E
-		//if ((e = msg_issue_followup(ppi, time_snt)))
-			//goto out;
+		if ((e = msg_issue_followup(ppi, time_snt)))
+			goto out;
 #endif
 		/* Restart the timeout for next time */
 		pp_timeout_rand(ppi, PP_TO_SYNC, DSPOR(ppi)->logSyncInterval);
@@ -85,16 +83,17 @@ int pp_pmaster(struct pp_instance *ppi, unsigned char *pkt, int plen)
 
 	if (pp_timeout_z(ppi, PP_TO_ANN_INTERVAL)) {
 #ifdef CONFIG_E2E
-		//if ((e = msg_issue_announce(ppi) < 0))
-			//goto out;
+		if ((e = msg_issue_announce(ppi) < 0))
+			goto out;
 #endif
 
 		/* Restart the timeout for next time */
 		pp_timeout_rand(ppi, PP_TO_ANN_INTERVAL,
 				DSPOR(ppi)->logAnnounceInterval);
 	}
-	
-	if (ppi->is_new_state) {
+
+	/* keep it for later --> hsr ring round trip */
+	/*if (ppi->is_new_state) {
 		pp_servo_init(ppi);
 
 		if (pp_hooks.new_slave)
@@ -108,7 +107,7 @@ int pp_pmaster(struct pp_instance *ppi, unsigned char *pkt, int plen)
 		pp_timeout_restart_annrec(ppi);
 		pp_timeout_rand(ppi, PP_TO_PDELAYREQ,
 				DSPOR(ppi)->logMinPDelayReqInterval);
-	}
+	}*/
 
 	if (plen == 0)
 		goto out;
