@@ -192,6 +192,7 @@ struct pp_instance {
 
 	UInteger4 fwd_sync_flag, fwd_fup_flag, fwd_ann_flag, fwd_port;
 	TimeInternal sync_t5, sync_t6;
+	TimeInternal link_delay;
 	/* forwarding stuff */
 
 	struct pp_instance_cfg cfg;
