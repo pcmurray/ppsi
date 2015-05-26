@@ -254,8 +254,6 @@ static int wr_handle_presp(struct pp_instance *ppi)
 		return 0;
 	}
 
-	sub_TimeInternal(&INST(ppi->glbs, ppi->fwd_port)->link_delay,
-		&ppi->t6, &ppi->t5); /* link delay from forwarded port */
 	ppi->t4_cf = hdr->correctionfield.lsb;
 	wr_servo_got_delay(ppi, ppi->t4_cf);
 	return 0;

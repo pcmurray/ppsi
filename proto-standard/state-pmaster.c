@@ -45,6 +45,11 @@ int pp_pmaster(struct pp_instance *ppi, unsigned char *pkt, int plen)
 			PP_MAX_FRAME_LENGTH);
 		memcpy(ppi->tx_buffer, ppi->fwd_fup_buffer,
 			PP_MAX_FRAME_LENGTH);
+		/* adding residence time and link delay to correction field for p2p */
+		sub_TimeInternal(&residence_time, &ppi->sync_t6, &ppi->sync_t5);
+		add_TimeInternal(&residence_time, &residence_time, &ppi->link_delay);
+		*(Integer32 *) (ppi->tx_buffer + 14 + 8) = htonl(&residence_time.seconds);
+		*(Integer32 *) (ppi->tx_buffer + 14 + 12) = htonl(&residence_time.nanoseconds);
 		__send_and_log(ppi, PP_FOLLOW_UP_LENGTH, PPM_FOLLOW_UP,
 				PP_NP_EVT);
 		memcpy(ppi->tx_buffer, ppi->tx_backup,

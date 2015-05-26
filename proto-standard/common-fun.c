@@ -233,7 +233,7 @@ int st_com_slave_handle_followup(struct pp_instance *ppi, unsigned char *buf,
 				 __func__, hdr->sequenceId, ppi->recv_sync_sequence_id);
 		return 0;
 	}
-
+	cField_to_TimeInternal(&ppi->p2p_cField, hdr->correctionfield); /* cField for p2p */
 	msg_unpack_follow_up(buf, &follow);
 	ppi->waiting_for_follow = FALSE;
 	to_TimeInternal(&ppi->t1, &follow.preciseOriginTimestamp);
