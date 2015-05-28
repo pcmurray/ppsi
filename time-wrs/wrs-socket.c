@@ -345,7 +345,7 @@ static void poll_tx_timestamp(struct pp_instance *ppi,
 }
 
 int wrs_net_send(struct pp_instance *ppi, void *pkt, int len,
-			  TimeInternal *t, int chtype, int use_pdelay_addr)
+			  TimeInternal *t, int chtype, int use_pdelay_addr, int msgtype)
 {
 	struct sockaddr_in addr;
 	struct ethhdr *hdr = pkt;
@@ -363,9 +363,10 @@ int wrs_net_send(struct pp_instance *ppi, void *pkt, int len,
 
 	if (ppi->ethernet_mode) {
 		fd = NP(ppi)->ch[PP_NP_GEN].fd;
-		
-		if (!(ppi->fwd_sync_flag || ppi->fwd_fup_flag)) {
-			
+
+		if (!(msgtype == PPM_ANNOUNCE || msgtype == PPM_SYNC 
+				|| msgtype == PPM_FOLLOW_UP)) 
+		{		
 			hdr->h_proto = htons(ETH_P_1588);
 			if (drop)
 				hdr->h_proto++;

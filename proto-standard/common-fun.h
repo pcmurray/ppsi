@@ -46,11 +46,12 @@ static inline int __send_and_log(struct pp_instance *ppi, int msglen,
 {
 	int pdelay_addr = 0;
 
-	if (msgtype == PPM_PDELAY_REQ || msgtype == PPM_PDELAY_RESP)
+	if (msgtype == PPM_PDELAY_REQ || msgtype == PPM_PDELAY_RESP 
+			|| msgtype == PPM_PDELAY_RESP_FOLLOW_UP)
 		pdelay_addr = 1;
 
 	if (ppi->n_ops->send(ppi, ppi->tx_frame, msglen + NP(ppi)->ptp_offset,
-			    &ppi->last_snt_time, chtype, pdelay_addr) < msglen) {
+			    &ppi->last_snt_time, chtype, pdelay_addr, msgtype) < msglen) {
 		pp_diag(ppi, frames, 1, "%s(%d) Message can't be sent\n",
 			pp_msg_names[msgtype], msgtype);
 		return -1;
