@@ -331,17 +331,18 @@ int tc_send_fwd_followup(struct pp_instance *ppi, unsigned char *pkt,
 {
 	TimeInternal residence_time;
 	int64_t rt; /* Transp. Clocks - Residence Time + Link Delay */
-	
+
 	memcpy(ppi->tx_backup, ppi->tx_buffer,
 	PP_MAX_FRAME_LENGTH);
 	memcpy(ppi->tx_buffer, ppi->fwd_fup_buffer,
 	PP_MAX_FRAME_LENGTH);
-	
+
 	/* adding residence time and link delay to correction field for p2p */
 	sub_TimeInternal(&residence_time, &ppi->sync_t6, &ppi->sync_t5);
-	rt = (int64_t) (((int64_t)residence_time.seconds * 1000000000000LL)
+	rt = (int64_t) ppi->p2p_cField; /* accumulating previous cFields */
+	rt += (int64_t) (((int64_t)residence_time.seconds * 1000000000000LL)
 	+  ((int64_t)residence_time.nanoseconds * 1000LL)
-	+ (int64_t) residence_time.phase 
+	+ (int64_t) residence_time.phase
 	+ (int64_t) ppi->link_delay);
 
 	*(int64_t *) (ppi->tx_buffer + 18 + 8) = (int64_t)htobe64((int64_t)(rt));
