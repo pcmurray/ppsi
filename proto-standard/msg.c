@@ -26,6 +26,10 @@ int msg_unpack_header(struct pp_instance *ppi, void *buf, int plen)
 
 	memcpy(&hdr->correctionfield.msb, (buf + 8), 4);
 	memcpy(&hdr->correctionfield.lsb, (buf + 12), 4);
+	
+	memcpy(&ppi->p2p_cField, (buf + 8), 8); /* transp. clocks */
+	ppi->p2p_cField = htobe64(ppi->p2p_cField); /* transp. clocks */
+	
 	hdr->correctionfield.msb = htonl(hdr->correctionfield.msb);
 	hdr->correctionfield.lsb = htonl(hdr->correctionfield.lsb);
 	memcpy(&hdr->sourcePortIdentity.clockIdentity, (buf + 20),
@@ -150,10 +154,10 @@ int msg_pack_announce(struct pp_instance *ppi)
 	memset((buf + 34), 0, 10);
 	*(Integer16 *) (buf + 44) = htons(DSPRO(ppi)->currentUtcOffset);
 	*(UInteger8 *) (buf + 47) = DSPAR(ppi)->grandmasterPriority1;
-	*(UInteger8 *) (buf + 48) = DSDEF(ppi)->clockQuality.clockClass;
-	*(Enumeration8 *) (buf + 49) = DSDEF(ppi)->clockQuality.clockAccuracy;
+	*(UInteger8 *) (buf + 48) = DSPAR(ppi)->grandmasterClockQuality.clockClass;
+	*(Enumeration8 *) (buf + 49) = DSPAR(ppi)->grandmasterClockQuality.clockAccuracy;
 	*(UInteger16 *) (buf + 50) =
-		htons(DSDEF(ppi)->clockQuality.offsetScaledLogVariance);
+		htons(DSPAR(ppi)->grandmasterClockQuality.offsetScaledLogVariance);
 	*(UInteger8 *) (buf + 52) = DSPAR(ppi)->grandmasterPriority2;
 	memcpy((buf + 53), &DSPAR(ppi)->grandmasterIdentity,
 	       PP_CLOCK_IDENTITY_LENGTH);
