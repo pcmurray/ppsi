@@ -90,8 +90,8 @@ int pp_pclock(struct pp_instance *ppi, unsigned char *pkt, int plen)
 		/* forward before is processed by slave */
 		memcpy(INST(ppi->glbs, ppi->fwd_port)->fwd_sync_buffer, ppi->rx_buffer,
 				PP_MAX_FRAME_LENGTH);
-		INST(ppi->glbs, ppi->fwd_port)->fwd_sync_flag = 1; // master is in charge of = 0
 		INST(ppi->glbs, ppi->fwd_port)->sync_t5 = ppi->last_rcv_time;
+		INST(ppi->glbs, ppi->fwd_port)->fwd_sync_flag = 1; // master is in charge of = 0
 		/* end of forwarding */
 #endif
 		e = st_com_slave_handle_sync(ppi, pkt, plen);

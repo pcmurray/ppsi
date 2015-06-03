@@ -11,51 +11,21 @@
 
 int pp_pmaster(struct pp_instance *ppi, unsigned char *pkt, int plen)
 {
-	TimeInternal *time_snt, residence_time;
+	TimeInternal *time_snt;
 	int msgtype, d1, d2;
 	int e = 0; /* error var, to check errors in msg handling */
 
 #ifdef CONFIG_P2P
 	/* FIXME: masters should not fwd but no other choice by now */
 	/* forwarding is the first priority */
-	if (ppi->fwd_ann_flag) { /* forward ann */
-		memcpy(ppi->tx_backup, ppi->tx_buffer,
-			PP_MAX_FRAME_LENGTH);
-		memcpy(ppi->tx_buffer, ppi->fwd_ann_buffer,
-			PP_MAX_FRAME_LENGTH);
-		__send_and_log(ppi, PP_ANNOUNCE_LENGTH+14, PPM_ANNOUNCE, PP_NP_GEN);
-			/* FIXME: why + 14? */
-		memcpy(ppi->tx_buffer, ppi->tx_backup,
-			PP_MAX_FRAME_LENGTH);
-		ppi->fwd_ann_flag = 0;
-	}
-	if (ppi->fwd_sync_flag) { /* forward sync */
-		memcpy(ppi->tx_backup, ppi->tx_buffer,
-			PP_MAX_FRAME_LENGTH);
-		memcpy(ppi->tx_buffer, ppi->fwd_sync_buffer,
-			PP_MAX_FRAME_LENGTH);
-		__send_and_log(ppi, PP_SYNC_LENGTH, PPM_SYNC, PP_NP_EVT);
-		ppi->sync_t6 = ppi->last_snt_time;
-		memcpy(ppi->tx_buffer, ppi->tx_backup,
-			PP_MAX_FRAME_LENGTH);
-		ppi->fwd_sync_flag = 0;
-	}
-	if (ppi->fwd_fup_flag) { /* forward follow_up */
-		memcpy(ppi->tx_backup, ppi->tx_buffer,
-			PP_MAX_FRAME_LENGTH);
-		memcpy(ppi->tx_buffer, ppi->fwd_fup_buffer,
-			PP_MAX_FRAME_LENGTH);
-		/* adding residence time and link delay to correction field for p2p */
-		sub_TimeInternal(&residence_time, &ppi->sync_t6, &ppi->sync_t5);
-		add_TimeInternal(&residence_time, &residence_time, &ppi->link_delay);
-		*(Integer32 *) (ppi->tx_buffer + 14 + 8) = htonl(residence_time.seconds);
-		*(Integer32 *) (ppi->tx_buffer + 14 + 12) = htonl(residence_time.nanoseconds);
-		__send_and_log(ppi, PP_FOLLOW_UP_LENGTH, PPM_FOLLOW_UP,
-				PP_NP_EVT);
-		memcpy(ppi->tx_buffer, ppi->tx_backup,
-			PP_MAX_FRAME_LENGTH);
-		ppi->fwd_fup_flag = 0;
-	}
+	if (ppi->fwd_ann_flag) /* forward ann */
+		tc_send_fwd_ann(ppi, pkt, plen);
+
+	if (ppi->fwd_sync_flag) /* forward sync */
+		tc_send_fwd_sync(ppi, pkt, plen);	
+
+	if (ppi->fwd_fup_flag) /* forward follow_up */
+		tc_send_fwd_followup(ppi, pkt, plen);
 	/* end of forwarding */
 #endif
 

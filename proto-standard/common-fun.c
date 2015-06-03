@@ -233,7 +233,6 @@ int st_com_slave_handle_followup(struct pp_instance *ppi, unsigned char *buf,
 				 __func__, hdr->sequenceId, ppi->recv_sync_sequence_id);
 		return 0;
 	}
-	cField_to_TimeInternal(&ppi->p2p_cField, hdr->correctionfield); /* cField for p2p */
 	msg_unpack_follow_up(buf, &follow);
 	ppi->waiting_for_follow = FALSE;
 	to_TimeInternal(&ppi->t1, &follow.preciseOriginTimestamp);
@@ -277,5 +276,84 @@ int st_com_master_handle_sync(struct pp_instance *ppi, unsigned char *buf,
 {
 	/* No more used: follow up is sent right after the corresponding sync */
 	return 0;
+}
+
+/*
+ * Called by Transparent Clocks.
+ * FIXME: this must be implemented to support one-step masters
+ */
+int tc_send_fwd_ann(struct pp_instance *ppi, unsigned char *pkt, 
+											int plen)
+{
+	memcpy(ppi->tx_backup, ppi->tx_buffer,
+	PP_MAX_FRAME_LENGTH);
+	memcpy(ppi->tx_buffer, ppi->fwd_ann_buffer,
+		PP_MAX_FRAME_LENGTH);
+	__send_and_log(ppi, PP_ANNOUNCE_LENGTH+14, PPM_ANNOUNCE, PP_NP_GEN);
+		/* FIXME: why + 14? */
+	memcpy(ppi->tx_buffer, ppi->tx_backup,
+		PP_MAX_FRAME_LENGTH);
+	ppi->fwd_ann_flag = 0;
+
+	return 1;
+}
+
+/*
+ * Called by Transparent Clocks.
+ * FIXME: this must be implemented to support one-step masters
+ */
+int tc_send_fwd_sync(struct pp_instance *ppi, unsigned char *pkt, 
+											int plen)
+{
+	memcpy(ppi->tx_backup, ppi->tx_buffer,
+		PP_MAX_FRAME_LENGTH);
+	memcpy(ppi->tx_buffer, ppi->fwd_sync_buffer,
+		PP_MAX_FRAME_LENGTH);
+	
+	__send_and_log(ppi, PP_SYNC_LENGTH, PPM_SYNC, PP_NP_EVT);
+	
+	ppi->sync_t6 = ppi->last_snt_time; /* egress time for sync */
+	
+	memcpy(ppi->tx_buffer, ppi->tx_backup,
+		PP_MAX_FRAME_LENGTH);
+	
+	ppi->fwd_sync_flag = 0;
+
+	return 1;
+}
+
+/*
+ * Called by Transparent Clocks.
+ * FIXME: this must be implemented to support one-step masters
+ */
+int tc_send_fwd_followup(struct pp_instance *ppi, unsigned char *pkt, 
+											int plen)
+{
+	TimeInternal residence_time;
+	int64_t rt; /* Transp. Clocks - Residence Time + Link Delay */
+	
+	memcpy(ppi->tx_backup, ppi->tx_buffer,
+	PP_MAX_FRAME_LENGTH);
+	memcpy(ppi->tx_buffer, ppi->fwd_fup_buffer,
+	PP_MAX_FRAME_LENGTH);
+	
+	/* adding residence time and link delay to correction field for p2p */
+	sub_TimeInternal(&residence_time, &ppi->sync_t6, &ppi->sync_t5);
+	rt = (int64_t) (((int64_t)residence_time.seconds * 1000000000000LL)
+	+  ((int64_t)residence_time.nanoseconds * 1000LL)
+	+ (int64_t) residence_time.phase 
+	+ (int64_t) ppi->link_delay);
+
+	*(int64_t *) (ppi->tx_buffer + 18 + 8) = (int64_t)htobe64((int64_t)(rt));
+
+	__send_and_log(ppi, PP_FOLLOW_UP_LENGTH, PPM_FOLLOW_UP,
+		PP_NP_EVT);
+	
+	memcpy(ppi->tx_buffer, ppi->tx_backup,
+	PP_MAX_FRAME_LENGTH);
+	
+	ppi->fwd_fup_flag = 0;
+
+	return 1;
 }
 
