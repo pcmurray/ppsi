@@ -221,9 +221,6 @@ void pp_servo_got_presp(struct pp_instance *ppi)
 	add_TimeInternal(mpd, &SRV(ppi)->m_to_s_dly, &SRV(ppi)->s_to_m_dly);
 	div2_TimeInternal(mpd);
 	pp_diag(ppi, servo, 1, "meanPathDelay: %s\n", fmt_TI(mpd));
-	
-	/* link delay from forwarded port */
-	memcpy(&INST(ppi->glbs, ppi->fwd_port)->link_delay, &mpd, sizeof(mpd));
 
 	/* if this succeeds mpd->seconds == 0 is true */
 	if (pp_servo_bad_event(ppi))

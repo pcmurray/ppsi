@@ -275,6 +275,10 @@ int wr_p2p_delay(struct pp_instance *ppi, struct wr_servo_state_t *s)
 		+ ((ts_to_picos(s->mu) - big_delta_fix) >> 1)
 		+ s->delta_tx_m + s->delta_rx_s + ph_adjust;
 
+	/* link delay from forwarded port */
+	INST(ppi->glbs, ppi->fwd_port)->link_delay = 
+		(int64_t)((s->delta_ms));
+
 	return 1;
 }
 
@@ -297,7 +301,12 @@ int wr_p2p_offset(struct pp_instance *ppi,
 
 	cur_servo_state.update_count++;
 
+#ifdef CONFIG_P2P
+	ts_offset = ts_add(ts_sub(s->t1, s->t2),
+		ts_add(picos_to_ts(s->delta_ms),picos_to_ts(ppi->p2p_cField)));
+#elif CONFIG_E2E
 	ts_offset = ts_add(ts_sub(s->t1, s->t2), picos_to_ts(s->delta_ms));
+#endif
 	*ts_offset_hw = ts_hardwarize(ts_offset, s->clock_period_ps);
 
 	cur_servo_state.mu = (uint64_t)ts_to_picos(s->mu);
@@ -321,7 +330,7 @@ int wr_e2e_offset(struct pp_instance *ppi,
 			struct wr_servo_state_t *s, TimeInternal *ts_offset_hw)
 {
 
-	uint64_t big_delta_fix;
+ 	uint64_t big_delta_fix;
 	uint64_t delay_ms_fix;
 	TimeInternal ts_offset;
 	static int errcount;

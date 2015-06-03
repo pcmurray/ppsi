@@ -378,10 +378,10 @@ int wrs_net_send(struct pp_instance *ppi, void *pkt, int len,
 
 			/* raw socket implementation always uses gen socket */
 			memcpy(hdr->h_source, NP(ppi)->ch[PP_NP_GEN].addr, ETH_ALEN);
-
-			if (t)
-				ppi->t_ops->get(ppi, t);
 		}
+		
+		if (t)
+			ppi->t_ops->get(ppi, t);
 
 		ret = send(fd, hdr, len, 0);
 		poll_tx_timestamp(ppi, s, fd, t);
