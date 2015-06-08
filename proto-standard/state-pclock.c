@@ -76,34 +76,21 @@ int pp_pclock(struct pp_instance *ppi, unsigned char *pkt, int plen)
 
 	case PPM_ANNOUNCE:
 #ifdef CONFIG_P2P
-		/* forward before is processed by slave */
-		memcpy(INST(ppi->glbs, ppi->fwd_port)->fwd_ann_buffer, ppi->rx_buffer,
-				PP_MAX_FRAME_LENGTH);
-		INST(ppi->glbs, ppi->fwd_port)->fwd_ann_flag = 1; // master is in charge of = 0
-		/* end of forwarding */
+		tc_forward_ann(ppi, pkt, plen); /* P2P - Transp. Clocks */
 #endif
 		e = st_com_slave_handle_announce(ppi, pkt, plen);
 		break;
 
 	case PPM_SYNC:
 #ifdef CONFIG_P2P
-		/* forward before is processed by slave */
-		memcpy(INST(ppi->glbs, ppi->fwd_port)->fwd_sync_buffer, ppi->rx_buffer,
-				PP_MAX_FRAME_LENGTH);
-		INST(ppi->glbs, ppi->fwd_port)->sync_t5 = ppi->last_rcv_time;
-		INST(ppi->glbs, ppi->fwd_port)->fwd_sync_flag = 1; // master is in charge of = 0
-		/* end of forwarding */
+		tc_forward_sync(ppi, pkt, plen); /* P2P - Transp. Clocks */
 #endif
 		e = st_com_slave_handle_sync(ppi, pkt, plen);
 		break;
 
 	case PPM_FOLLOW_UP:
 #ifdef CONFIG_P2P
-		/* forward before is processed by slave */
-		memcpy(INST(ppi->glbs, ppi->fwd_port)->fwd_fup_buffer, ppi->rx_buffer,
-				PP_MAX_FRAME_LENGTH);
-		INST(ppi->glbs, ppi->fwd_port)->fwd_fup_flag = 1; // master is in charge of = 0
-		/* end of forwarding */
+		tc_forward_followup(ppi, pkt, plen); /* P2P - Transp. Clocks */
 #endif
 		e = st_com_slave_handle_followup(ppi, pkt, plen);
 		break;

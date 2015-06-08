@@ -190,9 +190,10 @@ struct pp_instance {
 	unsigned char fwd_fup_buffer[PP_MAX_FRAME_LENGTH];
 	unsigned char tx_backup[PP_MAX_FRAME_LENGTH];
 
-	UInteger4 fwd_sync_flag, fwd_fup_flag, fwd_ann_flag, fwd_port;
-	TimeInternal sync_t5, sync_t6;
-	int64_t link_delay;
+	UInteger4 fwd_sync_flag, fwd_fup_flag, fwd_ann_flag;
+	TimeInternal sync_ingress, sync_egress;
+	int64_t link_delay; /* link delay is local to the port */
+	int64_t l_delay_ingress; /* the one to be added to forwarded cField */
 	int64_t p2p_cField;
 	/* forwarding stuff */
 

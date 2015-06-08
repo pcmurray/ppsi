@@ -192,12 +192,6 @@ int main(int argc, char **argv)
 		seed = atoi(getenv("PPSI_DROP_SEED"));
 	ppsi_drop_init(ppg, seed);
 
-	/* init forwarding things */
-	/* FIXME: by now fwd is hardcoded */
-	INST(ppi->glbs, 1)->fwd_port = 2;
-	INST(ppi->glbs, 2)->fwd_port = 1;
-	
-	
 	wrs_main_loop(ppg);
 	return 0;		/* never reached */
 }

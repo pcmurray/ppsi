@@ -275,9 +275,11 @@ int wr_p2p_delay(struct pp_instance *ppi, struct wr_servo_state_t *s)
 		+ ((ts_to_picos(s->mu) - big_delta_fix) >> 1)
 		+ s->delta_tx_m + s->delta_rx_s + ph_adjust;
 
+#ifdef CONFIG_P2P
 	/* link delay from forwarded port */
-	INST(ppi->glbs, ppi->fwd_port)->link_delay = 
+	ppi->link_delay = 
 		(int64_t)((s->delta_ms));
+#endif
 
 	return 1;
 }
