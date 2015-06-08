@@ -107,14 +107,23 @@ int pp_pmaster(struct pp_instance *ppi, unsigned char *pkt, int plen)
 		break;
 
 	case PPM_ANNOUNCE:
+#ifdef CONFIG_P2P
+		tc_forward_ann(ppi, pkt, plen); /* P2P - Transp. Clocks */
+#endif
 		//e = st_com_master_handle_announce(ppi, pkt, plen);
 		break;
 
 	case PPM_SYNC:
+#ifdef CONFIG_P2P
+		tc_forward_sync(ppi, pkt, plen); /* P2P - Transp. Clocks */
+#endif
 		//e = st_com_master_handle_sync(ppi, pkt, plen);
 		break;
-		
+
 	case PPM_FOLLOW_UP:
+#ifdef CONFIG_P2P
+		tc_forward_followup(ppi, pkt, plen); /* P2P - Transp. Clocks */
+#endif
 		//e = st_com_master_handle_sync(ppi, pkt, plen);
 		break;
 
