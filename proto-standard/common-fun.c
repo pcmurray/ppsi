@@ -340,10 +340,9 @@ int tc_send_fwd_followup(struct pp_instance *ppi, unsigned char *pkt,
 	/* adding residence time and link delay to correction field for p2p */
 	sub_TimeInternal(&residence_time, &ppi->sync_egress, &ppi->sync_ingress);
 	rt = (int64_t) ppi->p2p_cField; /* accumulating previous cFields */
-	rt += (int64_t) (((int64_t)residence_time.seconds * 1000000000000LL)
-	+  ((int64_t)residence_time.nanoseconds * 1000LL)
+	rt += (int64_t) (residence_time.nanoseconds * 1000LL)
 	+ (int64_t) residence_time.phase
-	+ (int64_t) ppi->l_delay_ingress);
+	+ (int64_t) ppi->l_delay_ingress;
 
 	*(int64_t *) (ppi->tx_buffer + 18 + 8) = (int64_t)htobe64((int64_t)(rt));
 
@@ -423,9 +422,12 @@ int tc_forward_followup(struct pp_instance *ppi, unsigned char *pkt,
 	int j, max_ports = 18;
 	struct pp_instance *ppi_aux;
 
+	memcpy(&ppi->p2p_cField, (ppi->rx_ptp + 8), 8); /* transp. clocks */
+	ppi->p2p_cField = htobe64(ppi->p2p_cField); /* transp. clocks */
+
 	for (j = 0; j < max_ports; j++) {
 		ppi_aux = INST(ppi->glbs, j);
-		if(WR_DSPOR(ppi_aux)->linkUP 
+		if(WR_DSPOR(ppi_aux)->linkUP
 					&& (ppi->port_idx != ppi_aux->port_idx)){
 			memcpy(ppi_aux->fwd_fup_buffer, ppi->rx_buffer,
 			PP_MAX_FRAME_LENGTH);

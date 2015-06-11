@@ -26,10 +26,7 @@ int msg_unpack_header(struct pp_instance *ppi, void *buf, int plen)
 
 	memcpy(&hdr->correctionfield.msb, (buf + 8), 4);
 	memcpy(&hdr->correctionfield.lsb, (buf + 12), 4);
-	
-	memcpy(&ppi->p2p_cField, (buf + 8), 8); /* transp. clocks */
-	ppi->p2p_cField = htobe64(ppi->p2p_cField); /* transp. clocks */
-	
+
 	hdr->correctionfield.msb = htonl(hdr->correctionfield.msb);
 	hdr->correctionfield.lsb = htonl(hdr->correctionfield.lsb);
 	memcpy(&hdr->sourcePortIdentity.clockIdentity, (buf + 20),
