@@ -223,14 +223,14 @@ int wr_servo_got_delay(struct pp_instance *ppi, Integer32 cf)
 	/*  s->t3.phase = 0; */
 	s->t4 = ppi->t4;
 	s->t4.correct = 1; /* clock->delay_req_receive_time.correct; */
-	s->t4.phase = (int64_t) cf * 1000LL / 65536LL;
+	s->t4.phase = cf * 1000LL / 65536LL;
 
 	if (GLBS(ppi)->delay_mech) {
 		s->t5 = ppi->t5;
 		s->t5.correct = 1;
 		s->t5.phase = 0;
 		s->t6 = ppi->t6;
-		s->t6.phase = (int64_t) ppi->t6_cf * 1000LL / 65536LL;
+		s->t6.phase = ppi->t6_cf * 1000LL / 65536LL;
 
 		wr_p2p_delay(ppi, s);
 	}
@@ -305,8 +305,9 @@ int wr_p2p_offset(struct pp_instance *ppi,
 
 #ifdef CONFIG_P2P
 	ts_offset = ts_add(ts_sub(s->t1, s->t2),
-		ts_add(picos_to_ts(s->delta_ms),picos_to_ts(ppi->p2p_cField)));
-#elif CONFIG_E2E
+		ts_add(picos_to_ts(s->delta_ms),ppi->p2p_cField));
+#endif
+#ifndef CONFIG_P2P
 	ts_offset = ts_add(ts_sub(s->t1, s->t2), picos_to_ts(s->delta_ms));
 #endif
 	*ts_offset_hw = ts_hardwarize(ts_offset, s->clock_period_ps);

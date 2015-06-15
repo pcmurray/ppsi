@@ -194,7 +194,7 @@ struct pp_instance {
 	TimeInternal sync_ingress, sync_egress;
 	int64_t link_delay; /* link delay is local to the port */
 	int64_t l_delay_ingress; /* the one to be added to forwarded cField */
-	int64_t p2p_cField;
+	TimeInternal p2p_cField;
 	/* forwarding stuff */
 
 	struct pp_instance_cfg cfg;

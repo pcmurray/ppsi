@@ -8,6 +8,20 @@
 #include <ppsi/ppsi.h>
 #include "common-fun.h"
 
+static TimeInternal picos_to_ts(int64_t picos)
+{
+	uint64_t nsec, phase;
+	TimeInternal ts;
+
+	nsec = picos;
+	phase = __div64_32(&nsec, 1000);
+
+	ts.nanoseconds = __div64_32(&nsec, PP_NSEC_PER_SEC);
+	ts.seconds = nsec; /* after the division */
+	ts.phase = phase;
+	return ts;
+}
+
 static void *__align_pointer(void *p)
 {
 	unsigned long ip, align = 0;
@@ -136,6 +150,7 @@ int st_com_slave_handle_sync(struct pp_instance *ppi, unsigned char *buf,
 
 	/* t2 may be overriden by follow-up, cField is always valid */
 	ppi->t2 = ppi->last_rcv_time;
+	ppi->sync_ingress = ppi->t2;
 	cField_to_TimeInternal(&ppi->cField, hdr->correctionfield);
 
 	if ((hdr->flagField[0] & PP_TWO_STEP_FLAG) != 0) {
@@ -236,7 +251,6 @@ int st_com_slave_handle_followup(struct pp_instance *ppi, unsigned char *buf,
 	msg_unpack_follow_up(buf, &follow);
 	ppi->waiting_for_follow = FALSE;
 	to_TimeInternal(&ppi->t1, &follow.preciseOriginTimestamp);
-
 	/* Call the extension; it may do it all and ask to return */
 	if (pp_hooks.handle_followup)
 		ret = pp_hooks.handle_followup(ppi, &ppi->t1, &ppi->cField);
@@ -326,11 +340,11 @@ int tc_send_fwd_sync(struct pp_instance *ppi, unsigned char *pkt,
  * Called by Transparent Clocks.
  * FIXME: this must be implemented to support one-step masters
  */
-int tc_send_fwd_followup(struct pp_instance *ppi, unsigned char *pkt, 
-											int plen)
+int tc_send_fwd_followup(struct pp_instance *ppi, unsigned char *pkt,
+												int plen)
 {
-	TimeInternal residence_time;
-	int64_t rt; /* Transp. Clocks - Residence Time + Link Delay */
+	TimeInternal residence_time; /* Transp. Clocks - Residence Time + Link Delay */
+	TimeInternal delay_ms; /* Transp. Clocks - Link Delay measured with pDelay */
 
 	memcpy(ppi->tx_backup, ppi->tx_buffer,
 	PP_MAX_FRAME_LENGTH);
@@ -338,20 +352,29 @@ int tc_send_fwd_followup(struct pp_instance *ppi, unsigned char *pkt,
 	PP_MAX_FRAME_LENGTH);
 
 	/* adding residence time and link delay to correction field for p2p */
+	residence_time.seconds = 0;
+	residence_time.nanoseconds = 0;
+	residence_time.phase = 0;
+
+	/* FIXME: cField is not completely following the standard, but since
+	 * we own the field, convert and use the same "wrong" way in all sides, it works.
+	 * This should be changed to comply the PTP standard. */
 	sub_TimeInternal(&residence_time, &ppi->sync_egress, &ppi->sync_ingress);
-	rt = (int64_t) ppi->p2p_cField; /* accumulating previous cFields */
-	rt += (int64_t) (residence_time.nanoseconds * 1000LL)
-	+ (int64_t) residence_time.phase
-	+ (int64_t) ppi->l_delay_ingress;
+	add_TimeInternal(&residence_time, &residence_time, &ppi->p2p_cField);
+	residence_time.phase += ppi->p2p_cField.phase + 
+		(ppi->sync_egress.phase - ppi->sync_ingress.phase);
+	delay_ms = picos_to_ts(ppi->l_delay_ingress);
+	add_TimeInternal(&residence_time, &residence_time, &delay_ms);
+	residence_time.phase += delay_ms.phase;
 
-	*(int64_t *) (ppi->tx_buffer + 18 + 8) = (int64_t)htobe64((int64_t)(rt));
+	*(Integer32 *) (ppi->tx_ptp + 8) = htonl((residence_time.nanoseconds));
+	*(Integer32 *) (ppi->tx_ptp + 12) = htonl((residence_time.phase));
 
-	__send_and_log(ppi, PP_FOLLOW_UP_LENGTH, PPM_FOLLOW_UP,
-		PP_NP_EVT);
-	
+	__send_and_log(ppi, PP_FOLLOW_UP_LENGTH, PPM_FOLLOW_UP, PP_NP_EVT);
+
 	memcpy(ppi->tx_buffer, ppi->tx_backup,
 	PP_MAX_FRAME_LENGTH);
-	
+
 	ppi->fwd_fup_flag = 0;
 
 	return 1;
@@ -375,7 +398,7 @@ int tc_forward_ann(struct pp_instance *ppi, unsigned char *pkt,
 					&& (ppi->port_idx != ppi_aux->port_idx)){
 			memcpy(ppi_aux->fwd_ann_buffer, ppi->rx_buffer,
 			PP_MAX_FRAME_LENGTH);
-			ppi_aux->l_delay_ingress = ppi->link_delay;
+			tc_send_fwd_ann(ppi_aux, pkt, plen);
 			ppi_aux->fwd_ann_flag = 1; // master is in charge of = 0
 		}
 	}
@@ -401,8 +424,7 @@ int tc_forward_sync(struct pp_instance *ppi, unsigned char *pkt,
 					&& (ppi->port_idx != ppi_aux->port_idx)){
 			memcpy(ppi_aux->fwd_sync_buffer, ppi->rx_buffer,
 			PP_MAX_FRAME_LENGTH);
-			ppi_aux->sync_ingress = ppi->last_rcv_time;
-			ppi_aux->l_delay_ingress = ppi->link_delay;
+			tc_send_fwd_sync(ppi_aux, pkt, plen);
 			ppi_aux->fwd_sync_flag = 1;
 		}
 	}
@@ -421,9 +443,10 @@ int tc_forward_followup(struct pp_instance *ppi, unsigned char *pkt,
 {
 	int j, max_ports = 18;
 	struct pp_instance *ppi_aux;
+	MsgHeader *hdr = &ppi->received_ptp_header;
 
-	memcpy(&ppi->p2p_cField, (ppi->rx_ptp + 8), 8); /* transp. clocks */
-	ppi->p2p_cField = htobe64(ppi->p2p_cField); /* transp. clocks */
+	ppi->p2p_cField.nanoseconds = hdr->correctionfield.msb;
+	ppi->p2p_cField.phase = hdr->correctionfield.lsb;
 
 	for (j = 0; j < max_ports; j++) {
 		ppi_aux = INST(ppi->glbs, j);
@@ -431,8 +454,10 @@ int tc_forward_followup(struct pp_instance *ppi, unsigned char *pkt,
 					&& (ppi->port_idx != ppi_aux->port_idx)){
 			memcpy(ppi_aux->fwd_fup_buffer, ppi->rx_buffer,
 			PP_MAX_FRAME_LENGTH);
+			ppi_aux->sync_ingress = ppi->sync_ingress;
 			ppi_aux->l_delay_ingress = ppi->link_delay;
-			ppi_aux->fwd_fup_flag = 1;
+			ppi_aux->p2p_cField = ppi->p2p_cField;
+			tc_send_fwd_followup(ppi_aux, pkt, plen);
 		}
 	}
 
