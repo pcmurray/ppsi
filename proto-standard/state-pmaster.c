@@ -15,20 +15,6 @@ int pp_pmaster(struct pp_instance *ppi, unsigned char *pkt, int plen)
 	int msgtype, d1, d2;
 	int e = 0; /* error var, to check errors in msg handling */
 
-#ifdef CONFIG_P2P
-	/* FIXME: masters should not fwd but no other choice by now */
-	/* forwarding is the first priority */
-	if (ppi->fwd_ann_flag) /* forward ann */
-		tc_send_fwd_ann(ppi, pkt, plen);
-
-	if (ppi->fwd_sync_flag) /* forward sync */
-		tc_send_fwd_sync(ppi, pkt, plen);	
-
-	if (ppi->fwd_fup_flag) /* forward follow_up */
-		tc_send_fwd_followup(ppi, pkt, plen);
-	/* end of forwarding */
-#endif
-
 	if (ppi->is_new_state) {
 		pp_timeout_rand(ppi, PP_TO_SYNC, DSPOR(ppi)->logSyncInterval);
 		pp_timeout_rand(ppi, PP_TO_ANN_INTERVAL,
@@ -110,27 +96,18 @@ int pp_pmaster(struct pp_instance *ppi, unsigned char *pkt, int plen)
 #ifdef CONFIG_P2P
 		tc_forward_ann(ppi, pkt, plen); /* P2P - Transp. Clocks */
 #endif
-		//e = st_com_master_handle_announce(ppi, pkt, plen);
 		break;
 
 	case PPM_SYNC:
 #ifdef CONFIG_P2P
 		tc_forward_sync(ppi, pkt, plen); /* P2P - Transp. Clocks */
 #endif
-		//e = st_com_master_handle_sync(ppi, pkt, plen);
 		break;
 
 	case PPM_FOLLOW_UP:
 #ifdef CONFIG_P2P
 		tc_forward_followup(ppi, pkt, plen); /* P2P - Transp. Clocks */
 #endif
-		//e = st_com_master_handle_sync(ppi, pkt, plen);
-		break;
-
-	case PPM_DELAY_REQ:
-		//msg_copy_header(&ppi->delay_req_hdr,
-				//&ppi->received_ptp_header);
-		//msg_issue_delay_resp(ppi, &ppi->last_rcv_time);
 		break;
 
 	case PPM_PDELAY_REQ:

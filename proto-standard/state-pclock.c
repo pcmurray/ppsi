@@ -16,19 +16,6 @@ int pp_pclock(struct pp_instance *ppi, unsigned char *pkt, int plen)
 	MsgPDelayRespFollowUp respFllw;
 	int d1, d2;
 
-#ifdef CONFIG_P2P
-	/* forwarding is the first priority */
-	if (ppi->fwd_ann_flag) /* forward ann */
-		tc_send_fwd_ann(ppi, pkt, plen);
-
-	if (ppi->fwd_sync_flag) /* forward sync */
-		tc_send_fwd_sync(ppi, pkt, plen);	
-
-	if (ppi->fwd_fup_flag) /* forward follow_up */
-		tc_send_fwd_followup(ppi, pkt, plen);
-	/* end of forwarding */
-#endif
-
 	if (ppi->is_new_state) {
 		pp_servo_init(ppi);
 
