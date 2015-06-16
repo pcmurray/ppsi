@@ -342,6 +342,7 @@ int tc_send_fwd_followup(struct pp_instance *ppi, unsigned char *pkt,
 		(ppi->sync_egress.phase - ppi->sync_ingress.phase);
 	delay_ms = picos_to_ts(ppi->l_delay_ingress);
 	add_TimeInternal(&residence_time, &residence_time, &delay_ms);
+	residence_time.nanoseconds += residence_time.seconds * 1e9;
 	residence_time.phase += delay_ms.phase;
 
 	update_followup_cField(ppi, residence_time);
