@@ -367,8 +367,7 @@ int tc_send_fwd_followup(struct pp_instance *ppi, unsigned char *pkt,
 	add_TimeInternal(&residence_time, &residence_time, &delay_ms);
 	residence_time.phase += delay_ms.phase;
 
-	*(Integer32 *) (ppi->tx_ptp + 8) = htonl((residence_time.nanoseconds));
-	*(Integer32 *) (ppi->tx_ptp + 12) = htonl((residence_time.phase));
+	update_followup_cField(ppi, residence_time);
 
 	__send_and_log(ppi, PP_FOLLOW_UP_LENGTH, PPM_FOLLOW_UP, PP_NP_EVT);
 

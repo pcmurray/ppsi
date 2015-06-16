@@ -586,3 +586,10 @@ int msg_issue_pdelay_resp(struct pp_instance *ppi, TimeInternal *time)
 	return __send_and_log(ppi, PP_PDELAY_RESP_LENGTH, PPM_PDELAY_RESP,
 			      PP_NP_EVT);
 }
+
+/* Update correction field for follow_up messages for Peer2Peer */
+void update_followup_cField(struct pp_instance *ppi, TimeInternal correctionField)
+{
+	*(Integer32 *) (ppi->tx_ptp + 8) = htonl((correctionField.nanoseconds));
+	*(Integer32 *) (ppi->tx_ptp + 12) = htonl((correctionField.phase));
+}
