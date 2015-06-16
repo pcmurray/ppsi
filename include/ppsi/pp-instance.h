@@ -185,12 +185,6 @@ struct pp_instance {
 	int port_idx;
 
 	/* forwarding stuff */
-	unsigned char fwd_ann_buffer[PP_MAX_FRAME_LENGTH];
-	unsigned char fwd_sync_buffer[PP_MAX_FRAME_LENGTH];
-	unsigned char fwd_fup_buffer[PP_MAX_FRAME_LENGTH];
-	unsigned char tx_backup[PP_MAX_FRAME_LENGTH];
-
-	UInteger4 fwd_sync_flag, fwd_fup_flag, fwd_ann_flag;
 	TimeInternal sync_ingress, sync_egress;
 	int64_t link_delay; /* link delay is local to the port */
 	int64_t l_delay_ingress; /* the one to be added to forwarded cField */

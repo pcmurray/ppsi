@@ -296,18 +296,10 @@ int st_com_master_handle_sync(struct pp_instance *ppi, unsigned char *buf,
  * Called by Transparent Clocks.
  * FIXME: this must be implemented to support one-step masters
  */
-int tc_send_fwd_ann(struct pp_instance *ppi, unsigned char *pkt, 
+int tc_send_fwd_ann(struct pp_instance *ppi, unsigned char *pkt,
 											int plen)
 {
-	memcpy(ppi->tx_backup, ppi->tx_buffer,
-	PP_MAX_FRAME_LENGTH);
-	memcpy(ppi->tx_buffer, ppi->fwd_ann_buffer,
-		PP_MAX_FRAME_LENGTH);
-	__send_and_log(ppi, PP_ANNOUNCE_LENGTH+14, PPM_ANNOUNCE, PP_NP_GEN);
-		/* FIXME: why + 14? */
-	memcpy(ppi->tx_buffer, ppi->tx_backup,
-		PP_MAX_FRAME_LENGTH);
-	ppi->fwd_ann_flag = 0;
+	__send_and_log(ppi, plen, PPM_ANNOUNCE, PP_NP_GEN);
 
 	return 1;
 }
@@ -316,22 +308,12 @@ int tc_send_fwd_ann(struct pp_instance *ppi, unsigned char *pkt,
  * Called by Transparent Clocks.
  * FIXME: this must be implemented to support one-step masters
  */
-int tc_send_fwd_sync(struct pp_instance *ppi, unsigned char *pkt, 
+int tc_send_fwd_sync(struct pp_instance *ppi, unsigned char *pkt,
 											int plen)
 {
-	memcpy(ppi->tx_backup, ppi->tx_buffer,
-		PP_MAX_FRAME_LENGTH);
-	memcpy(ppi->tx_buffer, ppi->fwd_sync_buffer,
-		PP_MAX_FRAME_LENGTH);
 
-	__send_and_log(ppi, PP_SYNC_LENGTH, PPM_SYNC, PP_NP_EVT);
-
+	__send_and_log(ppi, plen, PPM_SYNC, PP_NP_EVT);
 	ppi->sync_egress = ppi->last_snt_time; /* egress time for sync */
-
-	memcpy(ppi->tx_buffer, ppi->tx_backup,
-		PP_MAX_FRAME_LENGTH);
-
-	ppi->fwd_sync_flag = 0;
 
 	return 1;
 }
@@ -345,11 +327,6 @@ int tc_send_fwd_followup(struct pp_instance *ppi, unsigned char *pkt,
 {
 	TimeInternal residence_time; /* Transp. Clocks - Residence Time + Link Delay */
 	TimeInternal delay_ms; /* Transp. Clocks - Link Delay measured with pDelay */
-
-	memcpy(ppi->tx_backup, ppi->tx_buffer,
-	PP_MAX_FRAME_LENGTH);
-	memcpy(ppi->tx_buffer, ppi->fwd_fup_buffer,
-	PP_MAX_FRAME_LENGTH);
 
 	/* adding residence time and link delay to correction field for p2p */
 	residence_time.seconds = 0;
@@ -369,12 +346,7 @@ int tc_send_fwd_followup(struct pp_instance *ppi, unsigned char *pkt,
 
 	update_followup_cField(ppi, residence_time);
 
-	__send_and_log(ppi, PP_FOLLOW_UP_LENGTH, PPM_FOLLOW_UP, PP_NP_EVT);
-
-	memcpy(ppi->tx_buffer, ppi->tx_backup,
-	PP_MAX_FRAME_LENGTH);
-
-	ppi->fwd_fup_flag = 0;
+	__send_and_log(ppi, plen, PPM_FOLLOW_UP, PP_NP_EVT);
 
 	return 1;
 }
@@ -385,7 +357,7 @@ int tc_send_fwd_followup(struct pp_instance *ppi, unsigned char *pkt,
  * tc_send_fwd_announce() sends the message in the other ppi instance
  * FIXME: this must be implemented to support one-step masters
  */
-int tc_forward_ann(struct pp_instance *ppi, unsigned char *pkt, 
+int tc_forward_ann(struct pp_instance *ppi, unsigned char *pkt,
 											int plen)
 {
 	int j, max_ports = 18;
@@ -393,12 +365,11 @@ int tc_forward_ann(struct pp_instance *ppi, unsigned char *pkt,
 
 	for (j = 0; j < max_ports; j++) {
 		ppi_aux = INST(ppi->glbs, j);
-		if(WR_DSPOR(ppi_aux)->linkUP 
+		if(WR_DSPOR(ppi_aux)->linkUP
 					&& (ppi->port_idx != ppi_aux->port_idx)){
-			memcpy(ppi_aux->fwd_ann_buffer, ppi->rx_buffer,
+			memcpy(ppi_aux->tx_buffer, ppi->rx_buffer,
 			PP_MAX_FRAME_LENGTH);
 			tc_send_fwd_ann(ppi_aux, pkt, plen);
-			ppi_aux->fwd_ann_flag = 1; // master is in charge of = 0
 		}
 	}
 
@@ -411,7 +382,7 @@ int tc_forward_ann(struct pp_instance *ppi, unsigned char *pkt,
  * tc_send_fwd_sync() sends the message in the other ppi instance
  * FIXME: this must be implemented to support one-step masters
  */
-int tc_forward_sync(struct pp_instance *ppi, unsigned char *pkt, 
+int tc_forward_sync(struct pp_instance *ppi, unsigned char *pkt,
 											int plen)
 {
 	int j, max_ports = 18;
@@ -419,12 +390,11 @@ int tc_forward_sync(struct pp_instance *ppi, unsigned char *pkt,
 
 	for (j = 0; j < max_ports; j++) {
 		ppi_aux = INST(ppi->glbs, j);
-		if(WR_DSPOR(ppi_aux)->linkUP 
+		if(WR_DSPOR(ppi_aux)->linkUP
 					&& (ppi->port_idx != ppi_aux->port_idx)){
-			memcpy(ppi_aux->fwd_sync_buffer, ppi->rx_buffer,
+			memcpy(ppi_aux->tx_buffer, ppi->rx_buffer,
 			PP_MAX_FRAME_LENGTH);
 			tc_send_fwd_sync(ppi_aux, pkt, plen);
-			ppi_aux->fwd_sync_flag = 1;
 		}
 	}
 
@@ -437,7 +407,7 @@ int tc_forward_sync(struct pp_instance *ppi, unsigned char *pkt,
  * tc_send_fwd_followup() sends the message in the other ppi instance
  * FIXME: this must be implemented to support one-step masters
  */
-int tc_forward_followup(struct pp_instance *ppi, unsigned char *pkt, 
+int tc_forward_followup(struct pp_instance *ppi, unsigned char *pkt,
 											int plen)
 {
 	int j, max_ports = 18;
@@ -451,7 +421,7 @@ int tc_forward_followup(struct pp_instance *ppi, unsigned char *pkt,
 		ppi_aux = INST(ppi->glbs, j);
 		if(WR_DSPOR(ppi_aux)->linkUP
 					&& (ppi->port_idx != ppi_aux->port_idx)){
-			memcpy(ppi_aux->fwd_fup_buffer, ppi->rx_buffer,
+			memcpy(ppi_aux->tx_buffer, ppi->rx_buffer,
 			PP_MAX_FRAME_LENGTH);
 			ppi_aux->sync_ingress = ppi->sync_ingress;
 			ppi_aux->l_delay_ingress = ppi->link_delay;
