@@ -426,7 +426,7 @@ static int unix_net_check_packet(struct pp_globals *ppg, int delay_ms)
 	struct unix_arch_data *arch_data = POSIX_ARCH(ppg);
 	int old_delay_ms;
 
-	if(delay_ms > 10) delay_ms = 10;
+	if(delay_ms > 200) delay_ms = 200;
 
 	old_delay_ms = arch_data->tv.tv_sec * 1000 +
 		arch_data->tv.tv_usec / 1000;
