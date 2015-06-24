@@ -9,7 +9,7 @@
 #include <ppsi/ppsi.h>
 #include "common-fun.h"
 
-int pp_master(struct pp_instance *ppi, unsigned char *pkt, int plen)
+int pp_pmaster(struct pp_instance *ppi, unsigned char *pkt, int plen)
 {
 	TimeInternal *time_snt;
 	int msgtype, d1, d2;
@@ -20,12 +20,15 @@ int pp_master(struct pp_instance *ppi, unsigned char *pkt, int plen)
 		pp_timeout_rand(ppi, PP_TO_ANN_INTERVAL,
 				DSPOR(ppi)->logAnnounceInterval);
 
+#ifdef CONFIG_E2E
 		/* Send an announce immediately, when becomes master */
 		if ((e = msg_issue_announce(ppi)) < 0)
 			goto out;
+#endif
 	}
 
 	if (pp_timeout_z(ppi, PP_TO_SYNC)) {
+#ifdef CONFIG_E2E
 		if ((e = msg_issue_sync(ppi) < 0))
 			goto out;
 
@@ -34,19 +37,38 @@ int pp_master(struct pp_instance *ppi, unsigned char *pkt, int plen)
 				 &OPTS(ppi)->outbound_latency);
 		if ((e = msg_issue_followup(ppi, time_snt)))
 			goto out;
-
+#endif
 		/* Restart the timeout for next time */
 		pp_timeout_rand(ppi, PP_TO_SYNC, DSPOR(ppi)->logSyncInterval);
 	}
 
 	if (pp_timeout_z(ppi, PP_TO_ANN_INTERVAL)) {
+#ifdef CONFIG_E2E
 		if ((e = msg_issue_announce(ppi) < 0))
 			goto out;
+#endif
 
 		/* Restart the timeout for next time */
 		pp_timeout_rand(ppi, PP_TO_ANN_INTERVAL,
 				DSPOR(ppi)->logAnnounceInterval);
 	}
+
+	/* keep it for later --> hsr ring round trip */
+	/*if (ppi->is_new_state) {
+		pp_servo_init(ppi);
+
+		if (pp_hooks.new_slave)
+			e = pp_hooks.new_slave(ppi, pkt, plen);
+		if (e)
+			goto out;
+
+		ppi->waiting_for_follow = FALSE;
+		ppi->waiting_for_resp_follow = FALSE;
+
+		pp_timeout_restart_annrec(ppi);
+		pp_timeout_rand(ppi, PP_TO_PDELAYREQ,
+				DSPOR(ppi)->logMinPDelayReqInterval);
+	}*/
 
 	if (plen == 0)
 		goto out;
@@ -64,31 +86,36 @@ int pp_master(struct pp_instance *ppi, unsigned char *pkt, int plen)
 		goto out;
 	}
 
+	
 	switch (msgtype) {
 
 	case PPM_NOTHING_TO_DO:
 		break;
 
 	case PPM_ANNOUNCE:
-		e = st_com_master_handle_announce(ppi, pkt, plen);
+#ifdef CONFIG_P2P
+		tc_forward_ann(ppi, pkt, plen); /* P2P - Transp. Clocks */
+#endif
 		break;
 
 	case PPM_SYNC:
-		e = st_com_master_handle_sync(ppi, pkt, plen);
+#ifdef CONFIG_P2P
+		tc_forward_sync(ppi, pkt, plen); /* P2P - Transp. Clocks */
+#endif
 		break;
 
-	case PPM_DELAY_REQ:
-		msg_copy_header(&ppi->delay_req_hdr,
-				&ppi->received_ptp_header);
-		msg_issue_delay_resp(ppi, &ppi->last_rcv_time);
+	case PPM_FOLLOW_UP:
+#ifdef CONFIG_P2P
+		tc_forward_followup(ppi, pkt, plen); /* P2P - Transp. Clocks */
+#endif
 		break;
 
-        case PPM_PDELAY_REQ:
-                msg_copy_header(&ppi->pdelay_req_hdr,
-                                &ppi->received_ptp_header);
-                msg_issue_pdelay_resp(ppi, &ppi->last_rcv_time);
-                msg_issue_pdelay_resp_followup(ppi, &ppi->last_snt_time);
-                break;
+	case PPM_PDELAY_REQ:
+		msg_copy_header(&ppi->pdelay_req_hdr,
+						&ppi->received_ptp_header);
+		msg_issue_pdelay_resp(ppi, &ppi->last_rcv_time);
+		msg_issue_pdelay_resp_followup(ppi, &ppi->last_snt_time);
+		break;
 
 	default:
 		/* disregard, nothing to do */
@@ -96,6 +123,15 @@ int pp_master(struct pp_instance *ppi, unsigned char *pkt, int plen)
 	}
 
 out:
+	if (pp_timeout_z(ppi, PP_TO_PDELAYREQ)) {
+		e = msg_issue_pdelay_req(ppi);
+		ppi->t3 = ppi->last_snt_time;
+
+		/* Restart the timeout for next time */
+		pp_timeout_rand(ppi, PP_TO_PDELAYREQ,
+				DSPOR(ppi)->logMinPDelayReqInterval);
+	}
+	
 	if (e == 0) {
 		if (DSDEF(ppi)->clockQuality.clockClass == PP_CLASS_SLAVE_ONLY
 		    || ppi->slave_only)

@@ -110,6 +110,11 @@ int main(int argc, char **argv)
 	ppg->timePropertiesDS = &timePropertiesDS;
 	ppg->servo = &servo;
 	ppg->rt_opts = &__pp_default_rt_opts;
+#ifdef CONFIG_P2P
+	ppg->delay_mech = PP_P2P_MECH;
+#else
+	ppg->delay_mech = PP_E2E_MECH;
+#endif
 
 	/* We are hosted, so we can allocate */
 	ppg->max_links = PP_MAX_LINKS;
@@ -159,6 +164,7 @@ int main(int argc, char **argv)
 
 		ppi->glbs = ppg;
 		ppi->iface_name = ppi->cfg.iface_name;
+		ppi->port_name = ppi->cfg.port_name;
 		/* this old-fashioned "ethernet_mode" is a single bit */
 		ppi->ethernet_mode = (ppi->cfg.proto == PPSI_PROTO_RAW);
 		if (ppi->cfg.role == PPSI_ROLE_MASTER) {

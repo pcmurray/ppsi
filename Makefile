@@ -82,6 +82,12 @@ ifneq ($(PROTO_EXT),)
 endif
 include proto-standard/Makefile
 
+ifeq ($(CONFIG_E2E),y)
+  CFLAGS += -DCONFIG_E2E
+else
+  CFLAGS += -DCONFIG_P2P
+endif
+
 # ...and the TIME choice sets the default operations
 CFLAGS += -DDEFAULT_TIME_OPS=$(TIME)_time_ops
 CFLAGS += -DDEFAULT_NET_OPS=$(TIME)_net_ops

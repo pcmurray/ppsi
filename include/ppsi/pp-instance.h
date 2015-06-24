@@ -106,6 +106,7 @@ enum {
 struct pp_net_path {
 	struct pp_channel ch[__NR_PP_NP];	/* general and event ch */
 	Integer32 mcast_addr;			/* FIXME: only ipv4/udp */
+	Integer32 mcast_addr_peer;	        /* FIXME: only ipv4/udp */
 
 	int ptp_offset;
 };
@@ -120,6 +121,7 @@ struct pp_instance_cfg {
 	int proto; /* 0: raw, 1: udp */
 	int role;  /* 0: auto, 1: master, 2: slave */
 	int ext;   /* 0: none, 1: whiterabbit */ /* FIXME extension enumeration */
+	int delay_mech; /* E2E: 0, P2P: 1 */
 };
 
 /*
@@ -151,7 +153,8 @@ struct pp_instance {
 	struct pp_net_path np;
 
 	/* Times, for the various offset computations */
-	TimeInternal t1, t2, t3, t4;			/* *the* stamps */
+	TimeInternal t1, t2, t3, t4, t5, t6;	        /* *the* stamps */
+	Integer32 t4_cf, t6_cf;                      /* peer delay */
 	TimeInternal cField;				/* transp. clocks */
 	TimeInternal last_rcv_time, last_snt_time;	/* two temporaries */
 
@@ -172,15 +175,25 @@ struct pp_instance {
 	UInteger16 sent_seq[__PP_NR_MESSAGES_TYPES]; /* last sent this type */
 	MsgHeader received_ptp_header;
 	MsgHeader delay_req_hdr;
+	MsgHeader pdelay_req_hdr;
 	UInteger32
 		is_from_cur_par:1,
 		waiting_for_follow:1,
+		waiting_for_resp_follow:1,
 		slave_only:1,
 		master_only:1,
 		backup_only:1,
 		ethernet_mode:1;
-	char *iface_name;
+	char *iface_name; /* for direct actions on hardware */
+	char *port_name; /* for diagnostics, mainly */
 	int port_idx;
+	
+	/* forwarding stuff */
+	TimeInternal sync_ingress, sync_egress;
+	int64_t link_delay; /* link delay is local to the port */
+	int64_t l_delay_ingress; /* the one to be added to forwarded cField */
+	TimeInternal p2p_cField;
+	/* forwarding stuff */
 
 	struct pp_instance_cfg cfg;
 	
@@ -208,6 +221,9 @@ struct pp_globals {
 	DSCurrent *currentDS;			/* page 67 */
 	DSParent *parentDS;			/* page 68 */
 	DSTimeProperties *timePropertiesDS;	/* page 70 */
+
+	/* Sync Mechanism */
+        int delay_mech; /* E2E : 0 , P2P : 1 */
 
 	/* Index of the pp_instance receiving the "Ebest" clock */
 	int ebest_idx;

@@ -35,11 +35,41 @@ int st_com_master_handle_sync(struct pp_instance *ppi, unsigned char *buf,
 int st_com_slave_handle_followup(struct pp_instance *ppi, unsigned char *buf,
 				 int len);
 
+int st_com_peer_handle_preq(struct pp_instance *ppi, unsigned char *buf,
+			     int len);
+
+int st_com_peer_handle_pres(struct pp_instance *ppi, unsigned char *buf,
+			     int len);
+			     
+int tc_forward_ann(struct pp_instance *ppi, unsigned char *pkt, 
+				int plen);
+
+int tc_forward_sync(struct pp_instance *ppi, unsigned char *pkt, 
+				int plen);
+
+int tc_forward_followup(struct pp_instance *ppi, unsigned char *pkt, 
+				int plen);
+
+int tc_send_fwd_ann(struct pp_instance *ppi, unsigned char *pkt, 
+				int plen);
+
+int tc_send_fwd_sync(struct pp_instance *ppi, unsigned char *pkt, 
+				int plen);
+
+int tc_send_fwd_followup(struct pp_instance *ppi, unsigned char *pkt, 
+				int plen);
+
 static inline int __send_and_log(struct pp_instance *ppi, int msglen,
 				 int msgtype, int chtype)
 {
+	int pdelay_addr = 0;
+
+	if (msgtype == PPM_PDELAY_REQ || msgtype == PPM_PDELAY_RESP 
+			|| msgtype == PPM_PDELAY_RESP_FOLLOW_UP)
+		pdelay_addr = 1;
+
 	if (ppi->n_ops->send(ppi, ppi->tx_frame, msglen + NP(ppi)->ptp_offset,
-			    &ppi->last_snt_time, chtype, 0) < msglen) {
+			    &ppi->last_snt_time, chtype, pdelay_addr, msgtype) < msglen) {
 		pp_diag(ppi, frames, 1, "%s(%d) Message can't be sent\n",
 			pp_msg_names[msgtype], msgtype);
 		return -1;

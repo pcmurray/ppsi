@@ -8,6 +8,20 @@
 #include <ppsi/ppsi.h>
 #include "common-fun.h"
 
+static TimeInternal picos_to_ts(int64_t picos)
+{
+	uint64_t nsec, phase;
+	TimeInternal ts;
+
+	nsec = picos;
+	phase = __div64_32(&nsec, 1000);
+
+	ts.nanoseconds = __div64_32(&nsec, PP_NSEC_PER_SEC);
+	ts.seconds = nsec; /* after the division */
+	ts.phase = phase;
+	return ts;
+}
+
 static void *__align_pointer(void *p)
 {
 	unsigned long ip, align = 0;
@@ -136,6 +150,7 @@ int st_com_slave_handle_sync(struct pp_instance *ppi, unsigned char *buf,
 
 	/* t2 may be overriden by follow-up, cField is always valid */
 	ppi->t2 = ppi->last_rcv_time;
+	ppi->sync_ingress = ppi->t2;
 	cField_to_TimeInternal(&ppi->cField, hdr->correctionfield);
 
 	if ((hdr->flagField[0] & PP_TWO_STEP_FLAG) != 0) {
@@ -147,7 +162,60 @@ int st_com_slave_handle_sync(struct pp_instance *ppi, unsigned char *buf,
 	ppi->waiting_for_follow = FALSE;
 	to_TimeInternal(&ppi->t1,
 			&sync.originTimestamp);
-	pp_servo_got_sync(ppi);
+
+	if (GLBS(ppi)->delay_mech)
+		pp_servo_got_psync(ppi);
+	else
+		pp_servo_got_sync(ppi);
+
+	return 0;
+}
+
+int st_com_peer_handle_pres(struct pp_instance *ppi, unsigned char *buf,
+			     int len)
+{
+	MsgPDelayResp resp;
+	MsgHeader *hdr = &ppi->received_ptp_header;
+
+	if (len < PP_PDELAY_RESP_LENGTH)
+		return -1;
+
+	msg_unpack_pdelay_resp(buf, &resp);
+
+	if ((memcmp(&DSPOR(ppi)->portIdentity.clockIdentity,
+		&resp.requestingPortIdentity.clockIdentity,
+		PP_CLOCK_IDENTITY_LENGTH) == 0) &&
+		((ppi->sent_seq[PPM_PDELAY_REQ]) ==
+			hdr->sequenceId) &&
+		(DSPOR(ppi)->portIdentity.portNumber ==
+			resp.requestingPortIdentity.portNumber) &&
+		ppi->is_from_cur_par) {
+
+		to_TimeInternal(&ppi->t4, &resp.requestReceiptTimestamp);
+		ppi->t6 = ppi->last_rcv_time;
+		ppi->t6_cf = phase_to_cf_units(ppi->last_rcv_time.phase);
+		ppi->waiting_for_resp_follow = TRUE;
+
+		/* todo: in one clock the presp carries t5-t4 */
+
+	} else {
+		pp_diag(ppi, frames, 2, "pp_pclock : "
+		     "PDelay Resp doesn't match PDelay Req\n");
+	}
+	return 0;
+}
+
+int st_com_peer_handle_preq(struct pp_instance *ppi, unsigned char *buf,
+			     int len)
+{
+	if (len < PP_PDELAY_REQ_LENGTH)
+		return -1;
+
+	msg_copy_header(&ppi->pdelay_req_hdr,
+			&ppi->received_ptp_header);
+	msg_issue_pdelay_resp(ppi, &ppi->last_rcv_time);
+	msg_issue_pdelay_resp_followup(ppi, &ppi->last_snt_time);
+
 	return 0;
 }
 
@@ -193,7 +261,11 @@ int st_com_slave_handle_followup(struct pp_instance *ppi, unsigned char *buf,
 	if (ret < 0)
 		return ret;
 
-	pp_servo_got_sync(ppi);
+	if (GLBS(ppi)->delay_mech)
+		pp_servo_got_psync(ppi);
+	else
+		pp_servo_got_sync(ppi);
+
 	return 0;
 }
 
@@ -221,3 +293,148 @@ int st_com_master_handle_sync(struct pp_instance *ppi, unsigned char *buf,
 	/* No more used: follow up is sent right after the corresponding sync */
 	return 0;
 }
+
+/*
+ * Called by Transparent Clocks.
+ * FIXME: this must be implemented to support one-step masters
+ */
+int tc_send_fwd_ann(struct pp_instance *ppi, unsigned char *pkt,
+											int plen)
+{
+	__send_and_log(ppi, plen, PPM_ANNOUNCE, PP_NP_GEN);
+
+	return 1;
+}
+
+/*
+ * Called by Transparent Clocks.
+ * FIXME: this must be implemented to support one-step masters
+ */
+int tc_send_fwd_sync(struct pp_instance *ppi, unsigned char *pkt,
+											int plen)
+{
+
+	__send_and_log(ppi, plen, PPM_SYNC, PP_NP_EVT);
+	ppi->sync_egress = ppi->last_snt_time; /* egress time for sync */
+
+	return 1;
+}
+
+/*
+ * Called by Transparent Clocks.
+ * FIXME: this must be implemented to support one-step masters
+ */
+int tc_send_fwd_followup(struct pp_instance *ppi, unsigned char *pkt,
+												int plen)
+{
+	TimeInternal residence_time; /* Transp. Clocks - Residence Time + Link Delay */
+	TimeInternal delay_ms; /* Transp. Clocks - Link Delay measured with pDelay */
+
+	/* adding residence time and link delay to correction field for p2p */
+	residence_time.seconds = 0;
+	residence_time.nanoseconds = 0;
+	residence_time.phase = 0;
+
+	/* FIXME: cField is not completely following the standard, but since
+	 * we own the field, convert and use the same "wrong" way in all sides, it works.
+	 * This should be changed to comply the PTP standard. */
+	sub_TimeInternal(&residence_time, &ppi->sync_egress, &ppi->sync_ingress);
+	add_TimeInternal(&residence_time, &residence_time, &ppi->p2p_cField);
+	residence_time.phase += ppi->p2p_cField.phase + 
+		(ppi->sync_egress.phase - ppi->sync_ingress.phase);
+	delay_ms = picos_to_ts(ppi->l_delay_ingress);
+	add_TimeInternal(&residence_time, &residence_time, &delay_ms);
+	residence_time.nanoseconds += residence_time.seconds * 1e9;
+	residence_time.phase += delay_ms.phase;
+
+	update_followup_cField(ppi, residence_time);
+
+	__send_and_log(ppi, plen, PPM_FOLLOW_UP, PP_NP_EVT);
+
+	return 1;
+}
+
+/*
+ * Called by Transparent Clocks.
+ * It copies the message to forward to all the other ports
+ * tc_send_fwd_announce() sends the message in the other ppi instance
+ * FIXME: this must be implemented to support one-step masters
+ */
+int tc_forward_ann(struct pp_instance *ppi, unsigned char *pkt,
+											int plen)
+{
+	int j, max_ports = 8;
+	struct pp_instance *ppi_aux;
+
+	for (j = 0; j < max_ports; j++) {
+		ppi_aux = INST(ppi->glbs, j);
+		if(WR_DSPOR(ppi_aux)->linkUP
+					&& (ppi->port_idx != ppi_aux->port_idx)){
+			memcpy(ppi_aux->tx_buffer, ppi->rx_buffer,
+			PP_MAX_FRAME_LENGTH);
+			tc_send_fwd_ann(ppi_aux, pkt, plen);
+		}
+	}
+
+	return 1;
+}
+
+/*
+ * Called by Transparent Clocks.
+ * It copies the message to forward to all the other ports
+ * tc_send_fwd_sync() sends the message in the other ppi instance
+ * FIXME: this must be implemented to support one-step masters
+ */
+int tc_forward_sync(struct pp_instance *ppi, unsigned char *pkt,
+											int plen)
+{
+	int j, max_ports = 8;
+	struct pp_instance *ppi_aux;
+
+	for (j = 0; j < max_ports; j++) {
+		ppi_aux = INST(ppi->glbs, j);
+		if(WR_DSPOR(ppi_aux)->linkUP
+					&& (ppi->port_idx != ppi_aux->port_idx)){
+			memcpy(ppi_aux->tx_buffer, ppi->rx_buffer,
+			PP_MAX_FRAME_LENGTH);
+			tc_send_fwd_sync(ppi_aux, pkt, plen);
+		}
+	}
+
+	return 1;
+}
+
+/*
+ * Called by Transparent Clocks.
+ * It copies the message to forward to all the other ports
+ * tc_send_fwd_followup() sends the message in the other ppi instance
+ * FIXME: this must be implemented to support one-step masters
+ */
+int tc_forward_followup(struct pp_instance *ppi, unsigned char *pkt,
+											int plen)
+{
+	int j, max_ports = 8;
+	struct pp_instance *ppi_aux;
+	MsgHeader *hdr = &ppi->received_ptp_header;
+
+	ppi->p2p_cField.nanoseconds = hdr->correctionfield.msb;
+	ppi->p2p_cField.phase = hdr->correctionfield.lsb;
+	pp_printf("cField %d:%d\n", hdr->correctionfield.msb, 
+		hdr->correctionfield.lsb);
+
+	for (j = 0; j < max_ports; j++) {
+		ppi_aux = INST(ppi->glbs, j);
+		if(WR_DSPOR(ppi_aux)->linkUP
+					&& (ppi->port_idx != ppi_aux->port_idx)){
+			memcpy(ppi_aux->tx_buffer, ppi->rx_buffer,
+			PP_MAX_FRAME_LENGTH);
+			ppi_aux->sync_ingress = ppi->sync_ingress;
+			ppi_aux->l_delay_ingress = ppi->link_delay;
+			ppi_aux->p2p_cField = ppi->p2p_cField;
+			tc_send_fwd_followup(ppi_aux, pkt, plen);
+		}
+	}
+
+	return 1;
+}
+

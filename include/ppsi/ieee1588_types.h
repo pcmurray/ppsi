@@ -179,22 +179,21 @@ typedef struct MsgDelayResp {
 } MsgDelayResp;
 
 /* PdelayReq Message (table 29, page 131) -- not used in ppsi */
-struct MsgPDelayReq {
+typedef struct MsgPDelayReq {
 	Timestamp	originTimestamp;
-
-};
+} MsgPDelayReq;
 
 /* PdelayResp Message (table 30, page 131) -- not used in ppsi */
-struct MsgPDelayResp {
+typedef struct MsgPDelayResp {
 	Timestamp	requestReceiptTimestamp;
 	PortIdentity	requestingPortIdentity;
-};
+} MsgPDelayResp;
 
 /* PdelayRespFollowUp Message (table 31, page 132) -- not used in ppsi */
-struct MsgPDelayRespFollowUp {
+typedef struct MsgPDelayRespFollowUp {
 	Timestamp	responseOriginTimestamp;
 	PortIdentity	requestingPortIdentity;
-};
+} MsgPDelayRespFollowUp;
 
 /* Signaling Message (table 33, page 133) */
 typedef struct MsgSignaling {
@@ -263,6 +262,7 @@ typedef struct DSPort {			/* page 72 */
 	Integer8	logAnnounceInterval;
 	UInteger8	announceReceiptTimeout;
 	Integer8	logSyncInterval;
+        Integer8        logMinPDelayReqInterval;
 	/* Enumeration8	delayMechanism; -- not used */
 	UInteger4	versionNumber;
 

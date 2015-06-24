@@ -18,10 +18,10 @@ struct pp_state_table_item pp_state_table[] = {
 	{ PPS_DISABLED,		"disabled",	pp_disabled,},
 	{ PPS_LISTENING,	"listening",	pp_listening,},
 	/*{ PPS_PRE_MASTER,	"pre-master",	pp_pre_master,},*/
-	{ PPS_MASTER,		"master",	pp_master,},
+	{ PPS_MASTER,		"master",	pp_pmaster,},
 	/*{ PPS_PASSIVE,	"passive",	pp_passive,},*/
 	{ PPS_UNCALIBRATED,	"uncalibrated",	pp_uncalibrated,},
-	{ PPS_SLAVE,		"slave",	pp_slave,},
+	{ PPS_SLAVE,		"slave",	pp_pclock,},
 	{ WRS_PRESENT,		"uncalibrated/wr-present",	wr_present,},
 	{ WRS_M_LOCK,		"master/wr-m-lock",	wr_m_lock,},
 	{ WRS_S_LOCK,		"uncalibrated/wr-s-lock",	wr_s_lock,},

@@ -155,12 +155,18 @@ struct wr_servo_state_t {
 	int32_t cur_setpoint;
 	int64_t delta_ms;
 	int64_t delta_ms_prev;
-	TimeInternal t1, t2, t3, t4;
+	TimeInternal t1, t2, t3, t4, t5, t6;
 	uint64_t last_tics;
 	int32_t fiber_fix_alpha;
 	int32_t clock_period_ps;
 	int missed_iters;
 };
+
+int wr_p2p_delay(struct pp_instance *ppi, struct wr_servo_state_t *s);
+int wr_e2e_offset(struct pp_instance *ppi,
+                        struct wr_servo_state_t *s, TimeInternal *ts_offset_hw);
+int wr_p2p_offset(struct pp_instance *ppi,
+                        struct wr_servo_state_t *s, TimeInternal *ts_offset_hw);
 
 /* FIXME: what is the difference with the above? */
 typedef struct{
