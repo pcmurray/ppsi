@@ -37,6 +37,9 @@ int wr_link_on(struct pp_instance *ppi, unsigned char *pkt, int plen)
 		ppi->glbs->holdover = 0;
 	}
 	else
-		ppi->next_state = PPS_MASTER;
+	{
+		ppi->next_state = PPS_SLAVE;
+		wrp->ops->locking_enable(ppi);
+	}
 	return 0;
 }

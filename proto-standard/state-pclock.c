@@ -14,6 +14,7 @@ int pp_pclock(struct pp_instance *ppi, unsigned char *pkt, int plen)
 	int e = 0;		/* error var, to check errors in msg handling */
 	MsgHeader *hdr = &ppi->received_ptp_header;
 	MsgPDelayRespFollowUp respFllw;
+	MsgSignaling wrsig_msg;
 	int d1, d2;
 
 	if (ppi->is_new_state) {
@@ -109,6 +110,17 @@ int pp_pclock(struct pp_instance *ppi, unsigned char *pkt, int plen)
 			pp_diag(ppi, frames, 2, "pp_pclock : "
 				"PDelay Resp Follow doesn't match PDelay Req\n");
 		}
+		break;
+	
+	
+	/* This is missing in the standard protocol */
+	case PPM_SIGNALING:
+		msg_unpack_wrsig(ppi, pkt, &wrsig_msg,
+				 &(WR_DSPOR(ppi)->msgTmpWrMessageID));
+		if ((WR_DSPOR(ppi)->msgTmpWrMessageID == SLAVE_PRESENT) &&
+		    (WR_DSPOR(ppi)->wrConfig & WR_M_ONLY))
+			ppi->next_state = WRS_M_LOCK;
+		//msgtype = PPM_NOTHING_TO_DO;
 		break;
 
 	default:

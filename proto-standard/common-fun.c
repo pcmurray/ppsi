@@ -419,8 +419,6 @@ int tc_forward_followup(struct pp_instance *ppi, unsigned char *pkt,
 
 	ppi->p2p_cField.nanoseconds = hdr->correctionfield.msb;
 	ppi->p2p_cField.phase = hdr->correctionfield.lsb;
-	pp_printf("cField %d:%d\n", hdr->correctionfield.msb, 
-		hdr->correctionfield.lsb);
 
 	for (j = 0; j < max_ports; j++) {
 		ppi_aux = INST(ppi->glbs, j);
