@@ -82,7 +82,11 @@ static int wrpc_net_send(struct pp_instance *ppi, void *pkt, int len,
 	sock = NP(ppi)->ch[PP_NP_EVT].custom;
 
 	addr.ethertype = ETH_P_1588;
-	memcpy(&addr.mac, PP_MCAST_MACADDRESS, sizeof(mac_addr_t));
+
+        if (use_pdelay_addr)
+                memcpy(&addr.mac, PP_PDELAY_MACADDRESS, sizeof(mac_addr_t));
+        else
+                memcpy(&addr.mac, PP_MCAST_MACADDRESS, sizeof(mac_addr_t));
 
 	snt = ptpd_netif_sendto(sock, &addr, pkt, len, &wr_ts);
 
