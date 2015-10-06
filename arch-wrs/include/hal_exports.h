@@ -78,6 +78,7 @@ typedef struct {
 #define HEXP_PORT_MODE_WR_MASTER 1
 #define HEXP_PORT_MODE_WR_SLAVE 2
 #define HEXP_PORT_MODE_NON_WR 3
+#define HEXP_PORT_MODE_SYNCE_SLAVE 5
 
 #define FIX_ALPHA_FRACBITS 40
 /*
