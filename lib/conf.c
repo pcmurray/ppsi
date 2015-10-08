@@ -194,6 +194,7 @@ static struct pp_argname arg_role[] = {
 	{"auto", PPSI_ROLE_AUTO},
 	{"master",PPSI_ROLE_MASTER},
 	{"slave", PPSI_ROLE_SLAVE},
+	{"synce_slave", PPSI_ROLE_SLAVE},
 	{},
 };
 static struct pp_argname arg_ext[] = {
