@@ -188,8 +188,8 @@ int st_com_peer_handle_pres(struct pp_instance *ppi, unsigned char *buf,
 		((ppi->sent_seq[PPM_PDELAY_REQ]) ==
 			hdr->sequenceId) &&
 		(DSPOR(ppi)->portIdentity.portNumber ==
-			resp.requestingPortIdentity.portNumber) &&
-		ppi->is_from_cur_par) {
+			resp.requestingPortIdentity.portNumber) /*&&
+		ppi->is_from_cur_par*/) { /* GUTI BAD HACK */
 
 		to_TimeInternal(&ppi->t4, &resp.requestReceiptTimestamp);
 		ppi->t6 = ppi->last_rcv_time;

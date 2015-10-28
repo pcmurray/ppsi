@@ -92,8 +92,8 @@ int pp_pclock(struct pp_instance *ppi, unsigned char *pkt, int plen)
 		    ((ppi->sent_seq[PPM_PDELAY_REQ]) ==
 		     hdr->sequenceId) &&
 		    (DSPOR(ppi)->portIdentity.portNumber ==
-		     respFllw.requestingPortIdentity.portNumber) &&
-		    ppi->is_from_cur_par) {
+		     respFllw.requestingPortIdentity.portNumber) /*&&
+		    ppi->is_from_cur_par*/) { /* GUTI BAD HACK */
 
 			to_TimeInternal(&ppi->t5,
 					&respFllw.responseOriginTimestamp);
@@ -142,10 +142,10 @@ out:
 				DSPOR(ppi)->logMinPDelayReqInterval);
 	}
 
-	if (e) {
-		ppi->next_state = PPS_FAULTY;
-		return 0;
-	}
+	//if (e) {
+		//ppi->next_state = PPS_FAULTY;
+		//return 0;
+	//}
 
 	/* Leaving this state */
 	if (ppi->next_state != ppi->state) {

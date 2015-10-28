@@ -14,6 +14,18 @@ int pp_pmaster(struct pp_instance *ppi, unsigned char *pkt, int plen)
 	TimeInternal *time_snt;
 	int msgtype, d1, d2;
 	int e = 0; /* error var, to check errors in msg handling */
+	
+	struct wr_dsport *wrp_hsr0 = WR_DSPOR(INST(ppi->glbs, 0));
+	struct wr_dsport *wrp_hsr1 = WR_DSPOR(INST(ppi->glbs, 1));
+
+	if(wrp_hsr0->wrModeOn || wrp_hsr1->wrModeOn){
+		ppi->master_only = 0;
+		ppi->slave_only = 0;
+		ppi->backup_only = 1;
+		ppi->slave_prio = 0;
+		ppi->next_state = PPS_SLAVE;
+		return 0;
+	}
 
 	if (ppi->is_new_state) {
 		pp_timeout_rand(ppi, PP_TO_SYNC, DSPOR(ppi)->logSyncInterval);

@@ -373,16 +373,14 @@ int wr_servo_update(struct pp_instance *ppi)
 		s->t1.correct, s->t2.correct, s->t3.correct, s->t4.correct, 
 		s->t5.correct, s->t6.correct);
 		errcount++;
-		pp_printf("%s compains\n", ppi->port_name);
 		if (errcount > 5) /* a 2-3 in a row are expected */
 			pp_error("%s: TimestampsIncorrect: %d %d %d %d %d %d\n",
 				 __func__, s->t1.correct, s->t2.correct,
 				 s->t3.correct, s->t4.correct,
 				 s->t5.correct, s->t6.correct);
-		return 0;
+		//return 0; /* GUTI HACK */
 	}
 	errcount = 0;
-	pp_printf("but it still updates\n");
 
 	if(ppi->port_idx == cur_servo_state.active_port) // only for active slave
 		cur_servo_state.update_count++;

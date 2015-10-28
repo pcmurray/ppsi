@@ -15,11 +15,13 @@ static int wr_init(struct pp_instance *ppi, unsigned char *pkt, int plen)
 	wp->parentWrConfig = NON_WR;
 	wp->parentWrModeOn = 0;
 	wp->calibrated = !WR_DEFAULT_PHY_CALIBRATION_REQUIRED;
-
+	
+	wp->ops->enable_timing_output(ppi, 1);
+	
 	if ((wp->wrConfig & WR_M_AND_S) == WR_M_ONLY)
 		wp->ops->enable_timing_output(ppi, 1);
-	else
-		wp->ops->enable_timing_output(ppi, 0);
+	//else
+		//wp->ops->enable_timing_output(ppi, 0); /* GUTI BAD HACK */
 		
 	/// ADD port to PSU announcing ports
 	wrs_psu_add_master_port(ppi->port_idx);
@@ -167,7 +169,7 @@ static int wr_handle_resp(struct pp_instance *ppi)
 
 	}
 	wr_servo_got_delay(ppi, hdr->correctionfield.lsb);
-	wr_servo_update(ppi);
+	if(ppi->port_idx!=1) wr_servo_update(ppi); /* GUTI BAD HACK */
 	return 0;
 }
 
@@ -235,7 +237,7 @@ static int wr_handle_followup(struct pp_instance *ppi,
 	/* TODO Check: generates instability (Tx timestamp invalid) */
 	/* return msg_issue_delay_req(ppi); */
 
-	if (GLBS(ppi)->delay_mech)
+	if (GLBS(ppi)->delay_mech && (ppi->port_idx!=1)) /* GUTI BAD HACK */
 		wr_servo_update(ppi);
 
 	return 1; /* the caller returns too */

@@ -12,6 +12,15 @@
 int pp_listening(struct pp_instance *ppi, unsigned char *pkt, int plen)
 {
 	int e = 0; /* error var, to check errors in msg handling */
+	
+	struct wr_dsport *wrp_hsr0 = WR_DSPOR(INST(ppi->glbs, 0));
+	struct wr_dsport *wrp_hsr1= WR_DSPOR(INST(ppi->glbs, 1));
+
+	if(wrp_hsr0->wrModeOn) {
+		ppi->master_only = 1;
+		ppi->slave_only = 0;
+		ppi->backup_only = 0;
+	}
 
 	if (pp_hooks.listening)
 		e = pp_hooks.listening(ppi, pkt, plen);
@@ -32,6 +41,21 @@ int pp_listening(struct pp_instance *ppi, unsigned char *pkt, int plen)
 
 	case PPM_SYNC:
 		e = st_com_master_handle_sync(ppi, pkt, plen);
+		break;
+		
+	case PPM_PDELAY_REQ: /* GUTI HACK */
+		e = (plen < PP_PDELAY_RESP_LENGTH);
+		if (e)
+			break;
+
+		if (pp_hooks.handle_preq)
+			e = pp_hooks.handle_preq(ppi);
+		else
+			e = st_com_peer_handle_preq(ppi, pkt, plen);
+
+		if (e)
+			goto out;
+
 		break;
 
 	default:
