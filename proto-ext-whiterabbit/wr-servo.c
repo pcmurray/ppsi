@@ -239,7 +239,7 @@ int wr_servo_got_delay(struct pp_instance *ppi, Integer32 cf)
 		s->t6 = ppi->t6;
 		s->t6.phase = (int64_t) ppi->t6_cf * 1000LL / 65536LL;
 
-		wr_p2p_delay(ppi, s);
+		//wr_p2p_delay(ppi, s); /* already included in wr_servo_update() */
 	}
 
 	return 0;
@@ -378,7 +378,8 @@ int wr_servo_update(struct pp_instance *ppi)
 				 __func__, s->t1.correct, s->t2.correct,
 				 s->t3.correct, s->t4.correct,
 				 s->t5.correct, s->t6.correct);
-		//return 0; /* GUTI HACK */
+		return 0; /* GUTI HACK: removing it, sometimes fixes some stuff 
+					swithover related to mErr & bErr*/
 	}
 	errcount = 0;
 
