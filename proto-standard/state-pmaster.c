@@ -17,8 +17,9 @@ int pp_pmaster(struct pp_instance *ppi, unsigned char *pkt, int plen)
 	
 	struct wr_dsport *wrp_hsr0 = WR_DSPOR(INST(ppi->glbs, 0));
 	struct wr_dsport *wrp_hsr1 = WR_DSPOR(INST(ppi->glbs, 1));
+	struct wr_dsport *wrp_hsr2 = WR_DSPOR(INST(ppi->glbs, 2));
 
-	if(wrp_hsr0->wrModeOn || wrp_hsr1->wrModeOn){
+	if(wrp_hsr0->wrModeOn || wrp_hsr1->wrModeOn || wrp_hsr2->wrModeOn){
 		ppi->master_only = 0;
 		ppi->slave_only = 0;
 		ppi->backup_only = 1;

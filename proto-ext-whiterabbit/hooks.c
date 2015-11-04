@@ -17,11 +17,11 @@ static int wr_init(struct pp_instance *ppi, unsigned char *pkt, int plen)
 	wp->calibrated = !WR_DEFAULT_PHY_CALIBRATION_REQUIRED;
 
 	/* GUTI BAD HACK */
-	if(WR_DSCUR(ppi)->primarySlavePortNumber == ppi->port_idx) {
-		 wp->ops->enable_timing_output(ppi, 1);
-	}else{
-		wp->ops->enable_timing_output(ppi, 0);
-	}
+	//if(ppi->port_idx == GLBS(ppi)->active_backup_port) {
+		 //wp->ops->enable_timing_output(ppi, 1);
+	//}else{
+		//wp->ops->enable_timing_output(ppi, 0);
+	//}
 
 	/* For any reason, when new linkUp, PPS output is disabled although 
 	 * it is the correct port... */
