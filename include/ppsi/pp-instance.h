@@ -245,6 +245,9 @@ struct pp_globals {
 	int incorrect_cnt;
 	int32_t max_holdover_interv;
 	int holdover;
+	
+	//GUTI: active port
+	int active_backup_port;
 };
 
 #endif /* __PPSI_PP_INSTANCE_H__ */

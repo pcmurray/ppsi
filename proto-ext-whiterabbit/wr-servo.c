@@ -383,8 +383,10 @@ int wr_servo_update(struct pp_instance *ppi)
 	}
 	errcount = 0;
 
-	if(ppi->port_idx == cur_servo_state.active_port) // only for active slave
+	if(ppi->port_idx == cur_servo_state.active_port) {// only for active slave
 		cur_servo_state.update_count++;
+		GLBS(ppi)->active_backup_port = cur_servo_state.active_port;
+	}
 
 	got_sync[ppi->port_idx] = 0;
 
