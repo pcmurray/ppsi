@@ -223,7 +223,10 @@ struct pp_globals {
 	DSTimeProperties *timePropertiesDS;	/* page 70 */
 
 	/* Sync Mechanism */
-        int delay_mech; /* E2E : 0 , P2P : 1 */
+    int delay_mech; /* E2E : 0 , P2P : 1 */
+        
+    /* HSR Protocol */
+	UInteger16 hsr_seq_number; /* HSR sequence number for all ports */
 
 	/* Index of the pp_instance receiving the "Ebest" clock */
 	int ebest_idx;

@@ -39,6 +39,21 @@ extern struct minipc_pd __rpcdef_get_port_state;
 #define DMTD_UPDATE_INTERVAL 500
 #define PACKED __attribute__((packed))
 
+#ifndef ETH_HSR_HLEN
+#define ETH_HSR_HLEN	6
+#endif
+
+struct hsr_tag {
+	uint16_t	path_and_LSDU_size;
+	uint16_t	sequence_nr;
+	uint16_t	encap_proto;
+} __attribute__((packed));
+
+struct hsr_ethhdr {
+	struct ethhdr   commonhdr;
+	struct hsr_tag  hsrtag;
+} __attribute__((packed));
+
 struct scm_timestamping {
 	struct timespec systime;
 	struct timespec hwtimetrans;
@@ -350,7 +365,8 @@ int wrs_net_send(struct pp_instance *ppi, void *pkt, int len,
 			  TimeInternal *t, int chtype, int use_pdelay_addr, int msgtype)
 {
 	struct sockaddr_in addr;
-	struct ethhdr *hdr = pkt;
+	//struct ethhdr *hdr = pkt;
+	struct hsr_ethhdr *hdr = pkt;
 	struct wrs_socket *s;
 	int ret, fd, drop;
 
@@ -365,26 +381,33 @@ int wrs_net_send(struct pp_instance *ppi, void *pkt, int len,
 
 	if (ppi->ethernet_mode) {
 		fd = NP(ppi)->ch[PP_NP_GEN].fd;
-		hdr->h_proto = htons(ETH_P_1588);
-		if (drop)
-			hdr->h_proto++;
+		hdr->commonhdr.h_proto = htons(ETH_P_1588);
 
-		if (!(msgtype == PPM_ANNOUNCE || msgtype == PPM_SYNC 
-				|| msgtype == PPM_FOLLOW_UP)) 
-		{		
-			hdr->h_proto = htons(ETH_P_1588);
-			if (drop)
-				hdr->h_proto++;
-
-			if (use_pdelay_addr)
-				memcpy(hdr->h_dest, PP_PDELAY_MACADDRESS, ETH_ALEN);
-			else
-				memcpy(hdr->h_dest, PP_MCAST_MACADDRESS, ETH_ALEN);
-
-			/* raw socket implementation always uses gen socket */
-			memcpy(hdr->h_source, NP(ppi)->ch[PP_NP_GEN].addr, ETH_ALEN);
-		}
+		/* include hsr tag */
+		hdr->commonhdr.h_proto = htons(ETH_P_62439_3);
+		hdr->hsrtag.path_and_LSDU_size = htons(
+							(ntohs(hdr->hsrtag.path_and_LSDU_size) & 0x0FFF) |
+							(ppi->port_idx << 12));
+		hdr->hsrtag.path_and_LSDU_size = htons(
+							(ntohs(hdr->hsrtag.path_and_LSDU_size) & 0xF000) |
+							(len-14 & 0x0FFF));
+		hdr->hsrtag.sequence_nr = htons(GLBS(ppi)->hsr_seq_number);
+		GLBS(ppi)->hsr_seq_number++; 
+		hdr->hsrtag.encap_proto = htons(ETH_P_1588);
+		//pp_printf("GLBS(ppi)->hsr_seq_number=%d\n",GLBS(ppi)->hsr_seq_number);
+		/* end of hsr tagging */
 		
+		if (drop)
+			hdr->commonhdr.h_proto++;
+
+		if (use_pdelay_addr)
+			memcpy(hdr->commonhdr.h_dest, PP_PDELAY_MACADDRESS, ETH_ALEN);
+		else
+			memcpy(hdr->commonhdr.h_dest, PP_MCAST_MACADDRESS, ETH_ALEN);
+
+		/* raw socket implementation always uses gen socket */
+		memcpy(hdr->commonhdr.h_source, NP(ppi)->ch[PP_NP_GEN].addr, ETH_ALEN);
+
 		if (t)
 			ppi->t_ops->get(ppi, t);
 

@@ -116,6 +116,10 @@ int main(int argc, char **argv)
 	ppg->delay_mech = PP_E2E_MECH;
 #endif
 
+	/* HSR stuff */
+	/* FIXME: add ifdef and endif... */
+	ppg->hsr_seq_number = 0;
+
 	/* We are hosted, so we can allocate */
 	ppg->max_links = PP_MAX_LINKS;
 	ppg->arch_data = calloc(1, sizeof(struct unix_arch_data));
