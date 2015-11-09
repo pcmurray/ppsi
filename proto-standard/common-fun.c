@@ -313,7 +313,6 @@ int tc_send_fwd_ann(struct pp_instance *ppi, unsigned char *pkt,
 int tc_send_fwd_sync(struct pp_instance *ppi, unsigned char *pkt,
 											int plen)
 {
-
 	__send_and_log(ppi, plen, PPM_SYNC, PP_NP_EVT);
 	ppi->sync_egress = ppi->last_snt_time; /* egress time for sync */
 
@@ -371,7 +370,9 @@ int tc_forward_ann(struct pp_instance *ppi, unsigned char *pkt,
 		if(WR_DSPOR(ppi_aux)->linkUP
 					&& (ppi->port_idx != ppi_aux->port_idx)){
 			memcpy(ppi_aux->tx_buffer, ppi->rx_buffer,
-			PP_MAX_FRAME_LENGTH);
+				PP_MAX_FRAME_LENGTH);
+			memcpy(ppi_aux->tx_ptp, ppi->rx_ptp, 
+				PP_MAX_FRAME_LENGTH);
 			tc_send_fwd_ann(ppi_aux, pkt, plen);
 		}
 	}
@@ -396,7 +397,9 @@ int tc_forward_sync(struct pp_instance *ppi, unsigned char *pkt,
 		if(WR_DSPOR(ppi_aux)->linkUP
 					&& (ppi->port_idx != ppi_aux->port_idx)){
 			memcpy(ppi_aux->tx_buffer, ppi->rx_buffer,
-			PP_MAX_FRAME_LENGTH);
+				PP_MAX_FRAME_LENGTH);
+			memcpy(ppi_aux->tx_ptp, ppi->rx_ptp,
+				PP_MAX_FRAME_LENGTH);
 			tc_send_fwd_sync(ppi_aux, pkt, plen);
 		}
 	}
@@ -425,7 +428,9 @@ int tc_forward_followup(struct pp_instance *ppi, unsigned char *pkt,
 		if(WR_DSPOR(ppi_aux)->linkUP
 					&& (ppi->port_idx != ppi_aux->port_idx)){
 			memcpy(ppi_aux->tx_buffer, ppi->rx_buffer,
-			PP_MAX_FRAME_LENGTH);
+				PP_MAX_FRAME_LENGTH);
+			memcpy(ppi_aux->tx_ptp, ppi->rx_ptp,
+				PP_MAX_FRAME_LENGTH);
 			ppi_aux->sync_ingress = ppi->sync_ingress;
 			ppi_aux->l_delay_ingress = ppi->link_delay;
 			ppi_aux->p2p_cField = ppi->p2p_cField;

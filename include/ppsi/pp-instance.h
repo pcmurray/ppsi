@@ -195,8 +195,11 @@ struct pp_instance {
 	TimeInternal p2p_cField;
 	/* forwarding stuff */
 
+	/* HSR */
+	int is_HSR;
+
 	struct pp_instance_cfg cfg;
-	
+
 	int slave_prio; /*ML: used to prioritize slave ports (i.e. indicate backup)*/
 };
 

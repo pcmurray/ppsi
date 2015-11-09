@@ -203,8 +203,7 @@ static int unix_open_ch(struct pp_instance *ppi, char *ifname, int chtype)
 	if (ppi->ethernet_mode) {
 		/* open socket */
 		context = "socket()";
-		//sock = socket(PF_PACKET, SOCK_RAW, ETH_P_1588);
-		sock = socket(PF_PACKET, SOCK_RAW, ETH_P_62439_3); /* HSR */
+		sock = socket(PF_PACKET, SOCK_RAW, ETH_P_ALL);  /* HSR + PTP */
 		if (sock < 0)
 			goto err_out;
 
@@ -225,8 +224,7 @@ static int unix_open_ch(struct pp_instance *ppi, char *ifname, int chtype)
 		/* bind */
 		memset(&addr_ll, 0, sizeof(addr));
 		addr_ll.sll_family = AF_PACKET;
-		//addr_ll.sll_protocol = htons(ETH_P_1588);
-		addr_ll.sll_protocol = htons(ETH_P_62439_3); /* HSR */
+		addr_ll.sll_protocol = htons(ETH_P_ALL); /* HSR + PTP*/
 		addr_ll.sll_ifindex = iindex;
 		context = "bind()";
 		if (bind(sock, (struct sockaddr *)&addr_ll,

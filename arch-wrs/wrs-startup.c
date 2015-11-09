@@ -216,6 +216,11 @@ int main(int argc, char **argv)
 		
 // 		ppi->slave_prio = 0; /*ML: by default primary slave*/
 
+		if(i==0 || i==1)
+			ppi->is_HSR=1;
+		else
+			ppi->is_HSR=0;
+
 	}
 
 	WR_DSCUR(ppi)->primarySlavePortNumber   = -1;

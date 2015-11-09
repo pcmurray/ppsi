@@ -64,7 +64,7 @@ static inline int __send_and_log(struct pp_instance *ppi, int msglen,
 {
 	int pdelay_addr = 0;
 
-	if (msgtype == PPM_PDELAY_REQ || msgtype == PPM_PDELAY_RESP 
+	if (msgtype == PPM_PDELAY_REQ || msgtype == PPM_PDELAY_RESP
 			|| msgtype == PPM_PDELAY_RESP_FOLLOW_UP)
 		pdelay_addr = 1;
 

@@ -365,10 +365,11 @@ int wrs_net_send(struct pp_instance *ppi, void *pkt, int len,
 			  TimeInternal *t, int chtype, int use_pdelay_addr, int msgtype)
 {
 	struct sockaddr_in addr;
-	//struct ethhdr *hdr = pkt;
-	struct hsr_ethhdr *hdr = pkt;
+	struct ethhdr *hdr = pkt;
+	struct hsr_ethhdr *hdr_hsr = pkt;
 	struct wrs_socket *s;
 	int ret, fd, drop;
+	unsigned char aux_buffer[PP_MAX_FRAME_LENGTH];
 
 	s = (struct wrs_socket *)NP(ppi)->ch[PP_NP_GEN].arch_data;
 
@@ -378,36 +379,74 @@ int wrs_net_send(struct pp_instance *ppi, void *pkt, int len,
 	 * hardware stamp. Thus, remember if we drop, and use this info.
 	 */
 	drop = ppsi_drop_tx();
-
-	if (ppi->ethernet_mode) {
+	
+	if (ppi->is_HSR) {
 		fd = NP(ppi)->ch[PP_NP_GEN].fd;
-		hdr->commonhdr.h_proto = htons(ETH_P_1588);
-
-		/* include hsr tag */
-		hdr->commonhdr.h_proto = htons(ETH_P_62439_3);
-		hdr->hsrtag.path_and_LSDU_size = htons(
-							(ntohs(hdr->hsrtag.path_and_LSDU_size) & 0x0FFF) |
-							(ppi->port_idx << 12));
-		hdr->hsrtag.path_and_LSDU_size = htons(
-							(ntohs(hdr->hsrtag.path_and_LSDU_size) & 0xF000) |
-							(len-14 & 0x0FFF));
-		hdr->hsrtag.sequence_nr = htons(GLBS(ppi)->hsr_seq_number);
-		GLBS(ppi)->hsr_seq_number++; 
-		hdr->hsrtag.encap_proto = htons(ETH_P_1588);
-		//pp_printf("GLBS(ppi)->hsr_seq_number=%d\n",GLBS(ppi)->hsr_seq_number);
-		/* end of hsr tagging */
 		
+		hdr_hsr->commonhdr.h_proto = htons(ETH_P_1588);
+		/* include hsr tag */
+		hdr_hsr->commonhdr.h_proto = htons(ETH_P_62439_3);
+		hdr_hsr->hsrtag.path_and_LSDU_size = htons(
+							(ntohs(hdr_hsr->hsrtag.path_and_LSDU_size) & 0x0FFF) |
+							(ppi->port_idx << 12));
+		hdr_hsr->hsrtag.path_and_LSDU_size = htons(
+							(ntohs(hdr_hsr->hsrtag.path_and_LSDU_size) & 0xF000) |
+							(len-14 & 0x0FFF));
+		hdr_hsr->hsrtag.sequence_nr = htons(GLBS(ppi)->hsr_seq_number);
+		GLBS(ppi)->hsr_seq_number++; 
+		hdr_hsr->hsrtag.encap_proto = htons(ETH_P_1588);
+		/* end of hsr tagging */			
+
+
 		if (drop)
-			hdr->commonhdr.h_proto++;
+			hdr_hsr->commonhdr.h_proto++;
 
 		if (use_pdelay_addr)
-			memcpy(hdr->commonhdr.h_dest, PP_PDELAY_MACADDRESS, ETH_ALEN);
+			memcpy(hdr_hsr->commonhdr.h_dest, PP_PDELAY_MACADDRESS, ETH_ALEN);
 		else
-			memcpy(hdr->commonhdr.h_dest, PP_MCAST_MACADDRESS, ETH_ALEN);
+			memcpy(hdr_hsr->commonhdr.h_dest, PP_MCAST_MACADDRESS, ETH_ALEN);
 
 		/* raw socket implementation always uses gen socket */
-		memcpy(hdr->commonhdr.h_source, NP(ppi)->ch[PP_NP_GEN].addr, ETH_ALEN);
+		memcpy(hdr_hsr->commonhdr.h_source, NP(ppi)->ch[PP_NP_GEN].addr, ETH_ALEN);
 
+		if (t)
+			ppi->t_ops->get(ppi, t);
+
+		ret = send(fd, hdr_hsr, len, 0);
+		poll_tx_timestamp(ppi, s, fd, t);
+
+		if (drop) /* avoid messaging about stamps that are not used */
+			goto drop_msg;
+
+		if (pp_diag_allow(ppi, frames, 2))
+			dump_1588pkt("send: ", pkt, len, t);
+		pp_diag(ppi, time, 1, "send stamp: (correct %i) %9li.%09li\n",
+			t->correct, (long)t->seconds,
+			(long)t->nanoseconds);
+		return ret;
+	}else{
+		
+		fd = NP(ppi)->ch[PP_NP_GEN].fd;
+		hdr->h_proto = htons(ETH_P_1588);
+		if (drop)
+			hdr->h_proto++;
+
+		if (!(msgtype == PPM_ANNOUNCE || msgtype == PPM_SYNC 
+				|| msgtype == PPM_FOLLOW_UP)) 
+		{		
+			hdr->h_proto = htons(ETH_P_1588);
+			if (drop)
+				hdr->h_proto++;
+
+			if (use_pdelay_addr)
+				memcpy(hdr->h_dest, PP_PDELAY_MACADDRESS, ETH_ALEN);
+			else
+				memcpy(hdr->h_dest, PP_MCAST_MACADDRESS, ETH_ALEN);
+
+			/* raw socket implementation always uses gen socket */
+			memcpy(hdr->h_source, NP(ppi)->ch[PP_NP_GEN].addr, ETH_ALEN);
+		}
+		
 		if (t)
 			ppi->t_ops->get(ppi, t);
 
@@ -423,6 +462,7 @@ int wrs_net_send(struct pp_instance *ppi, void *pkt, int len,
 			t->correct, (long)t->seconds,
 			(long)t->nanoseconds);
 		return ret;
+		
 	}
 
 	/* else: UDP */
