@@ -376,6 +376,9 @@ int tc_forward_ann(struct pp_instance *ppi, unsigned char *pkt,
 			tc_send_fwd_ann(ppi_aux, pkt, plen);
 		}
 	}
+	
+	if(!ppi->is_HSR)
+		GLBS(ppi)->hsr_seq_number++;
 
 	return 1;
 }
@@ -403,6 +406,9 @@ int tc_forward_sync(struct pp_instance *ppi, unsigned char *pkt,
 			tc_send_fwd_sync(ppi_aux, pkt, plen);
 		}
 	}
+	
+	if(!ppi->is_HSR)
+		GLBS(ppi)->hsr_seq_number++;
 
 	return 1;
 }
@@ -437,6 +443,9 @@ int tc_forward_followup(struct pp_instance *ppi, unsigned char *pkt,
 			tc_send_fwd_followup(ppi_aux, pkt, plen);
 		}
 	}
+	
+	if(!ppi->is_HSR)
+		GLBS(ppi)->hsr_seq_number++;
 
 	return 1;
 }
