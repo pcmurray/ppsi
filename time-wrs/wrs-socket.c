@@ -383,31 +383,34 @@ int wrs_net_send(struct pp_instance *ppi, void *pkt, int len,
 	if (ppi->is_HSR) {
 		fd = NP(ppi)->ch[PP_NP_GEN].fd;
 		
-		hdr_hsr->commonhdr.h_proto = htons(ETH_P_1588);
-		/* include hsr tag */
-		hdr_hsr->commonhdr.h_proto = htons(ETH_P_62439_3);
-		hdr_hsr->hsrtag.path_and_LSDU_size = htons(
-							(ntohs(hdr_hsr->hsrtag.path_and_LSDU_size) & 0x0FFF) |
-							(ppi->port_idx << 12));
-		hdr_hsr->hsrtag.path_and_LSDU_size = htons(
-							(ntohs(hdr_hsr->hsrtag.path_and_LSDU_size) & 0xF000) |
-							(len-14 & 0x0FFF));
-		hdr_hsr->hsrtag.sequence_nr = htons(GLBS(ppi)->hsr_seq_number);
-		GLBS(ppi)->hsr_seq_number++; 
-		hdr_hsr->hsrtag.encap_proto = htons(ETH_P_1588);
-		/* end of hsr tagging */			
+		if((WR_DSPOR(INST(GLBS(ppi),2))->linkUP) || (use_pdelay_addr)) {
+			//hdr_hsr->commonhdr.h_proto = htons(ETH_P_1588);
+			/* include hsr tag */
+			hdr_hsr->commonhdr.h_proto = htons(ETH_P_62439_3);
+			hdr_hsr->hsrtag.path_and_LSDU_size = htons(
+								(ntohs(hdr_hsr->hsrtag.path_and_LSDU_size) & 0x0FFF) |
+								(ppi->port_idx << 12));
+			hdr_hsr->hsrtag.path_and_LSDU_size = htons(
+								(ntohs(hdr_hsr->hsrtag.path_and_LSDU_size) & 0xF000) |
+								(len-14 & 0x0FFF));
+			hdr_hsr->hsrtag.sequence_nr = htons(GLBS(ppi)->hsr_seq_number);
+			hdr_hsr->hsrtag.encap_proto = htons(ETH_P_1588);
+			/* end of hsr tagging */
+		}	
 
 
 		if (drop)
 			hdr_hsr->commonhdr.h_proto++;
 
 		if (use_pdelay_addr)
-			memcpy(hdr_hsr->commonhdr.h_dest, PP_PDELAY_MACADDRESS, ETH_ALEN);
-		else
-			memcpy(hdr_hsr->commonhdr.h_dest, PP_MCAST_MACADDRESS, ETH_ALEN);
-
-		/* raw socket implementation always uses gen socket */
-		memcpy(hdr_hsr->commonhdr.h_source, NP(ppi)->ch[PP_NP_GEN].addr, ETH_ALEN);
+				memcpy(hdr_hsr->commonhdr.h_dest, PP_PDELAY_MACADDRESS, ETH_ALEN);
+			else
+				memcpy(hdr_hsr->commonhdr.h_dest, PP_MCAST_MACADDRESS, ETH_ALEN);
+		
+		if (use_pdelay_addr) {
+			/* raw socket implementation always uses gen socket */
+			memcpy(hdr_hsr->commonhdr.h_source, NP(ppi)->ch[PP_NP_GEN].addr, ETH_ALEN);
+		}
 
 		if (t)
 			ppi->t_ops->get(ppi, t);
