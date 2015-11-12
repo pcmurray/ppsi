@@ -90,6 +90,12 @@ static int f_ext(int lineno, struct pp_globals *ppg, union pp_cfg_arg *arg)
 	CUR_PPI(ppg)->cfg.ext = arg->i;
 	return 0;
 }
+static int f_forwarding(int lineno, struct pp_globals *ppg, union pp_cfg_arg *arg)
+{
+	CHECK_PPI(1);
+	CUR_PPI(ppg)->cfg.forwarding = arg->i;
+	return 0;
+}
 
 /* The following two are identical as well. I really need a pointer... */
 static int f_class(int lineno, struct pp_globals *ppg, union pp_cfg_arg *arg)
@@ -109,6 +115,12 @@ static int f_wr_red(int lineno, struct pp_globals *ppg, union pp_cfg_arg *arg)
 {
 	CHECK_PPI(0);
 	GOPTS(ppg)->wr_red = arg->i;
+	return 0;
+}
+static int f_hsr(int lineno, struct pp_globals *ppg, union pp_cfg_arg *arg)
+{
+	CHECK_PPI(0);
+	GOPTS(ppg)->wr_hsr = arg->i;
 	return 0;
 }
 
@@ -150,6 +162,17 @@ static struct pp_argname arg_wr_red[] = {
 	{},
 };
 
+static struct pp_argname arg_wr_hsr[] = {
+	{"disabled",  PPSI_EXT_HSR_DIS},
+	{"enabled", PPSI_EXT_HSR_ENA},
+	{},
+};
+
+static struct pp_argname arg_fwd[] = {
+	{"enabled", PPSI_FWD_ENABLED},
+	{"disabled",PPSI_FWD_DISABLED},
+	{},
+};
 static struct pp_argline pp_global_arglines[] = {
 	{ f_port,	"port",		ARG_STR},
 	{ f_port,	"link",		ARG_STR}, /* old name for "port" */
@@ -161,6 +184,8 @@ static struct pp_argline pp_global_arglines[] = {
 	{ f_class,	"clock-class",	ARG_INT},
 	{ f_accuracy,	"clock-accuracy", ARG_INT},
 	{ f_wr_red,	"wr-redundancy", ARG_NAMES,	arg_wr_red},
+	{ f_hsr, "wr-hsr", ARG_NAMES, arg_wr_hsr},
+	{ f_forwarding, "forwarding", ARG_NAMES, arg_fwd},
 	{}
 };
 

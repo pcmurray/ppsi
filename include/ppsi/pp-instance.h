@@ -35,6 +35,7 @@ struct pp_runtime_opts {
 	UInteger8 prio2;
 	UInteger8 domain_number;
 	int wr_red; /*FIXME: put it to a proper extension funct*/
+	int wr_hsr;
 	void *arch_opts;
 };
 
@@ -122,6 +123,7 @@ struct pp_instance_cfg {
 	int role;  /* 0: auto, 1: master, 2: slave */
 	int ext;   /* 0: none, 1: whiterabbit */ /* FIXME extension enumeration */
 	int delay_mech; /* E2E: 0, P2P: 1 */
+	int forwarding; /* 0: does not forward PTP, 1: it does */
 };
 
 /*
@@ -187,8 +189,9 @@ struct pp_instance {
 	char *iface_name; /* for direct actions on hardware */
 	char *port_name; /* for diagnostics, mainly */
 	int port_idx;
-	
+
 	/* forwarding stuff */
+	int forwarding;
 	TimeInternal sync_ingress, sync_egress;
 	int64_t link_delay; /* link delay is local to the port */
 	int64_t l_delay_ingress; /* the one to be added to forwarded cField */

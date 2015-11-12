@@ -327,6 +327,11 @@ extern int pp_config_file(struct pp_globals *ppg, int force, char *fname);
 #define PPSI_EXT_RED_ENA      1
 #define PPSI_EXT_RED_DIS      0
 
+#define PPSI_EXT_HSR_ENA	1
+#define PPSI_EXT_HSR_DIS	0
+
+#define PPSI_FWD_ENABLED	1
+#define PPSI_FWD_DISABLED	0
 
 /* Servo */
 extern void pp_servo_init(struct pp_instance *ppi);
