@@ -369,7 +369,6 @@ int wrs_net_send(struct pp_instance *ppi, void *pkt, int len,
 	struct hsr_ethhdr *hdr_hsr = pkt;
 	struct wrs_socket *s;
 	int ret, fd, drop;
-	unsigned char aux_buffer[PP_MAX_FRAME_LENGTH];
 
 	s = (struct wrs_socket *)NP(ppi)->ch[PP_NP_GEN].arch_data;
 
@@ -379,12 +378,11 @@ int wrs_net_send(struct pp_instance *ppi, void *pkt, int len,
 	 * hardware stamp. Thus, remember if we drop, and use this info.
 	 */
 	drop = ppsi_drop_tx();
-	
+
 	if (ppi->is_HSR) {
 		fd = NP(ppi)->ch[PP_NP_GEN].fd;
-		
-		if((WR_DSPOR(INST(GLBS(ppi),2))->linkUP) || (use_pdelay_addr)) {
-			//hdr_hsr->commonhdr.h_proto = htons(ETH_P_1588);
+
+		if((!ppi->forwarding) || (use_pdelay_addr)) {
 			/* include hsr tag */
 			hdr_hsr->commonhdr.h_proto = htons(ETH_P_62439_3);
 			hdr_hsr->hsrtag.path_and_LSDU_size = htons(
@@ -395,21 +393,22 @@ int wrs_net_send(struct pp_instance *ppi, void *pkt, int len,
 								(len-14 & 0x0FFF));
 			hdr_hsr->hsrtag.sequence_nr = htons(GLBS(ppi)->hsr_seq_number);
 			hdr_hsr->hsrtag.encap_proto = htons(ETH_P_1588);
+			memcpy(hdr_hsr->commonhdr.h_source, NP(ppi)->ch[PP_NP_GEN].addr, ETH_ALEN);
 			/* end of hsr tagging */
-		}	
-
+		}
 
 		if (drop)
 			hdr_hsr->commonhdr.h_proto++;
 
 		if (use_pdelay_addr)
-				memcpy(hdr_hsr->commonhdr.h_dest, PP_PDELAY_MACADDRESS, ETH_ALEN);
-			else
-				memcpy(hdr_hsr->commonhdr.h_dest, PP_MCAST_MACADDRESS, ETH_ALEN);
-		
+			memcpy(hdr_hsr->commonhdr.h_dest, PP_PDELAY_MACADDRESS, ETH_ALEN);
+		else
+			memcpy(hdr_hsr->commonhdr.h_dest, PP_MCAST_MACADDRESS, ETH_ALEN);
+
 		if (use_pdelay_addr) {
 			/* raw socket implementation always uses gen socket */
 			memcpy(hdr_hsr->commonhdr.h_source, NP(ppi)->ch[PP_NP_GEN].addr, ETH_ALEN);
+			GLBS(ppi)->hsr_seq_number = ++GLBS(ppi)->hsr_seq_number%999;
 		}
 
 		if (t)

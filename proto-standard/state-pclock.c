@@ -40,23 +40,23 @@ int pp_pclock(struct pp_instance *ppi, unsigned char *pkt, int plen)
 
 	case PPM_ANNOUNCE:
 #ifdef CONFIG_P2P
-		tc_forward_ann(ppi, pkt, plen); /* P2P - Transp. Clocks */
+			tc_forward_ann(ppi, pkt, plen); /* P2P - Transp. Clocks */
 #endif
-		e = st_com_slave_handle_announce(ppi, pkt, plen);
+			e = st_com_slave_handle_announce(ppi, pkt, plen);
 		break;
 
 	case PPM_SYNC:
 #ifdef CONFIG_P2P
-		tc_forward_sync(ppi, pkt, plen); /* P2P - Transp. Clocks */
+			tc_forward_sync(ppi, pkt, plen); /* P2P - Transp. Clocks */
 #endif
-		e = st_com_slave_handle_sync(ppi, pkt, plen);
+			e = st_com_slave_handle_sync(ppi, pkt, plen);
 		break;
 
 	case PPM_FOLLOW_UP:
 #ifdef CONFIG_P2P
-		tc_forward_followup(ppi, pkt, plen); /* P2P - Transp. Clocks */
+			tc_forward_followup(ppi, pkt, plen); /* P2P - Transp. Clocks */
 #endif
-		e = st_com_slave_handle_followup(ppi, pkt, plen);
+			e = st_com_slave_handle_followup(ppi, pkt, plen);
 		break;
 
 	case PPM_PDELAY_REQ:

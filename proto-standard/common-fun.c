@@ -8,6 +8,8 @@
 #include <ppsi/ppsi.h>
 #include "common-fun.h"
 
+#define MAX_HSR_SEQ	999
+
 static TimeInternal picos_to_ts(int64_t picos)
 {
 	uint64_t nsec, phase;
@@ -364,6 +366,9 @@ int tc_forward_ann(struct pp_instance *ppi, unsigned char *pkt,
 {
 	int j, max_ports = 8;
 	struct pp_instance *ppi_aux;
+	
+	if (!ppi->forwarding)
+		return 1;
 
 	for (j = 0; j < max_ports; j++) {
 		ppi_aux = INST(ppi->glbs, j);
@@ -376,9 +381,9 @@ int tc_forward_ann(struct pp_instance *ppi, unsigned char *pkt,
 			tc_send_fwd_ann(ppi_aux, pkt, plen);
 		}
 	}
-	
-	if(!ppi->is_HSR)
-		GLBS(ppi)->hsr_seq_number++;
+
+	GLBS(ppi)->hsr_seq_number++;
+	GLBS(ppi)->hsr_seq_number=GLBS(ppi)->hsr_seq_number%MAX_HSR_SEQ;
 
 	return 1;
 }
@@ -394,6 +399,9 @@ int tc_forward_sync(struct pp_instance *ppi, unsigned char *pkt,
 {
 	int j, max_ports = 8;
 	struct pp_instance *ppi_aux;
+	
+	if (!ppi->forwarding)
+		return 1;
 
 	for (j = 0; j < max_ports; j++) {
 		ppi_aux = INST(ppi->glbs, j);
@@ -406,9 +414,9 @@ int tc_forward_sync(struct pp_instance *ppi, unsigned char *pkt,
 			tc_send_fwd_sync(ppi_aux, pkt, plen);
 		}
 	}
-	
-	if(!ppi->is_HSR)
-		GLBS(ppi)->hsr_seq_number++;
+
+	GLBS(ppi)->hsr_seq_number++;
+	GLBS(ppi)->hsr_seq_number=GLBS(ppi)->hsr_seq_number%MAX_HSR_SEQ;
 
 	return 1;
 }
@@ -425,6 +433,9 @@ int tc_forward_followup(struct pp_instance *ppi, unsigned char *pkt,
 	int j, max_ports = 8;
 	struct pp_instance *ppi_aux;
 	MsgHeader *hdr = &ppi->received_ptp_header;
+	
+	if (!ppi->forwarding)
+		return 1;
 
 	ppi->p2p_cField.nanoseconds = hdr->correctionfield.msb;
 	ppi->p2p_cField.phase = hdr->correctionfield.lsb;
@@ -443,9 +454,9 @@ int tc_forward_followup(struct pp_instance *ppi, unsigned char *pkt,
 			tc_send_fwd_followup(ppi_aux, pkt, plen);
 		}
 	}
-	
-	if(!ppi->is_HSR)
-		GLBS(ppi)->hsr_seq_number++;
+
+	GLBS(ppi)->hsr_seq_number++;
+	GLBS(ppi)->hsr_seq_number=GLBS(ppi)->hsr_seq_number%MAX_HSR_SEQ;
 
 	return 1;
 }

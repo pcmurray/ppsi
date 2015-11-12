@@ -169,6 +169,7 @@ int main(int argc, char **argv)
 		ppi->glbs = ppg;
 		ppi->iface_name = ppi->cfg.iface_name;
 		ppi->port_name = ppi->cfg.port_name;
+		ppi->forwarding = ppi->cfg.forwarding;
 		/* this old-fashioned "ethernet_mode" is a single bit */
 		ppi->ethernet_mode = (ppi->cfg.proto == PPSI_PROTO_RAW);
 		if (ppi->cfg.role == PPSI_ROLE_MASTER) {
@@ -193,13 +194,16 @@ int main(int argc, char **argv)
 		}
 		else
 			ppi->slave_prio = 7;
-		
+
+		if (ppi->cfg.forwarding == PPSI_FWD_ENABLED)
+			pp_printf("Startup: port %d forwards\n", i);
+
 		//FIXME: move it to WR ext
-		if(ppg->rt_opts->wr_red == PPSI_EXT_RED_DIS) 
+		if(ppg->rt_opts->wr_red == PPSI_EXT_RED_DIS)
 			ppi->slave_prio = -1;
 		pp_printf("Startup: port %d prio: %d | slave: %d | master: %d\n", i,
 			ppi->slave_prio, ppi->slave_only, ppi->master_only);
-		
+
 		ppi->portDS = calloc(1, sizeof(*ppi->portDS));
 		if (!ppi->portDS)
 			exit(__LINE__);
@@ -213,23 +217,25 @@ int main(int argc, char **argv)
 		/* The following default names depend on TIME= at build time */
 		ppi->n_ops = &DEFAULT_NET_OPS;
 		ppi->t_ops = &DEFAULT_TIME_OPS;
-		
+
 // 		ppi->slave_prio = 0; /*ML: by default primary slave*/
 
-		if(i==0 || i==1)
+		if((i==0 || i==1) && ppg->rt_opts->wr_hsr == PPSI_EXT_HSR_ENA)
 			ppi->is_HSR=1;
 		else
 			ppi->is_HSR=0;
-
 	}
+
+	if(ppg->rt_opts->wr_hsr == PPSI_EXT_HSR_ENA)
+		pp_printf("Startup: WRS working in HSR mode\n");
 
 	WR_DSCUR(ppi)->primarySlavePortNumber   = -1;
 	WR_DSCUR(ppi)->primarySlavePortPriority = -1;
-	
+
 	pp_init_globals(ppg, &__pp_default_rt_opts);
-	
+
 	wrs_psu_init(7, 0);
-       
+
 	seed = time(NULL);
 	if (getenv("PPSI_DROP_SEED"))
 		seed = atoi(getenv("PPSI_DROP_SEED"));
