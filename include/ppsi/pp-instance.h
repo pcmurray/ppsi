@@ -36,6 +36,7 @@ struct pp_runtime_opts {
 	UInteger8 domain_number;
 	int wr_red; /*FIXME: put it to a proper extension funct*/
 	int wr_hsr;
+	int transpclock;
 	void *arch_opts;
 };
 

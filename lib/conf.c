@@ -123,6 +123,12 @@ static int f_hsr(int lineno, struct pp_globals *ppg, union pp_cfg_arg *arg)
 	GOPTS(ppg)->wr_hsr = arg->i;
 	return 0;
 }
+static int f_transpclock(int lineno, struct pp_globals *ppg, union pp_cfg_arg *arg)
+{
+	CHECK_PPI(0);
+	GOPTS(ppg)->transpclock = arg->i;
+	return 0;
+}
 
 /* Diagnostics can be per-port or global */
 static int f_diag(int lineno, struct pp_globals *ppg, union pp_cfg_arg *arg)
@@ -173,6 +179,12 @@ static struct pp_argname arg_fwd[] = {
 	{"disabled",PPSI_FWD_DISABLED},
 	{},
 };
+
+static struct pp_argname arg_tc[] = {
+	{"enabled", PPSI_TC_ENABLED},
+	{"disabled",PPSI_TC_DISABLED},
+	{},
+};
 static struct pp_argline pp_global_arglines[] = {
 	{ f_port,	"port",		ARG_STR},
 	{ f_port,	"link",		ARG_STR}, /* old name for "port" */
@@ -186,6 +198,7 @@ static struct pp_argline pp_global_arglines[] = {
 	{ f_wr_red,	"wr-redundancy", ARG_NAMES,	arg_wr_red},
 	{ f_hsr, "wr-hsr", ARG_NAMES, arg_wr_hsr},
 	{ f_forwarding, "forwarding", ARG_NAMES, arg_fwd},
+	{ f_transpclock, "transpclock", ARG_NAMES, arg_tc},
 	{}
 };
 

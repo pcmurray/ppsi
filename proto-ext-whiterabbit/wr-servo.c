@@ -410,7 +410,11 @@ int wr_servo_update(struct pp_instance *ppi)
 		+ s->delta_tx_m + s->delta_rx_s + ph_adjust;
 		
 	ppi->link_delay = (int64_t)((delay_ms_fix));
-	
+
+	/* if WRS is a TC, we do not apply PTP messages to the Servo */
+	if (GLBS(ppi)->rt_opts->transpclock)
+		return 0;
+
 	if (__PP_DIAG_ALLOW_FLAGS(pp_global_flags, pp_dt_servo, 1)) {
 		dump_timestamp(ppi, "servo:t1", s->t1);
 		dump_timestamp(ppi, "servo:t2", s->t2);

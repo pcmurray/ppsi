@@ -228,6 +228,9 @@ int main(int argc, char **argv)
 
 	if(ppg->rt_opts->wr_hsr == PPSI_EXT_HSR_ENA)
 		pp_printf("Startup: WRS working in HSR mode\n");
+		
+	if(ppg->rt_opts->transpclock == PPSI_TC_ENABLED)
+		pp_printf("Startup: WRS is a TRANSPARENT CLOCK\n");
 
 	WR_DSCUR(ppi)->primarySlavePortNumber   = -1;
 	WR_DSCUR(ppi)->primarySlavePortPriority = -1;

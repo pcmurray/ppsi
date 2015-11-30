@@ -333,6 +333,9 @@ extern int pp_config_file(struct pp_globals *ppg, int force, char *fname);
 #define PPSI_FWD_ENABLED	1
 #define PPSI_FWD_DISABLED	0
 
+#define PPSI_TC_ENABLED		1
+#define PPSI_TC_DISABLED 	0
+
 /* Servo */
 extern void pp_servo_init(struct pp_instance *ppi);
 extern void pp_servo_got_sync(struct pp_instance *ppi); /* got t1 and t2 */
