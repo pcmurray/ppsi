@@ -373,10 +373,12 @@ int tc_forward_ann(struct pp_instance *ppi, unsigned char *pkt,
 	for (j = 0; j < max_ports; j++) {
 		ppi_aux = INST(ppi->glbs, j);
 		if(WR_DSPOR(ppi_aux)->linkUP
-					&& (ppi->port_idx != ppi_aux->port_idx)){
+					&& (ppi->port_idx != ppi_aux->port_idx)
+					&& (ppi->is_HSR && !ppi_aux->is_HSR &&
+					ppi->port_idx == GLBS(ppi)->active_backup_port)){
 			memcpy(ppi_aux->tx_buffer, ppi->rx_buffer,
 				PP_MAX_FRAME_LENGTH);
-			memcpy(ppi_aux->tx_ptp, ppi->rx_ptp, 
+			memcpy(ppi_aux->tx_ptp, ppi->rx_ptp,
 				PP_MAX_FRAME_LENGTH);
 			tc_send_fwd_ann(ppi_aux, pkt, plen);
 		}
@@ -406,7 +408,9 @@ int tc_forward_sync(struct pp_instance *ppi, unsigned char *pkt,
 	for (j = 0; j < max_ports; j++) {
 		ppi_aux = INST(ppi->glbs, j);
 		if(WR_DSPOR(ppi_aux)->linkUP
-					&& (ppi->port_idx != ppi_aux->port_idx)){
+					&& (ppi->port_idx != ppi_aux->port_idx)
+					&& (ppi->is_HSR && !ppi_aux->is_HSR &&
+					ppi->port_idx == GLBS(ppi)->active_backup_port)){
 			memcpy(ppi_aux->tx_buffer, ppi->rx_buffer,
 				PP_MAX_FRAME_LENGTH);
 			memcpy(ppi_aux->tx_ptp, ppi->rx_ptp,
@@ -443,7 +447,9 @@ int tc_forward_followup(struct pp_instance *ppi, unsigned char *pkt,
 	for (j = 0; j < max_ports; j++) {
 		ppi_aux = INST(ppi->glbs, j);
 		if(WR_DSPOR(ppi_aux)->linkUP
-					&& (ppi->port_idx != ppi_aux->port_idx)){
+					&& (ppi->port_idx != ppi_aux->port_idx)
+					&& (ppi->is_HSR && !ppi_aux->is_HSR &&
+					ppi->port_idx == GLBS(ppi)->active_backup_port)){
 			memcpy(ppi_aux->tx_buffer, ppi->rx_buffer,
 				PP_MAX_FRAME_LENGTH);
 			memcpy(ppi_aux->tx_ptp, ppi->rx_ptp,

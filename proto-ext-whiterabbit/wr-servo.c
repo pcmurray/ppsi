@@ -392,15 +392,6 @@ int wr_servo_update(struct pp_instance *ppi)
 
 	//s->mu = ts_sub(ts_sub(s->t4, s->t1), ts_sub(s->t3, s->t2));
 	s->mu = ts_sub(ts_sub(s->t6, s->t3), ts_sub(s->t5, s->t4)); /* pdelay */
-	
-	if(0) {
-		pp_printf("pdelay t1 %d:%d:%d\n", s->t1);
-		pp_printf("pdelay t2 %d:%d:%d\n", s->t2);
-		pp_printf("pdelay t3 %d:%d:%d\n", s->t3);
-		pp_printf("pdelay t4 %d:%d:%d\n", s->t4);
-		pp_printf("pdelay t5 %d:%d:%d\n", s->t5);
-		pp_printf("pdelay t6 %d:%d:%d\n", s->t6);
-	}
 
 	big_delta_fix =  s->delta_tx_m + s->delta_tx_s
 		       + s->delta_rx_m + s->delta_rx_s;
@@ -408,12 +399,8 @@ int wr_servo_update(struct pp_instance *ppi)
 	delay_ms_fix = (((int64_t)(ts_to_picos(s->mu) - big_delta_fix) * (int64_t) s->fiber_fix_alpha) >> FIX_ALPHA_FRACBITS)
 		+ ((ts_to_picos(s->mu) - big_delta_fix) >> 1)
 		+ s->delta_tx_m + s->delta_rx_s + ph_adjust;
-		
-	ppi->link_delay = (int64_t)((delay_ms_fix));
 
-	/* if WRS is a TC, we do not apply PTP messages to the Servo */
-	if (GLBS(ppi)->rt_opts->transpclock)
-		return 0;
+	ppi->link_delay = (int64_t)((delay_ms_fix));
 
 	if (__PP_DIAG_ALLOW_FLAGS(pp_global_flags, pp_dt_servo, 1)) {
 		dump_timestamp(ppi, "servo:t1", s->t1);
@@ -423,18 +410,17 @@ int wr_servo_update(struct pp_instance *ppi)
 		dump_timestamp(ppi, "->mdelay", s->mu);
 		dump_timestamp(ppi, "->delay_ms_fix",  picos_to_ts(delay_ms_fix));
 	}
-	
+
 	ts_offset = ts_add(ts_sub(s->t1, s->t2), ts_add(ppi->p2p_cField, picos_to_ts(delay_ms_fix)));
-	//if((ts_offset.seconds<0) || (ts_offset.nanoseconds == 999999999)) {
-		//pp_printf("ts_offset %d:%d\n", ts_offset.seconds, ts_offset.nanoseconds );
-		//pp_printf("it happens\n");
-		//return -1;
-	//}
+	if((ts_offset.seconds<0) || (ts_offset.nanoseconds == 999999999)) {
+		pp_printf("ts_offset %d:%d\n", ts_offset.seconds, ts_offset.nanoseconds );
+		return -1;
+	}
 	ts_offset_hw = ts_hardwarize(ts_offset, s->clock_period_ps);
-	pp_diag(ppi, servo, 1, "offset: %d [hw:%d]\n", 
+	pp_diag(ppi, servo, 1, "offset: %d [hw:%d]\n",
 	                   (ts_offset.phase    + ts_offset.nanoseconds * 1000),
 	                   (ts_offset_hw.phase + ts_offset_hw.nanoseconds * 1000));
-	pp_diag(ppi, servo, 2, "ts_hardwarize (before):  %d [s] %d [ns] %d [ps] \n", 
+	pp_diag(ppi, servo, 2, "ts_hardwarize (before):  %d [s] %d [ns] %d [ps] \n",
                            ts_offset.seconds, ts_offset.nanoseconds, ts_offset.phase);
 	pp_diag(ppi, servo, 2, "ts_hardwarize (after):  %d [s] %d [ns] %d [ps] \n", 
                            ts_offset_hw.seconds, ts_offset_hw.nanoseconds, ts_offset_hw.phase);	
@@ -470,6 +456,13 @@ int wr_servo_update(struct pp_instance *ppi)
 
 	pp_diag(ppi, servo, 1, "wr_servo state: %s\n",
 		cur_servo_state.slave_servo_state);
+	
+	/* if WRS is a TC, we do not apply PTP messages to the Servo */
+	cur_servo_state.active_port = active_port; /* copied from case WR_SYNC_TAI */
+	if (GLBS(ppi)->rt_opts->transpclock){
+		strcpy(cur_servo_state.slave_servo_state, "Transp.Clock");
+		return 0;
+	}
 
 	switch (s->state) {
 	case WR_WAIT_SYNC_IDLE:
