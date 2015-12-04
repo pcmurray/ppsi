@@ -448,7 +448,17 @@ int wrs_net_send(struct pp_instance *ppi, void *pkt, int len,
 			/* raw socket implementation always uses gen socket */
 			memcpy(hdr->h_source, NP(ppi)->ch[PP_NP_GEN].addr, ETH_ALEN);
 		}
-		
+
+		/* QUICK FIX */
+		if (use_pdelay_addr)
+			memcpy(hdr->h_dest, PP_PDELAY_MACADDRESS, ETH_ALEN);
+		else
+			memcpy(hdr->h_dest, PP_MCAST_MACADDRESS, ETH_ALEN);
+
+		/* raw socket implementation always uses gen socket */
+		memcpy(hdr->h_source, NP(ppi)->ch[PP_NP_GEN].addr, ETH_ALEN);
+		/* QUICK FIX */
+
 		if (t)
 			ppi->t_ops->get(ppi, t);
 
