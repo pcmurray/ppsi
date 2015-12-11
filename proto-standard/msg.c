@@ -73,6 +73,8 @@ void msg_pack_header(struct pp_instance *ppi, void *buf)
 	*(UInteger8 *) (buf + 4) = DSDEF(ppi)->domainNumber;
 
 	*(UInteger8 *) (buf + 6) = PP_TWO_STEP_FLAG;
+	/* Temporary hack: set ptp time scale and "traceable" */
+	*(UInteger8 *) (buf + 7) = 0x38; /* See commit message */
 
 	memset((buf + 8), 0, 8);
 	memcpy((buf + 20), &DSPOR(ppi)->portIdentity.clockIdentity,
