@@ -69,7 +69,14 @@ int pp_initializing(struct pp_instance *ppi, unsigned char *pkt, int plen)
 	if (ppi->role != PPSI_ROLE_MASTER)
 		ppi->next_state = PPS_LISTENING;
 	else
-		ppi->next_state = PPS_MASTER;
+		ppi->next_state = WRS_WR_LINK_ON;
+
+	pp_printf("### note t4.phase already corrected for bitslide (i.e. ""ts_sub(t4,t_bts)"" where t_bts=0.0.ep_get_bitslide)\n");
+	pp_printf("t1:                     t4:                  bitslide: %d\n",ep_get_bitslide());
+	pp_printf("      sec.       ns.pha       sec.       ns.pha\n");
+//	pp_printf("### PJ => pp_initializing WRS_WR_LINK_ON\n");
+
+//		ppi->next_state = PPS_MASTER;
 	return 0;
 
 failure:

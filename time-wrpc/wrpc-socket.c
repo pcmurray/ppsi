@@ -10,6 +10,45 @@
 #include <ptpd_netif.h> /* wrpc-sw */
 
 
+static TimeInternal ts_add(TimeInternal a, TimeInternal b)
+{
+	TimeInternal c;
+
+	c.phase = a.phase + b.phase;
+	c.nanoseconds = a.nanoseconds + b.nanoseconds;
+	c.seconds = a.seconds + b.seconds;
+
+	while (c.phase >= 1000) {
+		c.phase -= 1000;
+		c.nanoseconds++;
+	}
+	while (c.nanoseconds >= PP_NSEC_PER_SEC) {
+		c.nanoseconds -= PP_NSEC_PER_SEC;
+		c.seconds++;
+	}
+	return c;
+}
+
+static TimeInternal ts_sub(TimeInternal a, TimeInternal b)
+{
+	TimeInternal c;
+
+	c.phase = a.phase - b.phase;
+	c.nanoseconds = a.nanoseconds - b.nanoseconds;
+	c.seconds = a.seconds - b.seconds;
+
+	while(c.phase < 0) {
+		c.phase += 1000;
+		c.nanoseconds--;
+	}
+	while(c.nanoseconds < 0) {
+		c.nanoseconds += PP_NSEC_PER_SEC;
+		c.seconds--;
+	}
+	return c;
+}
+
+
 /* This function should init the minic and get the mac address */
 static int wrpc_open_ch(struct pp_instance *ppi)
 {
@@ -38,6 +77,8 @@ static int wrpc_net_recv(struct pp_instance *ppi, void *pkt, int len,
 			 TimeInternal *t)
 {
 	int got;
+        TimeInternal t4, t_bts;
+
 	wr_socket_t *sock;
 	wr_timestamp_t wr_ts;
 	wr_sockaddr_t addr;
@@ -62,6 +103,29 @@ static int wrpc_net_recv(struct pp_instance *ppi, void *pkt, int len,
 	if (got > 0 && pp_diag_allow(ppi, frames, 2))
 		dump_payloadpkt("recv: ", pkt, got, t);
 #endif
+	if (got > 0) {
+        t4.seconds = t->seconds;
+        t4.nanoseconds = t->nanoseconds;
+        t4.phase = t->phase;
+        t_bts.seconds = 0;
+        t_bts.nanoseconds = 0;
+        t_bts.phase = ep_get_bitslide();
+
+        t4=ts_sub(t4,t_bts);  // t4 - bitslide (negative phase is taken into account w.r.t overflow
+        t_bts.phase = 0;      // set t_bts to 0.0.0
+        t4=ts_add(t4,t_bts);  // take phase > 1ns into account w.r.t overflow (using ts_add 0.0.0)
+
+	pp_printf("%09d %09d %03d\n",t4.seconds,t4.nanoseconds,t4.phase);
+
+/*	pp_printf("### PJ => wrpc_net_recv\n");
+	pp_printf("### PJ =>       sec:       %d\n",t->seconds);
+	pp_printf("### PJ =>       ns :       %09d\n",t->nanoseconds);
+	pp_printf("### PJ =>       phase:     %d\n",t->phase);
+	pp_printf("### PJ =>       bitslide:  %d\n",ep_get_bitslide());
+*/
+//	pp_printf("### PJ =>       correct:   %d\n",t->correct);
+//	pp_printf("### PJ =>       raw_ahead: %d\n",t->raw_ahead);
+}
 
 	return got;
 }
@@ -85,6 +149,15 @@ static int wrpc_net_send(struct pp_instance *ppi, void *pkt, int len,
 		t->nanoseconds = wr_ts.nsec;
 		t->phase = 0;
 		t->correct = wr_ts.correct;
+
+	pp_printf("%09d %09d %03d ",t->seconds,t->nanoseconds,t->phase);
+/*	pp_printf("### PJ => wrpc_net_send\n");
+	pp_printf("### PJ =>       sec:       %d\n",t->seconds);
+	pp_printf("### PJ =>       ns :       %09d\n",t->nanoseconds);
+	pp_printf("### PJ =>       phase:     %d\n",t->phase);
+*/
+//	pp_printf("### PJ =>       correct:   %d\n",t->correct);
+//	pp_printf("### PJ =>       raw_ahead: %d\n",t->raw_ahead);
 
 		pp_diag(ppi, frames, 2, "%s: snt=%d, sec=%d, nsec=%d\n",
 				__func__, snt, t->seconds, t->nanoseconds);

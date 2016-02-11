@@ -45,9 +45,10 @@ static inline int __send_and_log(struct pp_instance *ppi, int msglen,
 		return PP_SEND_ERROR;
 	}
 	/* FIXME: diagnosticst should be looped back in the send method */
-	pp_diag(ppi, frames, 1, "SENT %02d bytes at %d.%09d (%s)\n", msglen,
+	pp_diag(ppi, frames, 1, "SENT %02d bytes at %d.%09d.%d (%s)\n", msglen,
 		(int)(ppi->last_snt_time.seconds),
 		(int)(ppi->last_snt_time.nanoseconds),
+		(int)(ppi->last_snt_time.phase),
 		pp_msg_names[msgtype]);
 	if (chtype == PP_NP_EVT && ppi->last_snt_time.correct == 0)
 		return PP_SEND_NO_STAMP;

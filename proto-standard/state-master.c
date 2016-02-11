@@ -66,32 +66,34 @@ int pp_master(struct pp_instance *ppi, unsigned char *pkt, int plen)
 	int e = 0; /* error var, to check errors in msg handling */
 
 	if (ppi->is_new_state) {
-		pp_timeout_rand(ppi, PP_TO_SYNC, DSPOR(ppi)->logSyncInterval);
-		pp_timeout_rand(ppi, PP_TO_ANN_INTERVAL,
-				DSPOR(ppi)->logAnnounceInterval);
+//		pp_timeout_rand(ppi, PP_TO_SYNC, DSPOR(ppi)->logSyncInterval);
+		pp_timeout_set(ppi, PP_TO_SYNC, 1000);
+//		pp_timeout_rand(ppi, PP_TO_ANN_INTERVAL,
+//				DSPOR(ppi)->logAnnounceInterval);
 
 		/* Send an announce immediately, when becomes master */
-		if ((e = pp_master_issue_announce(ppi)) < 0)
-			goto out;
+//		if ((e = pp_master_issue_announce(ppi)) < 0)
+//			goto out;
 	}
 
 	if (pp_timeout_z(ppi, PP_TO_SYNC)) {
 		/* Restart the timeout for next time */
-		pp_timeout_rand(ppi, PP_TO_SYNC, DSPOR(ppi)->logSyncInterval);
+//		pp_timeout_rand(ppi, PP_TO_SYNC, DSPOR(ppi)->logSyncInterval);
+		pp_timeout_set(ppi, PP_TO_SYNC, 1000);
 
 		if ((e = pp_master_issue_sync_followup(ppi) < 0))
 			goto out;
 
 	}
 
-	if (pp_timeout_z(ppi, PP_TO_ANN_INTERVAL)) {
-		if ((e = pp_master_issue_announce(ppi) < 0))
-			goto out;
+//	if (pp_timeout_z(ppi, PP_TO_ANN_INTERVAL)) {
+//		if ((e = pp_master_issue_announce(ppi) < 0))
+//			goto out;
 
 		/* Restart the timeout for next time */
-		pp_timeout_rand(ppi, PP_TO_ANN_INTERVAL,
-				DSPOR(ppi)->logAnnounceInterval);
-	}
+//		pp_timeout_rand(ppi, PP_TO_ANN_INTERVAL,
+//				DSPOR(ppi)->logAnnounceInterval);
+//	}
 
 	if (plen == 0)
 		goto out;

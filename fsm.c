@@ -78,9 +78,11 @@ int pp_state_machine(struct pp_instance *ppi, uint8_t *packet, int plen)
 
 	if (plen)
 		pp_diag(ppi, frames, 1,
-			"RECV %02d bytes at %d.%09d (type %x, %s)\n", plen,
+//			"RECV %02d bytes at %d.%09d (type %x, %s)\n", plen,
+			"RECV %02d bytes at %d.%09d.%d (type %x, %s)\n", plen,
 			   (int)ppi->last_rcv_time.seconds,
 			   (int)ppi->last_rcv_time.nanoseconds,
+			   (int)ppi->last_rcv_time.phase,
 			   packet[0] & 0xf, pp_msg_names[packet[0] & 0xf]);
 
 	/*
