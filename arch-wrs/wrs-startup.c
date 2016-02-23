@@ -197,8 +197,8 @@ int main(int argc, char **argv)
 		int i;
 
 		for (i = 0; i < 18; i++) {
-			sprintf(s, "port wr%i; iface wr%i; proto raw;"
-				"extension whiterabbit; role auto", i, i);
+			sprintf(s, "port %i; iface wri%i; proto raw;"
+				"extension whiterabbit; role auto", i + 1, i + 1);
 			pp_config_string(ppg, s);
 		}
 	}
