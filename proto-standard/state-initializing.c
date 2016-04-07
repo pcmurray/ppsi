@@ -61,6 +61,11 @@ int pp_initializing(struct pp_instance *ppi, unsigned char *pkt, int plen)
 	id[7] = mac[5];
 
 	/*
+	 * Initialize parent data set
+	 */
+	init_parent_ds(ppi);
+
+	/*
 	 * Initialize port data set
 	 */
 	memcpy(&port->portIdentity.clockIdentity,
