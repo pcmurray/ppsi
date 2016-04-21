@@ -16,6 +16,75 @@
 /* See F.2, pag.223 */
 #define PP_ETHERTYPE	0x88f7
 
+/* Enumeration States (table 8, page 73) */
+enum pp_std_states {
+	PPS_END_OF_TABLE	= 0,
+	PPS_INITIALIZING,
+	PPS_FAULTY,
+	PPS_DISABLED,
+	PPS_LISTENING,
+	PPS_PRE_MASTER,
+	PPS_MASTER,
+	PPS_PASSIVE,
+	PPS_UNCALIBRATED,
+	PPS_SLAVE,
+};
+
+enum pp_std_messages {
+	PPM_SYNC		= 0x0,
+	PPM_DELAY_REQ,
+	PPM_PDELAY_REQ,
+	PPM_PDELAY_RESP,
+	PPM_FOLLOW_UP		= 0x8,
+	PPM_DELAY_RESP,
+	PPM_PDELAY_RESP_FOLLOW_UP,
+	PPM_ANNOUNCE,
+	PPM_SIGNALING,
+	PPM_MANAGEMENT,
+	__PP_NR_MESSAGES_TYPES,
+
+	PPM_NOTHING_TO_DO	= 0x100, /* for hooks.master_msg() */
+};
+
+extern const char const * pp_msg_names[];
+
+/* Enumeration Domain Number (table 2, page 41) */
+enum ENDomainNumber {
+	DFLT_DOMAIN_NUMBER	= 0,
+	ALT1_DOMAIN_NUMBER,
+	ALT2_DOMAIN_NUMBER,
+	ALT3_DOMAIN_NUMBER
+};
+
+/* Enumeration Network Protocol (table 3, page 46) */
+enum ENNetworkProtocol {
+	UDP_IPV4	= 1,
+	UDP_IPV6,
+	IEEE_802_3,
+	DeviceNet,
+	ControlNet,
+	PROFINET
+};
+
+/* Enumeration Time Source (table 7, page 57) */
+enum ENTimeSource {
+	ATOMIC_CLOCK		= 0x10,
+	GPS			= 0x20,
+	TERRESTRIAL_RADIO	= 0x30,
+	PTP			= 0x40,
+	NTP			= 0x50,
+	HAND_SET		= 0x60,
+	OTHER			= 0x90,
+	INTERNAL_OSCILLATOR	= 0xA0
+};
+
+/* Enumeration Delay mechanism (table 9, page 74) */
+enum ENDelayMechanism {
+	E2E		= 1,
+	P2P		= 2,
+	DELAY_DISABLED	= 0xFE
+};
+
 /* Enumerations are unsigned, see 5.4.2, page 15 */
 typedef uint16_t	Enumeration16;
 typedef uint8_t		Enumeration8;
@@ -272,74 +341,5 @@ typedef struct DSTimeProperties {	/* page 70 */
 	bool		ptpTimescale;
 	Enumeration8	timeSource;
 } DSTimeProperties;
-
-/* Enumeration States (table 8, page 73) */
-enum pp_std_states {
-	PPS_END_OF_TABLE	= 0,
-	PPS_INITIALIZING,
-	PPS_FAULTY,
-	PPS_DISABLED,
-	PPS_LISTENING,
-	PPS_PRE_MASTER,
-	PPS_MASTER,
-	PPS_PASSIVE,
-	PPS_UNCALIBRATED,
-	PPS_SLAVE,
-};
-
-enum pp_std_messages {
-	PPM_SYNC		= 0x0,
-	PPM_DELAY_REQ,
-	PPM_PDELAY_REQ,
-	PPM_PDELAY_RESP,
-	PPM_FOLLOW_UP		= 0x8,
-	PPM_DELAY_RESP,
-	PPM_PDELAY_RESP_FOLLOW_UP,
-	PPM_ANNOUNCE,
-	PPM_SIGNALING,
-	PPM_MANAGEMENT,
-	__PP_NR_MESSAGES_TYPES,
-
-	PPM_NOTHING_TO_DO	= 0x100, /* for hooks.master_msg() */
-};
-
-extern const char const * pp_msg_names[];
-
-/* Enumeration Domain Number (table 2, page 41) */
-enum ENDomainNumber {
-	DFLT_DOMAIN_NUMBER	= 0,
-	ALT1_DOMAIN_NUMBER,
-	ALT2_DOMAIN_NUMBER,
-	ALT3_DOMAIN_NUMBER
-};
-
-/* Enumeration Network Protocol (table 3, page 46) */
-enum ENNetworkProtocol {
-	UDP_IPV4	= 1,
-	UDP_IPV6,
-	IEEE_802_3,
-	DeviceNet,
-	ControlNet,
-	PROFINET
-};
-
-/* Enumeration Time Source (table 7, page 57) */
-enum ENTimeSource {
-	ATOMIC_CLOCK		= 0x10,
-	GPS			= 0x20,
-	TERRESTRIAL_RADIO	= 0x30,
-	PTP			= 0x40,
-	NTP			= 0x50,
-	HAND_SET		= 0x60,
-	OTHER			= 0x90,
-	INTERNAL_OSCILLATOR	= 0xA0
-};
-
-/* Enumeration Delay mechanism (table 9, page 74) */
-enum ENDelayMechanism {
-	E2E		= 1,
-	P2P		= 2,
-	DELAY_DISABLED	= 0xFE
-};
 
 #endif /* __PPSI_IEEE_1588_TYPES_H__ */
