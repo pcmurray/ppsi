@@ -237,7 +237,7 @@ typedef struct MsgAnnounce {
 	uint8_t		grandmasterPriority2;
 	ClockIdentity	grandmasterIdentity;
 	uint16_t	stepsRemoved;
-	Enumeration8	timeSource;
+	enum ENTimeSource	timeSource;
 	unsigned long	ext_specific;	/* used by extension */
 } MsgAnnounce;
 
@@ -362,7 +362,7 @@ typedef struct DSTimeProperties {	/* page 70 */
 	bool		timeTraceable;
 	bool		frequencyTraceable;
 	bool		ptpTimescale;
-	Enumeration8	timeSource;
+	enum ENTimeSource	timeSource;
 } DSTimeProperties;
 
 #endif /* __PPSI_IEEE_1588_TYPES_H__ */
