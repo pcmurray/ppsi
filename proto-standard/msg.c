@@ -87,8 +87,10 @@ void msg_pack_header(struct pp_instance *ppi, void *buf)
 static void msg_pack_sync(struct pp_instance *ppi, Timestamp *orig_tstamp)
 {
 	void *buf;
+	timestamp_wire *ts;
 
 	buf = ppi->tx_ptp;
+	ts = buf + 34;
 
 	/* changes in header */
 	*(char *)(buf + 0) = *(char *)(buf + 0) & 0xF0;
@@ -106,20 +108,15 @@ static void msg_pack_sync(struct pp_instance *ppi, Timestamp *orig_tstamp)
 	memset((buf + 8), 0, 8);
 
 	/* Sync message */
-	*(uint16_t *) (buf + 34) = htons(orig_tstamp->secondsField.msb);
-	*(uint32_t *) (buf + 36) = htonl(orig_tstamp->secondsField.lsb);
-	*(uint32_t *) (buf + 40) = htonl(orig_tstamp->nanosecondsField);
+	timestamp_internal_to_wire(ts, orig_tstamp);
 }
 
 /* Unpack Sync message from in buffer */
 void msg_unpack_sync(void *buf, MsgSync *sync)
 {
-	sync->originTimestamp.secondsField.msb =
-		htons(*(uint16_t *) (buf + 34));
-	sync->originTimestamp.secondsField.lsb =
-		htonl(*(uint32_t *) (buf + 36));
-	sync->originTimestamp.nanosecondsField =
-		htonl(*(uint32_t *) (buf + 40));
+	timestamp_wire *ts = buf + 34;
+
+	timestamp_wire_to_internal(&sync->originTimestamp, ts);
 }
 
 /* Pack Announce message into out buffer of ppi */
@@ -162,12 +159,9 @@ static int msg_pack_announce(struct pp_instance *ppi)
 /* Unpack Announce message from in buffer of ppi to internal structure */
 void msg_unpack_announce(void *buf, MsgAnnounce *ann)
 {
-	ann->originTimestamp.secondsField.msb =
-		htons(*(uint16_t *) (buf + 34));
-	ann->originTimestamp.secondsField.lsb =
-		htonl(*(uint32_t *) (buf + 36));
-	ann->originTimestamp.nanosecondsField =
-		htonl(*(uint32_t *) (buf + 40));
+	struct timestamp_wire *ts = buf + 34;
+
+	timestamp_wire_to_internal(&ann->originTimestamp, ts);
 	ann->currentUtcOffset = htons(*(uint16_t *) (buf + 44));
 	ann->grandmasterPriority1 = *(uint8_t *) (buf + 47);
 	ann->grandmasterClockQuality.clockClass =
@@ -192,6 +186,7 @@ static void msg_pack_follow_up(struct pp_instance *ppi, Timestamp *prec_orig_tst
 	void *buf;
 
 	buf = ppi->tx_ptp;
+	struct timestamp_wire *ts = buf + 34;
 
 	/* changes in header */
 	*(char *)(buf + 0) = *(char *)(buf + 0) & 0xF0;
@@ -209,12 +204,7 @@ static void msg_pack_follow_up(struct pp_instance *ppi, Timestamp *prec_orig_tst
 	*(int8_t *) (buf + 33) = DSPOR(ppi)->logSyncInterval;
 
 	/* Follow Up message */
-	*(uint16_t *) (buf + 34) =
-		htons(prec_orig_tstamp->secondsField.msb);
-	*(uint32_t *) (buf + 36) =
-		htonl(prec_orig_tstamp->secondsField.lsb);
-	*(uint32_t *) (buf + 40) =
-		htonl(prec_orig_tstamp->nanosecondsField);
+	timestamp_internal_to_wire(ts, prec_orig_tstamp);
 }
 
 /* Pack PDelay Follow Up message into out buffer of ppi*/
@@ -223,8 +213,10 @@ void msg_pack_pdelay_resp_follow_up(struct pp_instance *ppi,
 				    Timestamp * prec_orig_tstamp)
 {
 	void *buf;
+	timestamp_wire *ts;
 
 	buf = ppi->tx_ptp;
+	ts = buf + 34;
 
 	/* header */
 	*(char *)(buf + 0) = *(char *)(buf + 0) & 0xF0;
@@ -241,9 +233,7 @@ void msg_pack_pdelay_resp_follow_up(struct pp_instance *ppi,
 	*(uint8_t *) (buf + 32) = 0x05;	/* controlField */
 
 	/* requestReceiptTimestamp */
-	*(uint16_t *) (buf + 34) = htons(prec_orig_tstamp->secondsField.msb);
-	*(uint32_t *) (buf + 36) = htonl(prec_orig_tstamp->secondsField.lsb);
-	*(uint32_t *) (buf + 40) = htonl(prec_orig_tstamp->nanosecondsField);
+	timestamp_internal_to_wire(ts, prec_orig_tstamp);
 
 	/* requestingPortIdentity */
 	memcpy((buf + 44), &hdr->sourcePortIdentity.clockIdentity,
@@ -254,24 +244,19 @@ void msg_pack_pdelay_resp_follow_up(struct pp_instance *ppi,
 /* Unpack FollowUp message from in buffer of ppi to internal structure */
 void msg_unpack_follow_up(void *buf, MsgFollowUp *flwup)
 {
-	flwup->preciseOriginTimestamp.secondsField.msb =
-		htons(*(uint16_t *) (buf + 34));
-	flwup->preciseOriginTimestamp.secondsField.lsb =
-		htonl(*(uint32_t *) (buf + 36));
-	flwup->preciseOriginTimestamp.nanosecondsField =
-		htonl(*(uint32_t *) (buf + 40));
+	struct timestamp_wire *ts = buf + 34;
+
+	timestamp_wire_to_internal(&flwup->preciseOriginTimestamp, ts);
 }
 
 /* Unpack PDelayRespFollowUp message from in buffer of ppi to internal struct */
 void msg_unpack_pdelay_resp_follow_up(void *buf,
 				      MsgPDelayRespFollowUp * pdelay_resp_flwup)
 {
-	pdelay_resp_flwup->responseOriginTimestamp.secondsField.msb =
-	    htons(*(uint16_t *) (buf + 34));
-	pdelay_resp_flwup->responseOriginTimestamp.secondsField.lsb =
-	    htonl(*(uint32_t *) (buf + 36));
-	pdelay_resp_flwup->responseOriginTimestamp.nanosecondsField =
-	    htonl(*(uint32_t *) (buf + 40));
+	struct timestamp_wire *ts = buf + 34;
+
+	timestamp_wire_to_internal(&pdelay_resp_flwup->responseOriginTimestamp,
+				   ts);
 	memcpy(&pdelay_resp_flwup->requestingPortIdentity.clockIdentity,
 	       (buf + 44), PP_CLOCK_IDENTITY_LENGTH);
 	pdelay_resp_flwup->requestingPortIdentity.portNumber =
@@ -282,8 +267,10 @@ void msg_unpack_pdelay_resp_follow_up(void *buf,
 static void msg_pack_delay_req(struct pp_instance *ppi, Timestamp *orig_tstamp)
 {
 	void *buf;
+	struct timestamp_wire *ts;
 
 	buf = ppi->tx_ptp;
+	ts = buf + 34;
 
 	/* changes in header */
 	*(char *)(buf + 0) = *(char *)(buf + 0) & 0xF0;
@@ -303,17 +290,17 @@ static void msg_pack_delay_req(struct pp_instance *ppi, Timestamp *orig_tstamp)
 	memset((buf + 8), 0, 8);
 
 	/* Delay_req message */
-	*(uint16_t *) (buf + 34) = htons(orig_tstamp->secondsField.msb);
-	*(uint32_t *) (buf + 36) = htonl(orig_tstamp->secondsField.lsb);
-	*(uint32_t *) (buf + 40) = htonl(orig_tstamp->nanosecondsField);
+	timestamp_internal_to_wire(ts, orig_tstamp);
 }
 
 /* pack DelayReq message into out buffer of ppi */
 void msg_pack_pdelay_req(struct pp_instance *ppi, Timestamp * orig_tstamp)
 {
 	void *buf;
+	struct timestamp_wire *ts;
 
 	buf = ppi->tx_ptp;
+	ts = buf + 34;
 
 	/* changes in header 11.4.3 */
 	*(char *)(buf + 0) = *(char *)(buf + 0) & 0xF0;
@@ -334,9 +321,7 @@ void msg_pack_pdelay_req(struct pp_instance *ppi, Timestamp * orig_tstamp)
 	*(int8_t *) (buf + 33) = 0x7F;
 
 	/* PDelay_req message */
-	*(uint16_t *) (buf + 34) = htons(orig_tstamp->secondsField.msb);
-	*(uint32_t *) (buf + 36) = htonl(orig_tstamp->secondsField.lsb);
-	*(uint32_t *) (buf + 40) = htonl(orig_tstamp->nanosecondsField);
+	timestamp_internal_to_wire(ts, orig_tstamp);
 }
 
 /* pack PDelayResp message into OUT buffer of ppi */
@@ -344,8 +329,10 @@ void msg_pack_pdelay_resp(struct pp_instance *ppi,
 			  MsgHeader * hdr, Timestamp * rcv_tstamp)
 {
 	void *buf;
+	struct timestamp_wire *ts;
 
 	buf = ppi->tx_ptp;
+	ts = buf + 34;
 
 	/* header */
 	*(char *)(buf + 0) = *(char *)(buf + 0) & 0xF0;
@@ -361,10 +348,8 @@ void msg_pack_pdelay_resp(struct pp_instance *ppi,
 	*(uint8_t *) (buf + 32) = 0x05;	/* controlField */
 
 	/* requestReceiptTimestamp */
-	*(uint16_t *) (buf + 34) = htons(rcv_tstamp->secondsField.msb);
-	*(uint32_t *) (buf + 36) = htonl(rcv_tstamp->secondsField.lsb);
-	*(uint32_t *) (buf + 40) = htonl(rcv_tstamp->nanosecondsField);
-
+	
+	timestamp_internal_to_wire(ts, rcv_tstamp);
 	/* requestingPortIdentity */
 	memcpy((buf + 44), &hdr->sourcePortIdentity.clockIdentity,
 	       PP_CLOCK_IDENTITY_LENGTH);
@@ -376,8 +361,10 @@ static void msg_pack_delay_resp(struct pp_instance *ppi,
 			 MsgHeader *hdr, Timestamp *rcv_tstamp)
 {
 	void *buf;
+	timestamp_wire *ts;
 
 	buf = ppi->tx_ptp;
+	ts = buf + 34;
 
 	/* changes in header */
 	*(char *)(buf + 0) = *(char *)(buf + 0) & 0xF0;
@@ -403,10 +390,7 @@ static void msg_pack_delay_resp(struct pp_instance *ppi,
 	/* Table 24 */
 
 	/* Delay_resp message */
-	*(uint16_t *) (buf + 34) =
-		htons(rcv_tstamp->secondsField.msb);
-	*(uint32_t *) (buf + 36) = htonl(rcv_tstamp->secondsField.lsb);
-	*(uint32_t *) (buf + 40) = htonl(rcv_tstamp->nanosecondsField);
+	timestamp_internal_to_wire(ts, rcv_tstamp);
 	memcpy((buf + 44), &hdr->sourcePortIdentity.clockIdentity,
 		  PP_CLOCK_IDENTITY_LENGTH);
 	*(uint16_t *) (buf + 52) =
@@ -416,34 +400,25 @@ static void msg_pack_delay_resp(struct pp_instance *ppi,
 /* Unpack delayReq message from in buffer of ppi to internal structure */
 void msg_unpack_delay_req(void *buf, MsgDelayReq *delay_req)
 {
-	delay_req->originTimestamp.secondsField.msb =
-		htons(*(uint16_t *) (buf + 34));
-	delay_req->originTimestamp.secondsField.lsb =
-		htonl(*(uint32_t *) (buf + 36));
-	delay_req->originTimestamp.nanosecondsField =
-		htonl(*(uint32_t *) (buf + 40));
+	timestamp_wire *ts = buf + 34;
+
+	timestamp_wire_to_internal(&delay_req->originTimestamp, ts);
 }
 
 /* Unpack PDelayReq message from in buffer of ppi to internal structure */
 void msg_unpack_pdelay_req(void *buf, MsgPDelayReq * pdelay_req)
 {
-	pdelay_req->originTimestamp.secondsField.msb =
-	    htons(*(uint16_t *) (buf + 34));
-	pdelay_req->originTimestamp.secondsField.lsb =
-	    htonl(*(uint32_t *) (buf + 36));
-	pdelay_req->originTimestamp.nanosecondsField =
-	    htonl(*(uint32_t *) (buf + 40));
+	timestamp_wire *ts = buf + 34;
+
+	timestamp_wire_to_internal(&pdelay_req->originTimestamp, ts);
 }
 
 /* Unpack delayResp message from IN buffer of ppi to internal structure */
 void msg_unpack_delay_resp(void *buf, MsgDelayResp *resp)
 {
-	resp->receiveTimestamp.secondsField.msb =
-		htons(*(uint16_t *) (buf + 34));
-	resp->receiveTimestamp.secondsField.lsb =
-		htonl(*(uint32_t *) (buf + 36));
-	resp->receiveTimestamp.nanosecondsField =
-		htonl(*(uint32_t *) (buf + 40));
+	timestamp_wire *ts = buf + 34;
+
+	timestamp_wire_to_internal(&resp->receiveTimestamp, ts);
 	memcpy(&resp->requestingPortIdentity.clockIdentity,
 	       (buf + 44), PP_CLOCK_IDENTITY_LENGTH);
 	resp->requestingPortIdentity.portNumber =
@@ -453,12 +428,9 @@ void msg_unpack_delay_resp(void *buf, MsgDelayResp *resp)
 /* Unpack PDelayResp message from IN buffer of ppi to internal structure */
 void msg_unpack_pdelay_resp(void *buf, MsgPDelayResp * presp)
 {
-	presp->requestReceiptTimestamp.secondsField.msb =
-	    htons(*(uint16_t *) (buf + 34));
-	presp->requestReceiptTimestamp.secondsField.lsb =
-	    htonl(*(uint32_t *) (buf + 36));
-	presp->requestReceiptTimestamp.nanosecondsField =
-	    htonl(*(uint32_t *) (buf + 40));
+	timestamp_wire *ts = buf + 34;
+
+	timestamp_wire_to_internal(&presp->requestReceiptTimestamp, ts);
 	memcpy(&presp->requestingPortIdentity.clockIdentity,
 	       (buf + 44), PP_CLOCK_IDENTITY_LENGTH);
 	presp->requestingPortIdentity.portNumber =

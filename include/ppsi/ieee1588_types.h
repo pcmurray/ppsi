@@ -148,10 +148,10 @@ enum ENseverityCode {
 
 /* FIXME: each struct must be aligned for lower memory usage */
 
-typedef struct UInteger48 {
-	uint32_t	lsb;
-	uint16_t	msb;
-} UInteger48;
+typedef struct uint48_wire {
+	uint16_t	msw;
+	uint32_t	lsdw;
+} __attribute__((packed)) uint48_wire;
 
 typedef struct Integer64 {
 	uint32_t	lsb;
@@ -173,9 +173,14 @@ typedef struct FixedDelta {
 } FixedDelta;
 
 typedef struct Timestamp { /* page 13 (33) -- no typedef expected */
-	UInteger48	secondsField;
+	uint64_t	secondsField;
 	uint32_t	nanosecondsField;
 } Timestamp;
+
+typedef struct timestamp_wire {
+	uint48_wire	secondsField;
+	uint32_t	nanosecondsField;
+} __attribute__((packed)) timestamp_wire;
 
 typedef struct TimeInternal {
 	int32_t		seconds;

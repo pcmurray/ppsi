@@ -33,6 +33,7 @@
 #include <ppsi/diag-macros.h>
 
 #include <arch/arch.h> /* ntohs and so on -- and wr-api.h for wr archs */
+#include <ppsi/ieee1588_types_helpers.h>
 
 /* At this point in time, we need ARRAY_SIZE to conditionally build vlan code */
 #undef ARRAY_SIZE

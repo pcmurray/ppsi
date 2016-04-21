@@ -51,20 +51,16 @@ int from_TimeInternal(TimeInternal *internal, Timestamp *external)
 		pp_error("Negative value cannot be converted into "
 			  "timestamp\n");
 		return -1;
-	} else {
-		external->secondsField.lsb = internal->seconds;
-		external->nanosecondsField = internal->nanoseconds;
-		external->secondsField.msb = 0;
-	}
+	} else
+		time_internal_to_timestamp_internal(external, internal);
 	return 0;
 }
 
 int to_TimeInternal(TimeInternal *internal, Timestamp *external)
 {
 	/* Program will not run after 2038... */
-	if (external->secondsField.lsb < INT_MAX) {
-		internal->seconds = external->secondsField.lsb;
-		internal->nanoseconds = external->nanosecondsField;
+	if (external->secondsField < INT_MAX) {
+		timestamp_internal_to_time_internal(internal, external);
 		return 0;
 	} else {
 		pp_error("to_TimeInternal: "
