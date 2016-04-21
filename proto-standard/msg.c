@@ -234,8 +234,8 @@ void msg_pack_pdelay_resp_follow_up(struct pp_instance *ppi,
 	*(UInteger16 *) (buf + 2) = htons(PP_PDELAY_RESP_LENGTH);
 	*(UInteger8 *) (buf + 4) = hdr->domainNumber;
 	/* copy the correction field, 11.4.3 c.3) */
-	*(Integer32 *) (buf + 8) = htonl(hdr->correctionfield.msb);
-	*(Integer32 *) (buf + 12) = htonl(hdr->correctionfield.lsb);
+	*(int32_t *) (buf + 8) = htonl(hdr->correctionfield.msb);
+	*(int32_t *) (buf + 12) = htonl(hdr->correctionfield.lsb);
 
 	*(UInteger16 *) (buf + 30) = htons(hdr->sequenceId);
 	*(UInteger8 *) (buf + 32) = 0x05;	/* controlField */
@@ -390,8 +390,8 @@ static void msg_pack_delay_resp(struct pp_instance *ppi,
 	memset((buf + 8), 0, 8);
 
 	/* Copy correctionField of delayReqMessage */
-	*(Integer32 *) (buf + 8) = htonl(hdr->correctionfield.msb);
-	*(Integer32 *) (buf + 12) = htonl(hdr->correctionfield.lsb);
+	*(int32_t *) (buf + 8) = htonl(hdr->correctionfield.msb);
+	*(int32_t *) (buf + 12) = htonl(hdr->correctionfield.lsb);
 
 	*(UInteger16 *) (buf + 30) = htons(hdr->sequenceId);
 

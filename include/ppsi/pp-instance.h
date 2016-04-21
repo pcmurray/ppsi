@@ -17,9 +17,9 @@
 struct pp_runtime_opts {
 	ClockQuality clock_quality;
 	TimeInternal inbound_latency, outbound_latency;
-	Integer32 max_rst; /* Maximum number of nanoseconds to reset */
-	Integer32 max_dly; /* Maximum number of nanoseconds of delay */
-	Integer32 ttl;
+	int32_t max_rst; /* Maximum number of nanoseconds to reset */
+	int32_t max_dly; /* Maximum number of nanoseconds of delay */
+	int32_t ttl;
 	int flags;		/* see below */
 	int16_t ap, ai;
 	int16_t s;
@@ -89,9 +89,9 @@ struct pp_frgn_master {
  * where increasing the stiffness (s) lowers the cutoff and increases the delay.
  */
 struct pp_avg_fltr {
-	Integer32 m; /* magnitude */
-	Integer32 y;
-	Integer32 s_exp;
+	int32_t m; /* magnitude */
+	int32_t y;
+	int32_t s_exp;
 };
 
 struct pp_servo {
@@ -147,14 +147,14 @@ struct pp_instance {
 
 	/* The net_path used to be allocated separately, but there's no need */
 	struct pp_channel ch[__NR_PP_NP];	/* general and event ch */
-	Integer32 mcast_addr;			/* only ipv4/udp */
+	int32_t mcast_addr;			/* only ipv4/udp */
 	int tx_offset, rx_offset;		/* ptp payload vs send/recv */
 	unsigned char peer[6];	/* Our peer's MAC address */
 	uint16_t peer_vid;	/* Our peer's VID (for PROTO_VLAN) */
 
 	/* Times, for the various offset computations */
 	TimeInternal t1, t2, t3, t4, t5, t6;		/* *the* stamps */
-	Integer32 t4_cf, t6_cf;				/* peer delay */
+	int32_t t4_cf, t6_cf;				/* peer delay */
 	TimeInternal cField;				/* transp. clocks */
 	TimeInternal last_rcv_time, last_snt_time;	/* two temporaries */
 

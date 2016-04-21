@@ -12,7 +12,7 @@ static void pp_servo_mpd_fltr(struct pp_instance *, struct pp_avg_fltr *,
 			      TimeInternal *);
 static void pp_servo_offset_master(struct pp_instance *, TimeInternal *,
 				   TimeInternal *, TimeInternal *);
-static Integer32 pp_servo_pi_controller(struct pp_instance *, TimeInternal *);
+static int32_t pp_servo_pi_controller(struct pp_instance *, TimeInternal *);
 
 
 void pp_servo_init(struct pp_instance *ppi)
@@ -75,7 +75,7 @@ void pp_servo_got_psync(struct pp_instance *ppi)
 	TimeInternal *m_to_s_dly = &SRV(ppi)->m_to_s_dly;
 	TimeInternal *mpd = &DSCUR(ppi)->meanPathDelay;
 	TimeInternal *ofm = &DSCUR(ppi)->offsetFromMaster;
-	Integer32 adj;
+	int32_t adj;
 
 	pp_diag(ppi, servo, 2, "T1: %s\n", fmt_TI(&ppi->t1));
 	pp_diag(ppi, servo, 2, "T2: %s\n", fmt_TI(&ppi->t2));
@@ -149,8 +149,7 @@ void pp_servo_got_resp(struct pp_instance *ppi)
 	TimeInternal *mpd = &DSCUR(ppi)->meanPathDelay;
 	TimeInternal *ofm = &DSCUR(ppi)->offsetFromMaster;
 	struct pp_avg_fltr *mpd_fltr = &SRV(ppi)->mpd_fltr;
-	Integer32 adj;
-
+	int32_t adj;
 
 	/* We sometimes enter here before we got sync/f-up */
 	if (ppi->t1.seconds == 0 && ppi->t1.nanoseconds == 0) {
@@ -303,7 +302,7 @@ static
 void pp_servo_offset_master(struct pp_instance *ppi, TimeInternal * mpd,
 			    TimeInternal * ofm, TimeInternal * m_to_s_dly)
 {
-	Integer32 adj;
+	int32_t adj;
 
 	sub_TimeInternal(ofm, m_to_s_dly, mpd);
 	pp_diag(ppi, servo, 1, "Offset from master:     %s\n", fmt_TI(ofm));
@@ -350,14 +349,14 @@ void pp_servo_offset_master(struct pp_instance *ppi, TimeInternal * mpd,
 }
 
 static
-Integer32 pp_servo_pi_controller(struct pp_instance * ppi, TimeInternal * ofm)
+int32_t pp_servo_pi_controller(struct pp_instance * ppi, TimeInternal * ofm)
 {
 	long long I_term;
 	long long P_term;
 	long long tmp;
 	int I_sign;
 	int P_sign;
-	Integer32 adj;
+	int32_t adj;
 
 	/* the accumulator for the I component, shift by 10 to avoid losing bits
 	 * later in the division */

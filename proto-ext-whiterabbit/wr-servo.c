@@ -234,7 +234,7 @@ int wr_servo_got_sync(struct pp_instance *ppi, TimeInternal *t1,
 	return 0;
 }
 
-int wr_servo_got_delay(struct pp_instance *ppi, Integer32 cf)
+int wr_servo_got_delay(struct pp_instance *ppi, int32_t cf)
 {
 	struct wr_servo_state *s =
 			&((struct wr_data *)ppi->ext_data)->servo_state;

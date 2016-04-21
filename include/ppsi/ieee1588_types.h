@@ -16,7 +16,6 @@
 /* See F.2, pag.223 */
 #define PP_ETHERTYPE	0x88f7
 
-typedef int32_t		Integer32;
 typedef uint8_t		UInteger8;
 typedef uint16_t	UInteger16;
 typedef uint32_t	UInteger32;
@@ -59,10 +58,10 @@ typedef struct Timestamp { /* page 13 (33) -- no typedef expected */
 } Timestamp;
 
 typedef struct TimeInternal {
-	Integer32	seconds;
-	Integer32	nanoseconds;
+	int32_t		seconds;
+	int32_t		nanoseconds;
 	/* White Rabbit extension begin */
-	Integer32	phase;		/* This is the set point */
+	int32_t	phase;		/* This is the set point */
 	int		correct;	/* 0 or 1 */
 #if 0
 	/*
@@ -70,10 +69,10 @@ typedef struct TimeInternal {
 	 * they cost space. So remove them but keep the code around just
 	 * in case it is useful again (they are only set, never read)
 	 */
-	int32_t raw_phase;
-	int32_t raw_nsec;
+	int32_t		raw_phase;
+	int32_t		raw_nsec;
 #endif
-	int32_t raw_ahead;	/* raw_ahead is used during calibration */
+	int32_t		raw_ahead;  /* raw_ahead is used during calibration */
 	/* White Rabbit extension end */
 } TimeInternal;
 
@@ -239,7 +238,7 @@ typedef struct DSParent {		/* page 68 */
 	PortIdentity	parentPortIdentity;
 	/* bool		parentStats; -- not used */
 	UInteger16	observedParentOffsetScaledLogVariance;
-	Integer32	observedParentClockPhaseChangeRate;
+	int32_t		observedParentClockPhaseChangeRate;
 	ClockIdentity	grandmasterIdentity;
 	ClockQuality	grandmasterClockQuality;
 	UInteger8	grandmasterPriority1;
@@ -267,7 +266,7 @@ typedef struct DSPort {			/* page 72 */
 /* Time Properties Data Set */
 typedef struct DSTimeProperties {	/* page 70 */
 	/* Dynamic */
-	int16_t	        currentUtcOffset;
+	int16_t		currentUtcOffset;
 	bool		currentUtcOffsetValid;
 	bool		leap59;
 	bool		leap61;
