@@ -16,7 +16,6 @@
 /* See F.2, pag.223 */
 #define PP_ETHERTYPE	0x88f7
 
-typedef uint8_t		Octet;
 typedef int8_t		Integer8;
 typedef int16_t		Integer16;
 typedef int32_t		Integer32;
@@ -86,7 +85,7 @@ static inline void clear_TimeInternal(struct TimeInternal *t)
 }
 
 typedef struct ClockIdentity { /* page 13 (33) */
-	Octet id[8];
+	uint8_t id[8];
 } ClockIdentity;
 #define PP_CLOCK_IDENTITY_LENGTH	sizeof(ClockIdentity)
 
@@ -98,7 +97,7 @@ typedef struct PortIdentity { /* page 13 (33) */
 typedef struct PortAdress { /* page 13 (33) */
 	Enumeration16	networkProtocol;
 	UInteger16	adressLength;
-	Octet		*adressField;
+	uint8_t		*adressField;
 } PortAdress;
 
 typedef struct ClockQuality { /* page 14 (34) -- int because of lib/config.c */
@@ -110,12 +109,12 @@ typedef struct ClockQuality { /* page 14 (34) -- int because of lib/config.c */
 struct TLV { /* page 14 (34) -- never used */
 	Enumeration16	tlvType;
 	UInteger16	lengthField;
-	Octet		*valueField;
+	uint8_t		*valueField;
 };
 
 struct PTPText { /* page 14 (34) -- never used */
 	UInteger8	lengthField;
-	Octet		*textField;
+	uint8_t		*textField;
 };
 
 struct FaultRecord { /* page 14 (34) -- never used */
@@ -135,7 +134,7 @@ typedef struct MsgHeader {
 	UInteger4	versionPTP;
 	UInteger16	messageLength;
 	UInteger8	domainNumber;
-	Octet		flagField[2];
+	uint8_t		flagField[2];
 	Integer64	correctionfield;
 	PortIdentity	sourcePortIdentity;
 	UInteger16	sequenceId;
