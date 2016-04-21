@@ -58,7 +58,7 @@ struct ptp_announce { /* page 129 (149 of pdf) */
 	uint8_t		grandmasterPriority2;		/* 52 */
 	ClockIdentity	grandmasterIdentity;		/* 53 */
 	uint16_t	stepsRemoved;			/* 61 */
-	Enumeration8	timeSource;			/* 63 */
+	uint8_t	timeSource;			/* 63 */
 } __attribute__((packed));
 
 struct ptp_sync_etc { /* page 130 (150 of pdf) */

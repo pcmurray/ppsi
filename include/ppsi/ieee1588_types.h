@@ -125,11 +125,6 @@ enum ENtlvType {
 	CUM_FREQ_SCALE_FACTOR_OFFSET		= 0x2003,
 };
 
-/* Enumerations are unsigned, see 5.4.2, page 15 */
-typedef uint16_t	Enumeration16;
-typedef uint8_t		Enumeration8;
-typedef uint8_t		Enumeration4;
-
 /* actionField (table 38, page 158) */
 enum ENactionField {
 	AF_GET		= 0,

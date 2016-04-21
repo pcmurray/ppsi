@@ -15,7 +15,7 @@ int msg_unpack_header(struct pp_instance *ppi, void *buf, int plen)
 	MsgHeader *hdr = &ppi->received_ptp_header;
 
 	hdr->transportSpecific = (*(Nibble *) (buf + 0)) >> 4;
-	hdr->messageType = (*(Enumeration4 *) (buf + 0)) & 0x0F;
+	hdr->messageType = (*(uint8_t *) (buf + 0)) & 0x0F;
 	hdr->versionPTP = (*(UInteger4 *) (buf + 1)) & 0x0F;
 
 	/* force reserved bit to zero if not */
@@ -145,14 +145,14 @@ static int msg_pack_announce(struct pp_instance *ppi)
 	*(int16_t *) (buf + 44) = htons(DSPRO(ppi)->currentUtcOffset);
 	*(uint8_t *) (buf + 47) = DSPAR(ppi)->grandmasterPriority1;
 	*(uint8_t *) (buf + 48) = DSPAR(ppi)->grandmasterClockQuality.clockClass;
-	*(Enumeration8 *) (buf + 49) = DSPAR(ppi)->grandmasterClockQuality.clockAccuracy;
+	*(uint8_t *) (buf + 49) = DSPAR(ppi)->grandmasterClockQuality.clockAccuracy;
 	*(uint16_t *) (buf + 50) =
 		htons(DSPAR(ppi)->grandmasterClockQuality.offsetScaledLogVariance);
 	*(uint8_t *) (buf + 52) = DSPAR(ppi)->grandmasterPriority2;
 	memcpy((buf + 53), &DSPAR(ppi)->grandmasterIdentity,
 	       PP_CLOCK_IDENTITY_LENGTH);
 	*(uint16_t *) (buf + 61) = htons(DSCUR(ppi)->stepsRemoved);
-	*(Enumeration8 *) (buf + 63) = DSPRO(ppi)->timeSource;
+	*(uint8_t *) (buf + 63) = DSPRO(ppi)->timeSource;
 
 	if (pp_hooks.pack_announce)
 		return pp_hooks.pack_announce(ppi);
@@ -173,14 +173,14 @@ void msg_unpack_announce(void *buf, MsgAnnounce *ann)
 	ann->grandmasterClockQuality.clockClass =
 		*(uint8_t *) (buf + 48);
 	ann->grandmasterClockQuality.clockAccuracy =
-		*(Enumeration8 *) (buf + 49);
+		*(uint8_t *) (buf + 49);
 	ann->grandmasterClockQuality.offsetScaledLogVariance =
 		htons(*(uint16_t *) (buf + 50));
 	ann->grandmasterPriority2 = *(uint8_t *) (buf + 52);
 	memcpy(&ann->grandmasterIdentity, (buf + 53),
 	       PP_CLOCK_IDENTITY_LENGTH);
 	ann->stepsRemoved = htons(*(uint16_t *) (buf + 61));
-	ann->timeSource = *(Enumeration8 *) (buf + 63);
+	ann->timeSource = *(uint8_t *) (buf + 63);
 
 	if (pp_hooks.unpack_announce)
 		pp_hooks.unpack_announce(buf, ann);

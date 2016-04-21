@@ -128,7 +128,7 @@ void msg_unpack_announce_wr_tlv(void *buf, MsgAnnounce *ann)
 }
 
 /* White Rabbit: packing WR Signaling messages*/
-int msg_pack_wrsig(struct pp_instance *ppi, Enumeration16 wr_msg_id)
+int msg_pack_wrsig(struct pp_instance *ppi, uint16_t wr_msg_id)
 {
 	void *buf;
 	uint16_t len = 0;
@@ -205,13 +205,13 @@ int msg_pack_wrsig(struct pp_instance *ppi, Enumeration16 wr_msg_id)
 
 /* White Rabbit: unpacking wr signaling messages */
 void msg_unpack_wrsig(struct pp_instance *ppi, void *buf,
-		      MsgSignaling *wrsig_msg, Enumeration16 *pwr_msg_id)
+		      MsgSignaling *wrsig_msg, uint16_t *pwr_msg_id)
 {
 	uint16_t tlv_type;
 	uint32_t tlv_organizationID;
 	uint16_t tlv_magicNumber;
 	uint16_t tlv_versionNumber;
-	Enumeration16 wr_msg_id;
+	uint16_t wr_msg_id;
 
 	memcpy(&wrsig_msg->targetPortIdentity.clockIdentity, (buf + 34),
 	       PP_CLOCK_IDENTITY_LENGTH);
@@ -287,7 +287,7 @@ void msg_unpack_wrsig(struct pp_instance *ppi, void *buf,
 }
 
 /* Pack and send a White Rabbit signalling message */
-int msg_issue_wrsig(struct pp_instance *ppi, Enumeration16 wr_msg_id)
+int msg_issue_wrsig(struct pp_instance *ppi, uint16_t wr_msg_id)
 {
 	int len = msg_pack_wrsig(ppi, wr_msg_id);
 

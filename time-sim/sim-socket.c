@@ -121,7 +121,7 @@ static int sim_recv_msg(struct pp_instance *ppi, int fd, void *pkt, int len,
 	pp_diag(ppi, time, 2, "recv stamp: %i.%09i (%s)\n",
 		(int)t->seconds, (int)t->nanoseconds, "user");
 	/* If we got a DelayResponse print out the offset from master */
-	if (((*(Enumeration4 *) (pkt + 0)) & 0x0F) == PPM_DELAY_RESP) {
+	if (((*(uint8_t *) (pkt + 0)) & 0x0F) == PPM_DELAY_RESP) {
 		master_ns = SIM_PPI_ARCH(INST(ppg, SIM_MASTER))->time.current_ns;
 		slave_ns = SIM_PPI_ARCH(INST(ppg, SIM_SLAVE))->time.current_ns;
 		pp_diag(ppi, ext, 1, "Real ofm %lli\n",
@@ -210,7 +210,7 @@ static int sim_net_send(struct pp_instance *ppi, void *pkt, int len,
 	 * the first will always arrive first to the destination and will not
 	 * cause the FollowUp to be discarded by the slave state machine when it
 	 * comes earlier then the Sync */
-	if (((*(Enumeration4 *) (pkt + 0)) & 0x0F) == PPM_FOLLOW_UP) {
+	if (((*(uint8_t *) (pkt + 0)) & 0x0F) == PPM_FOLLOW_UP) {
 		jit_ns += data->n_delay.last_outgoing_jit_ns;
 	}
 	jit_ns += (rand() * data->n_delay.jit_ns) / RAND_MAX;

@@ -21,11 +21,11 @@
  */
 struct wr_dsport {
 	struct wr_operations *ops; /* hardware-dependent, see below */
-	Enumeration8 wrConfig;
-	Enumeration8 wrMode;
+	uint8_t wrConfig;
+	uint8_t wrMode;
 	bool wrModeOn;
 	bool ppsOutputOn;
-	Enumeration8  wrPortState; /* used for sub-states during calibration */
+	uint8_t  wrPortState; /* used for sub-states during calibration */
 	/* FIXME check doc: knownDeltaTx, knownDeltaRx, deltasKnown?) */
 	bool calibrated;
 	FixedDelta deltaTx;
@@ -34,10 +34,10 @@ struct wr_dsport {
 	uint8_t wrStateRetry;
 	uint32_t calPeriod;		/* microseconsds, never changed */
 	uint8_t calRetry;
-	Enumeration8 parentWrConfig;
+	uint8_t parentWrConfig;
 	bool parentIsWRnode; /* FIXME Not in the doc */
 	/* FIXME check doc: (parentWrMode?) */
-	Enumeration16 msgTmpWrMessageID; /* FIXME Not in the doc */
+	uint16_t msgTmpWrMessageID; /* FIXME Not in the doc */
 	bool parentWrModeOn;
 	bool parentCalibrated;
 
@@ -76,10 +76,10 @@ void msg_pack_announce_wr_tlv(struct pp_instance *ppi);
 void msg_unpack_announce_wr_tlv(void *buf, MsgAnnounce *ann);
 
 /* Pack/Unkpack/Issue White rabbit message signaling msg */
-int msg_pack_wrsig(struct pp_instance *ppi, Enumeration16 wr_msg_id);
+int msg_pack_wrsig(struct pp_instance *ppi, uint16_t wr_msg_id);
 void msg_unpack_wrsig(struct pp_instance *ppi, void *buf,
-		      MsgSignaling *wrsig_msg, Enumeration16 *wr_msg_id);
-int msg_issue_wrsig(struct pp_instance *ppi, Enumeration16 wr_msg_id);
+		      MsgSignaling *wrsig_msg, uint16_t *wr_msg_id);
+int msg_issue_wrsig(struct pp_instance *ppi, uint16_t wr_msg_id);
 
 /* White rabbit state functions */
 int wr_present(struct pp_instance *ppi, unsigned char *pkt, int plen);
