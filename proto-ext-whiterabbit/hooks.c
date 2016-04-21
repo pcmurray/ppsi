@@ -272,7 +272,7 @@ static int wr_pack_announce(struct pp_instance *ppi)
 
 static void wr_unpack_announce(void *buf, MsgAnnounce *ann)
 {
-	int msg_len = htons(*(UInteger16 *) (buf + 2));
+	int msg_len = htons(*(uint16_t *) (buf + 2));
 
 	pp_diag(NULL, ext, 2, "hook: %s\n", __func__);
 	if (msg_len > PP_ANNOUNCE_LENGTH)

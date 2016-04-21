@@ -161,16 +161,16 @@ struct pp_instance {
 	/* Page 85: each port shall maintain an implementation-specific
 	 * foreignMasterDS data set for the purposes of qualifying Announce
 	 * messages */
-	UInteger16 frgn_rec_num;
+	uint16_t frgn_rec_num;
 	int16_t  frgn_rec_best;
 	struct pp_frgn_master frgn_master[PP_NR_FOREIGN_RECORDS];
 
 	DSPort *portDS;				/* page 72 */
 
 	unsigned long timeouts[__PP_TO_ARRAY_SIZE];
-	UInteger16 recv_sync_sequence_id;
+	uint16_t recv_sync_sequence_id;
 
-	UInteger16 sent_seq[__PP_NR_MESSAGES_TYPES]; /* last sent this type */
+	uint16_t sent_seq[__PP_NR_MESSAGES_TYPES]; /* last sent this type */
 	MsgHeader received_ptp_header;
 
 	char *iface_name; /* for direct actions on hardware */

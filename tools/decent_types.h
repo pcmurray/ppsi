@@ -57,7 +57,7 @@ struct ptp_announce { /* page 129 (149 of pdf) */
 	ClockQuality	grandmasterClockQuality;	/* 48 */
 	uint8_t		grandmasterPriority2;		/* 52 */
 	ClockIdentity	grandmasterIdentity;		/* 53 */
-	UInteger16	stepsRemoved;			/* 61 */
+	uint16_t	stepsRemoved;			/* 61 */
 	Enumeration8	timeSource;			/* 63 */
 } __attribute__((packed));
 

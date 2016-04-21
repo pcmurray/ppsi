@@ -16,7 +16,6 @@
 /* See F.2, pag.223 */
 #define PP_ETHERTYPE	0x88f7
 
-typedef uint16_t	UInteger16;
 typedef uint32_t	UInteger32;
 /* Enumerations are unsigned, see 5.4.2, page 15 */
 typedef uint16_t	Enumeration16;
@@ -87,12 +86,12 @@ typedef struct ClockIdentity { /* page 13 (33) */
 
 typedef struct PortIdentity { /* page 13 (33) */
 	ClockIdentity	clockIdentity;
-	UInteger16	portNumber;
+	uint16_t	portNumber;
 } PortIdentity;
 
 typedef struct PortAdress { /* page 13 (33) */
 	Enumeration16	networkProtocol;
-	UInteger16	adressLength;
+	uint16_t	adressLength;
 	uint8_t		*adressField;
 } PortAdress;
 
@@ -104,7 +103,7 @@ typedef struct ClockQuality { /* page 14 (34) -- int because of lib/config.c */
 
 struct TLV { /* page 14 (34) -- never used */
 	Enumeration16	tlvType;
-	UInteger16	lengthField;
+	uint16_t	lengthField;
 	uint8_t		*valueField;
 };
 
@@ -114,7 +113,7 @@ struct PTPText { /* page 14 (34) -- never used */
 };
 
 struct FaultRecord { /* page 14 (34) -- never used */
-	UInteger16	faultRecordLength;
+	uint16_t	faultRecordLength;
 	Timestamp	faultTime;
 	Enumeration8	severityCode;
 	struct PTPText	faultName;
@@ -128,12 +127,12 @@ typedef struct MsgHeader {
 	Nibble		transportSpecific;
 	Enumeration4	messageType;
 	UInteger4	versionPTP;
-	UInteger16	messageLength;
+	uint16_t	messageLength;
 	uint8_t		domainNumber;
 	uint8_t		flagField[2];
 	Integer64	correctionfield;
 	PortIdentity	sourcePortIdentity;
-	UInteger16	sequenceId;
+	uint16_t	sequenceId;
 	uint8_t		controlField;
 	int8_t	logMessageInterval;
 } MsgHeader;
@@ -146,7 +145,7 @@ typedef struct MsgAnnounce {
 	ClockQuality	grandmasterClockQuality;
 	uint8_t		grandmasterPriority2;
 	ClockIdentity	grandmasterIdentity;
-	UInteger16	stepsRemoved;
+	uint16_t	stepsRemoved;
 	Enumeration8	timeSource;
 	unsigned long	ext_specific;	/* used by extension */
 } MsgAnnounce;
@@ -210,7 +209,7 @@ typedef struct DSDefault {		/* page 65 */
 	/* Static */
 	bool		twoStepFlag;
 	ClockIdentity	clockIdentity;
-	UInteger16	numberPorts;
+	uint16_t	numberPorts;
 	/* Dynamic */
 	ClockQuality	clockQuality;
 	/* Configurable */
@@ -223,11 +222,11 @@ typedef struct DSDefault {		/* page 65 */
 /* Current Data Set */
 typedef struct DSCurrent {		/* page 67 */
 	/* Dynamic */
-	UInteger16	stepsRemoved;
+	uint16_t	stepsRemoved;
 	TimeInternal	offsetFromMaster;
 	TimeInternal	meanPathDelay; /* oneWayDelay */
 	/* White Rabbit extension begin */
-	UInteger16	primarySlavePortNumber;
+	uint16_t	primarySlavePortNumber;
 	/* White Rabbit extension end */
 } DSCurrent;
 
@@ -236,7 +235,7 @@ typedef struct DSParent {		/* page 68 */
 	/* Dynamic */
 	PortIdentity	parentPortIdentity;
 	/* bool		parentStats; -- not used */
-	UInteger16	observedParentOffsetScaledLogVariance;
+	uint16_t	observedParentOffsetScaledLogVariance;
 	int32_t		observedParentClockPhaseChangeRate;
 	ClockIdentity	grandmasterIdentity;
 	ClockQuality	grandmasterClockQuality;

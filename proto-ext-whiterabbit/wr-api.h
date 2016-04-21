@@ -42,7 +42,7 @@ struct wr_dsport {
 	bool parentCalibrated;
 
 	/* FIXME: are they in the doc? */
-	UInteger16 otherNodeCalSendPattern;
+	uint16_t otherNodeCalSendPattern;
 	UInteger32 otherNodeCalPeriod;/* microseconsds, never changed */
 	uint8_t otherNodeCalRetry;
 	FixedDelta otherNodeDeltaTx;

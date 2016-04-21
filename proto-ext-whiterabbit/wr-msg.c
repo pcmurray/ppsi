@@ -16,7 +16,7 @@
  * FIXME: check whether htons would be ok
  */
 /* put 16 bit word in big endianess (from little endianess) */
-static inline void put_be16(void *ptr, UInteger16 x)
+static inline void put_be16(void *ptr, uint16_t x)
 {
 	*(unsigned char *)(ptr++) = (x >> 8) & 0xff;
 	*(unsigned char *)(ptr++) = (x) & 0xff;
@@ -43,9 +43,9 @@ static inline UInteger32 get_be32(void *ptr)
 }
 
 /* gets 16 bit word from big endianess (to little endianess) */
-static inline UInteger16 get_be16(void *ptr)
+static inline uint16_t get_be16(void *ptr)
 {
-	UInteger16 res = 0x0;
+	uint16_t res = 0x0;
 
 	res = res | ((*(unsigned char *)(ptr++) << 8 ) & 0xFF00);
 	res = res | ((*(unsigned char *)(ptr++) << 0 ) & 0x000FF);
@@ -56,7 +56,7 @@ static inline UInteger16 get_be16(void *ptr)
 void msg_pack_announce_wr_tlv(struct pp_instance *ppi)
 {
 	void *buf;
-	UInteger16 wr_flags = 0;
+	uint16_t wr_flags = 0;
 	int locked, class = DSDEF(ppi)->clockQuality.clockClass;
 	struct wr_dsport *wrp = WR_DSPOR(ppi);
 
@@ -78,18 +78,18 @@ void msg_pack_announce_wr_tlv(struct pp_instance *ppi)
 	}
 
 	/* Change length */
-	*(UInteger16 *)(buf + 2) = htons(WR_ANNOUNCE_LENGTH);
+	*(uint16_t *)(buf + 2) = htons(WR_ANNOUNCE_LENGTH);
 
-	*(UInteger16 *)(buf + 64) = htons(TLV_TYPE_ORG_EXTENSION);
-	*(UInteger16 *)(buf + 66) = htons(WR_ANNOUNCE_TLV_LENGTH);
+	*(uint16_t *)(buf + 64) = htons(TLV_TYPE_ORG_EXTENSION);
+	*(uint16_t *)(buf + 66) = htons(WR_ANNOUNCE_TLV_LENGTH);
 	/* CERN's OUI: WR_TLV_ORGANIZATION_ID, how to flip bits? */
-	*(UInteger16 *)(buf + 68) = htons((WR_TLV_ORGANIZATION_ID >> 8));
-	*(UInteger16 *)(buf + 70) = htons((0xFFFF & (WR_TLV_ORGANIZATION_ID << 8
+	*(uint16_t *)(buf + 68) = htons((WR_TLV_ORGANIZATION_ID >> 8));
+	*(uint16_t *)(buf + 70) = htons((0xFFFF & (WR_TLV_ORGANIZATION_ID << 8
 		| WR_TLV_MAGIC_NUMBER >> 8)));
-	*(UInteger16 *)(buf + 72) = htons((0xFFFF & (WR_TLV_MAGIC_NUMBER << 8
+	*(uint16_t *)(buf + 72) = htons((0xFFFF & (WR_TLV_MAGIC_NUMBER << 8
 		| WR_TLV_WR_VERSION_NUMBER)));
 	/* wrMessageId */
-	*(UInteger16 *)(buf + 74) = htons(ANN_SUFIX);
+	*(uint16_t *)(buf + 74) = htons(ANN_SUFIX);
 	wr_flags = wr_flags | WR_DSPOR(ppi)->wrConfig;
 
 	if (WR_DSPOR(ppi)->calibrated)
@@ -97,33 +97,33 @@ void msg_pack_announce_wr_tlv(struct pp_instance *ppi)
 
 	if (WR_DSPOR(ppi)->wrModeOn)
 		wr_flags = WR_IS_WR_MODE | wr_flags;
-	*(UInteger16 *)(buf + 76) = htons(wr_flags);
+	*(uint16_t *)(buf + 76) = htons(wr_flags);
 }
 
 void msg_unpack_announce_wr_tlv(void *buf, MsgAnnounce *ann)
 {
-	UInteger16 tlv_type;
+	uint16_t tlv_type;
 	UInteger32 tlv_organizationID;
-	UInteger16 tlv_magicNumber;
-	UInteger16 tlv_versionNumber;
-	UInteger16 tlv_wrMessageID;
+	uint16_t tlv_magicNumber;
+	uint16_t tlv_versionNumber;
+	uint16_t tlv_wrMessageID;
 
-	tlv_type = (UInteger16)get_be16(buf+64);
-	tlv_organizationID = htons(*(UInteger16 *)(buf+68)) << 8;
-	tlv_organizationID = htons(*(UInteger16 *)(buf+70)) >> 8
+	tlv_type = (uint16_t)get_be16(buf+64);
+	tlv_organizationID = htons(*(uint16_t *)(buf+68)) << 8;
+	tlv_organizationID = htons(*(uint16_t *)(buf+70)) >> 8
 		| tlv_organizationID;
-	tlv_magicNumber = 0xFF00 & (htons(*(UInteger16 *)(buf+70)) << 8);
-	tlv_magicNumber = htons(*(UInteger16 *)(buf+72)) >> 8
+	tlv_magicNumber = 0xFF00 & (htons(*(uint16_t *)(buf+70)) << 8);
+	tlv_magicNumber = htons(*(uint16_t *)(buf+72)) >> 8
 		| tlv_magicNumber;
-	tlv_versionNumber = 0xFF & htons(*(UInteger16 *)(buf+72));
-	tlv_wrMessageID = htons(*(UInteger16 *)(buf+74));
+	tlv_versionNumber = 0xFF & htons(*(uint16_t *)(buf+72));
+	tlv_wrMessageID = htons(*(uint16_t *)(buf+74));
 
 	if (tlv_type == TLV_TYPE_ORG_EXTENSION &&
 		tlv_organizationID == WR_TLV_ORGANIZATION_ID &&
 		tlv_magicNumber == WR_TLV_MAGIC_NUMBER &&
 		tlv_versionNumber == WR_TLV_WR_VERSION_NUMBER &&
 		tlv_wrMessageID == ANN_SUFIX) {
-		ann->ext_specific = (UInteger16)get_be16(buf+76);
+		ann->ext_specific = (uint16_t)get_be16(buf+76);
 	}
 }
 
@@ -131,7 +131,7 @@ void msg_unpack_announce_wr_tlv(void *buf, MsgAnnounce *ann)
 int msg_pack_wrsig(struct pp_instance *ppi, Enumeration16 wr_msg_id)
 {
 	void *buf;
-	UInteger16 len = 0;
+	uint16_t len = 0;
 
 	if ((WR_DSPOR(ppi)->wrMode == NON_WR) || (wr_msg_id == ANN_SUFIX)) {
 		pp_diag(ppi, frames, 1,
@@ -154,15 +154,15 @@ int msg_pack_wrsig(struct pp_instance *ppi, Enumeration16 wr_msg_id)
 	put_be16(buf + 42, DSPAR(ppi)->parentPortIdentity.portNumber);
 
 	/* WR TLV */
-	*(UInteger16 *)(buf+44) = htons(TLV_TYPE_ORG_EXTENSION);
+	*(uint16_t *)(buf+44) = htons(TLV_TYPE_ORG_EXTENSION);
 	/* leave lenght free */
-	*(UInteger16 *)(buf+48) = htons((WR_TLV_ORGANIZATION_ID >> 8));
-	*(UInteger16 *)(buf+50) = htons((0xFFFF &
+	*(uint16_t *)(buf+48) = htons((WR_TLV_ORGANIZATION_ID >> 8));
+	*(uint16_t *)(buf+50) = htons((0xFFFF &
 		(WR_TLV_ORGANIZATION_ID << 8 | WR_TLV_MAGIC_NUMBER >> 8)));
-	*(UInteger16 *)(buf+52) = htons((0xFFFF &
+	*(uint16_t *)(buf+52) = htons((0xFFFF &
 		(WR_TLV_MAGIC_NUMBER    << 8 | WR_TLV_WR_VERSION_NUMBER)));
 	/* wrMessageId */
-	*(UInteger16 *)(buf+54) = htons(wr_msg_id);
+	*(uint16_t *)(buf+54) = htons(wr_msg_id);
 
 	switch (wr_msg_id) {
 	case CALIBRATE:
@@ -207,24 +207,24 @@ int msg_pack_wrsig(struct pp_instance *ppi, Enumeration16 wr_msg_id)
 void msg_unpack_wrsig(struct pp_instance *ppi, void *buf,
 		      MsgSignaling *wrsig_msg, Enumeration16 *pwr_msg_id)
 {
-	UInteger16 tlv_type;
+	uint16_t tlv_type;
 	UInteger32 tlv_organizationID;
-	UInteger16 tlv_magicNumber;
-	UInteger16 tlv_versionNumber;
+	uint16_t tlv_magicNumber;
+	uint16_t tlv_versionNumber;
 	Enumeration16 wr_msg_id;
 
 	memcpy(&wrsig_msg->targetPortIdentity.clockIdentity, (buf + 34),
 	       PP_CLOCK_IDENTITY_LENGTH);
-	wrsig_msg->targetPortIdentity.portNumber = (UInteger16)get_be16(buf+42);
+	wrsig_msg->targetPortIdentity.portNumber = (uint16_t)get_be16(buf+42);
 
-	tlv_type           = (UInteger16)get_be16(buf + 44);
-	tlv_organizationID = htons(*(UInteger16 *)(buf + 48)) << 8;
-	tlv_organizationID = htons(*(UInteger16 *)(buf + 50)) >> 8
+	tlv_type           = (uint16_t)get_be16(buf + 44);
+	tlv_organizationID = htons(*(uint16_t *)(buf + 48)) << 8;
+	tlv_organizationID = htons(*(uint16_t *)(buf + 50)) >> 8
 				| tlv_organizationID;
-	tlv_magicNumber = 0xFF00 & (htons(*(UInteger16 *)(buf + 50)) << 8);
-	tlv_magicNumber = htons(*(UInteger16 *)(buf + 52)) >>  8
+	tlv_magicNumber = 0xFF00 & (htons(*(uint16_t *)(buf + 50)) << 8);
+	tlv_magicNumber = htons(*(uint16_t *)(buf + 52)) >>  8
 				| tlv_magicNumber;
-	tlv_versionNumber = 0xFF & htons(*(UInteger16 *)(buf + 52));
+	tlv_versionNumber = 0xFF & htons(*(uint16_t *)(buf + 52));
 
 	if (tlv_type != TLV_TYPE_ORG_EXTENSION) {
 		pp_diag(ppi, frames, 1, "handle Signaling msg, failed, This is not "
@@ -250,7 +250,7 @@ void msg_unpack_wrsig(struct pp_instance *ppi, void *buf,
 		return;
 	}
 
-	wr_msg_id = htons(*(UInteger16 *)(buf + 54));
+	wr_msg_id = htons(*(uint16_t *)(buf + 54));
 
 	if (pwr_msg_id) {
 		*pwr_msg_id = wr_msg_id;
