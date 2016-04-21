@@ -16,7 +16,6 @@
 /* See F.2, pag.223 */
 #define PP_ETHERTYPE	0x88f7
 
-typedef int8_t		Integer8;
 typedef int16_t		Integer16;
 typedef int32_t		Integer32;
 typedef uint8_t		UInteger8;
@@ -85,7 +84,7 @@ static inline void clear_TimeInternal(struct TimeInternal *t)
 }
 
 typedef struct ClockIdentity { /* page 13 (33) */
-	uint8_t id[8];
+	uint8_t		id[8];
 } ClockIdentity;
 #define PP_CLOCK_IDENTITY_LENGTH	sizeof(ClockIdentity)
 
@@ -139,7 +138,7 @@ typedef struct MsgHeader {
 	PortIdentity	sourcePortIdentity;
 	UInteger16	sequenceId;
 	UInteger8	controlField;
-	Integer8	logMessageInterval;
+	int8_t	logMessageInterval;
 } MsgHeader;
 
 /* Announce Message (table 25, page 129) */
@@ -254,12 +253,12 @@ typedef struct DSPort {			/* page 72 */
 	PortIdentity	portIdentity;
 	/* Dynamic */
 	/* Enumeration8	portState; -- not used */
-	Integer8	logMinDelayReqInterval; /* -- same as pdelay one */
+	int8_t		logMinDelayReqInterval; /* -- same as pdelay one */
 	/* TimeInternal	peerMeanPathDelay; -- not used */
 	/* Configurable */
-	Integer8	logAnnounceInterval;
+	int8_t	logAnnounceInterval;
 	UInteger8	announceReceiptTimeout;
-	Integer8	logSyncInterval;
+	int8_t	logSyncInterval;
 	/* Enumeration8	delayMechanism; -- not used */
 	UInteger4	versionNumber;
 

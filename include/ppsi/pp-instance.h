@@ -23,7 +23,7 @@ struct pp_runtime_opts {
 	int flags;		/* see below */
 	Integer16 ap, ai;
 	Integer16 s;
-	Integer8 announce_intvl;
+	int8_t announce_intvl;
 	int sync_intvl;
 	int prio1;
 	int prio2;

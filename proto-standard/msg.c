@@ -34,7 +34,7 @@ int msg_unpack_header(struct pp_instance *ppi, void *buf, int plen)
 		htons(*(UInteger16 *) (buf + 28));
 	hdr->sequenceId = htons(*(UInteger16 *) (buf + 30));
 	hdr->controlField = (*(UInteger8 *) (buf + 32));
-	hdr->logMessageInterval = (*(Integer8 *) (buf + 33));
+	hdr->logMessageInterval = (*(int8_t *) (buf + 33));
 
 	/*
 	 * If the message is from us, we should discard it.
@@ -102,7 +102,7 @@ static void msg_pack_sync(struct pp_instance *ppi, Timestamp *orig_tstamp)
 	*(UInteger8 *) (buf + 32) = 0x00;
 
 	/* Table 23 */
-	*(Integer8 *) (buf + 33) = DSPOR(ppi)->logSyncInterval;
+	*(int8_t *) (buf + 33) = DSPOR(ppi)->logSyncInterval;
 	memset((buf + 8), 0, 8);
 
 	/* Sync message */
@@ -138,7 +138,7 @@ static int msg_pack_announce(struct pp_instance *ppi)
 	*(UInteger16 *) (buf + 30) = htons(ppi->sent_seq[PPM_ANNOUNCE]);
 	*(UInteger8 *) (buf + 32) = 0x05;
 	/* Table 23 */
-	*(Integer8 *) (buf + 33) = DSPOR(ppi)->logAnnounceInterval;
+	*(int8_t *) (buf + 33) = DSPOR(ppi)->logAnnounceInterval;
 
 	/* Announce message */
 	memset((buf + 34), 0, 10);
@@ -206,7 +206,7 @@ static void msg_pack_follow_up(struct pp_instance *ppi, Timestamp *prec_orig_tst
 	*(UInteger8 *) (buf + 32) = 0x02;
 
 	/* Table 23 */
-	*(Integer8 *) (buf + 33) = DSPOR(ppi)->logSyncInterval;
+	*(int8_t *) (buf + 33) = DSPOR(ppi)->logSyncInterval;
 
 	/* Follow Up message */
 	*(UInteger16 *) (buf + 34) =
@@ -297,7 +297,7 @@ static void msg_pack_delay_req(struct pp_instance *ppi, Timestamp *orig_tstamp)
 	*(UInteger8 *) (buf + 32) = 0x01;
 
 	/* Table 23 */
-	*(Integer8 *) (buf + 33) = 0x7F;
+	*(int8_t *) (buf + 33) = 0x7F;
 
 	/* Table 24 */
 	memset((buf + 8), 0, 8);
@@ -331,7 +331,7 @@ void msg_pack_pdelay_req(struct pp_instance *ppi, Timestamp * orig_tstamp)
 	*(UInteger8 *) (buf + 32) = 0x05;
 
 	/* Table 23 */
-	*(Integer8 *) (buf + 33) = 0x7F;
+	*(int8_t *) (buf + 33) = 0x7F;
 
 	/* PDelay_req message */
 	*(UInteger16 *) (buf + 34) = htons(orig_tstamp->secondsField.msb);
@@ -398,7 +398,7 @@ static void msg_pack_delay_resp(struct pp_instance *ppi,
 	*(UInteger8 *) (buf + 32) = 0x03;
 
 	/* Table 23 */
-	*(Integer8 *) (buf + 33) = DSPOR(ppi)->logMinDelayReqInterval;
+	*(int8_t *) (buf + 33) = DSPOR(ppi)->logMinDelayReqInterval;
 
 	/* Table 24 */
 
