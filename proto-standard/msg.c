@@ -14,9 +14,9 @@ int msg_unpack_header(struct pp_instance *ppi, void *buf, int plen)
 {
 	MsgHeader *hdr = &ppi->received_ptp_header;
 
-	hdr->transportSpecific = (*(Nibble *) (buf + 0)) >> 4;
+	hdr->transportSpecific = (*(uint8_t *) (buf + 0)) >> 4;
 	hdr->messageType = (*(uint8_t *) (buf + 0)) & 0x0F;
-	hdr->versionPTP = (*(UInteger4 *) (buf + 1)) & 0x0F;
+	hdr->versionPTP = (*(uint8_t *) (buf + 1)) & 0x0F;
 
 	/* force reserved bit to zero if not */
 	hdr->messageLength = htons(*(uint16_t *) (buf + 2));
@@ -69,7 +69,7 @@ void msg_pack_header(struct pp_instance *ppi, void *buf)
 {
 	/* (spec annex D and F) */
 	*(uint8_t *) (buf + 0) = 0; /* message type changed later */
-	*(UInteger4 *) (buf + 1) = DSPOR(ppi)->versionNumber;
+	*(uint8_t *) (buf + 1) = DSPOR(ppi)->versionNumber;
 	*(uint8_t *) (buf + 4) = DSDEF(ppi)->domainNumber;
 
 	*(uint8_t *) (buf + 6) = PP_TWO_STEP_FLAG;

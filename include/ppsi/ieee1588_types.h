@@ -146,9 +146,6 @@ enum ENseverityCode {
 	DEBUG		= 0x07,
 };
 
-typedef uint8_t		UInteger4;
-typedef uint8_t		Nibble;
-
 /* FIXME: each struct must be aligned for lower memory usage */
 
 typedef struct UInteger48 {
@@ -249,9 +246,9 @@ struct FaultRecord { /* page 14 (34) -- never used */
 
 /* Common Message header (table 18, page 124) */
 typedef struct MsgHeader {
-	Nibble		transportSpecific;
+	uint8_t		transportSpecific;
 	enum pp_std_messages	messageType;
-	UInteger4	versionPTP;
+	uint8_t		versionPTP;
 	uint16_t	messageLength;
 	uint8_t		domainNumber;
 	uint8_t		flagField[2];
@@ -381,7 +378,7 @@ typedef struct DSPort {			/* page 72 */
 	uint8_t		announceReceiptTimeout;
 	int8_t	logSyncInterval;
 	/* Enumeration8	delayMechanism; -- not used */
-	UInteger4	versionNumber;
+	uint8_t		versionNumber;
 
 	void		*ext_dsport;
 } DSPort;
