@@ -16,7 +16,6 @@
 /* See F.2, pag.223 */
 #define PP_ETHERTYPE	0x88f7
 
-typedef uint32_t	UInteger32;
 /* Enumerations are unsigned, see 5.4.2, page 15 */
 typedef uint16_t	Enumeration16;
 typedef uint8_t		Enumeration8;
@@ -52,7 +51,7 @@ typedef struct FixedDelta {
 
 typedef struct Timestamp { /* page 13 (33) -- no typedef expected */
 	UInteger48	secondsField;
-	UInteger32	nanosecondsField;
+	uint32_t	nanosecondsField;
 } Timestamp;
 
 typedef struct TimeInternal {

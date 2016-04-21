@@ -22,7 +22,7 @@ static inline void put_be16(void *ptr, uint16_t x)
 	*(unsigned char *)(ptr++) = (x) & 0xff;
 }
 /* put 32 bit word in big endianess (from little endianess) */
-static inline void put_be32(void *ptr, UInteger32 x)
+static inline void put_be32(void *ptr, uint32_t x)
 {
 	*(unsigned char *)(ptr++) = (x >> 24) & 0xff;
 	*(unsigned char *)(ptr++) = (x >> 16) & 0xff;
@@ -31,9 +31,9 @@ static inline void put_be32(void *ptr, UInteger32 x)
 }
 
 /* gets 32 bit word from big endianness (to little endianness) */
-static inline UInteger32 get_be32(void *ptr)
+static inline uint32_t get_be32(void *ptr)
 {
-	UInteger32 res = 0x0;
+	uint32_t res = 0x0;
 
 	res = res | ((*(unsigned char *)(ptr++) << 24) & 0xFF000000);
 	res = res | ((*(unsigned char *)(ptr++) << 16) & 0x00FF0000);
@@ -103,7 +103,7 @@ void msg_pack_announce_wr_tlv(struct pp_instance *ppi)
 void msg_unpack_announce_wr_tlv(void *buf, MsgAnnounce *ann)
 {
 	uint16_t tlv_type;
-	UInteger32 tlv_organizationID;
+	uint32_t tlv_organizationID;
 	uint16_t tlv_magicNumber;
 	uint16_t tlv_versionNumber;
 	uint16_t tlv_wrMessageID;
@@ -208,7 +208,7 @@ void msg_unpack_wrsig(struct pp_instance *ppi, void *buf,
 		      MsgSignaling *wrsig_msg, Enumeration16 *pwr_msg_id)
 {
 	uint16_t tlv_type;
-	UInteger32 tlv_organizationID;
+	uint32_t tlv_organizationID;
 	uint16_t tlv_magicNumber;
 	uint16_t tlv_versionNumber;
 	Enumeration16 wr_msg_id;
