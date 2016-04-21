@@ -128,7 +128,7 @@ int wr_calibration(struct pp_instance *ppi, unsigned char *pkt, int plen)
 		/* send deltas to the other port and go to the next state */
 		e = msg_issue_wrsig(ppi, CALIBRATED);
 		ppi->next_state = WRS_CALIBRATED;
-		wrp->calibrated = TRUE;
+		wrp->calibrated = true;
 
 	default:
 		break;

@@ -18,13 +18,13 @@ int wr_link_on(struct pp_instance *ppi, unsigned char *pkt, int plen)
 	struct wr_dsport *wrp = WR_DSPOR(ppi);
 	int e = 0;
 
-	wrp->wrModeOn = TRUE;
+	wrp->wrModeOn = true;
 	wrp->ops->enable_ptracker(ppi);
 
 	if (wrp->wrMode == WR_MASTER)
 		e = msg_issue_wrsig(ppi, WR_MODE_ON);
 
-	wrp->parentWrModeOn = TRUE;
+	wrp->parentWrModeOn = true;
 
 	if (e != 0)
 		return -1;

@@ -431,7 +431,7 @@ int wr_servo_update(struct pp_instance *ppi)
 		pp_diag(ppi, servo, 1, "PLL OutOfLock, should restart sync\n");
 		wrp->ops->enable_timing_output(ppi, 0);
 		/* TODO check
-		 * DSPOR(ppi)->doRestart = TRUE; */
+		 * DSPOR(ppi)->doRestart = true; */
 	}
 
 	/* After each action on the hardware, we must verify if it is over. */

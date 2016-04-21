@@ -11,11 +11,11 @@
 #define __PPSI_IEEE_1588_TYPES_H__
 
 #include <stdint.h>
+#include <stdbool.h>
 
 /* See F.2, pag.223 */
 #define PP_ETHERTYPE	0x88f7
 
-typedef enum {FALSE=0, TRUE} Boolean;
 typedef uint8_t		Octet;
 typedef int8_t		Integer8;
 typedef int16_t		Integer16;
@@ -213,7 +213,7 @@ typedef struct MsgManagement{
 /* Default Data Set */
 typedef struct DSDefault {		/* page 65 */
 	/* Static */
-	Boolean		twoStepFlag;
+	bool		twoStepFlag;
 	ClockIdentity	clockIdentity;
 	UInteger16	numberPorts;
 	/* Dynamic */
@@ -222,7 +222,7 @@ typedef struct DSDefault {		/* page 65 */
 	UInteger8	priority1;
 	UInteger8	priority2;
 	UInteger8	domainNumber;
-	Boolean		slaveOnly;
+	bool		slaveOnly;
 } DSDefault;
 
 /* Current Data Set */
@@ -240,7 +240,7 @@ typedef struct DSCurrent {		/* page 67 */
 typedef struct DSParent {		/* page 68 */
 	/* Dynamic */
 	PortIdentity	parentPortIdentity;
-	/* Boolean		parentStats; -- not used */
+	/* bool		parentStats; -- not used */
 	UInteger16	observedParentOffsetScaledLogVariance;
 	Integer32	observedParentClockPhaseChangeRate;
 	ClockIdentity	grandmasterIdentity;
@@ -271,12 +271,12 @@ typedef struct DSPort {			/* page 72 */
 typedef struct DSTimeProperties {	/* page 70 */
 	/* Dynamic */
 	Integer16	currentUtcOffset;
-	Boolean		currentUtcOffsetValid;
-	Boolean		leap59;
-	Boolean		leap61;
-	Boolean		timeTraceable;
-	Boolean		frequencyTraceable;
-	Boolean		ptpTimescale;
+	bool		currentUtcOffsetValid;
+	bool		leap59;
+	bool		leap61;
+	bool		timeTraceable;
+	bool		frequencyTraceable;
+	bool		ptpTimescale;
 	Enumeration8	timeSource;
 } DSTimeProperties;
 

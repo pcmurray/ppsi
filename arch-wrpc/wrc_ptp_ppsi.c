@@ -217,7 +217,7 @@ int wrc_ptp_start()
 	delay_ms = pp_state_machine(ppi, NULL, 0);
 	start_tics = timer_get_tics();
 
-	WR_DSPOR(ppi)->linkUP = FALSE;
+	WR_DSPOR(ppi)->linkUP = false;
 	wr_servo_reset(ppi);
 
 	ptp_enabled = 1;

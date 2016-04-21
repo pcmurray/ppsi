@@ -171,7 +171,7 @@ static void wr_s1(struct pp_instance *ppi, MsgHeader *hdr, MsgAnnounce *ann)
 	WR_DSPOR(ppi)->parentIsWRnode =
 		((ann->ext_specific & WR_NODE_MODE) != NON_WR);
 	WR_DSPOR(ppi)->parentWrModeOn =
-		(ann->ext_specific & WR_IS_WR_MODE) ? TRUE : FALSE;
+		(ann->ext_specific & WR_IS_WR_MODE) ? true : false;
 	WR_DSPOR(ppi)->parentCalibrated =
 			((ann->ext_specific & WR_IS_CALIBRATED) ? 1 : 0);
 	WR_DSPOR(ppi)->parentWrConfig = ann->ext_specific & WR_NODE_MODE;
@@ -186,7 +186,7 @@ static int wr_execute_slave(struct pp_instance *ppi)
 		return 0;
 
 	ppi->next_state = PPS_INITIALIZING;
-	WR_DSPOR(ppi)->doRestart = FALSE;
+	WR_DSPOR(ppi)->doRestart = false;
 	return 1; /* the caller returns too */
 }
 

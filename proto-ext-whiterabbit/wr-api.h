@@ -23,11 +23,11 @@ struct wr_dsport {
 	struct wr_operations *ops; /* hardware-dependent, see below */
 	Enumeration8 wrConfig;
 	Enumeration8 wrMode;
-	Boolean wrModeOn;
-	Boolean ppsOutputOn;
+	bool wrModeOn;
+	bool ppsOutputOn;
 	Enumeration8  wrPortState; /* used for sub-states during calibration */
 	/* FIXME check doc: knownDeltaTx, knownDeltaRx, deltasKnown?) */
-	Boolean calibrated;
+	bool calibrated;
 	FixedDelta deltaTx;
 	FixedDelta deltaRx;
 	UInteger32 wrStateTimeout;
@@ -35,11 +35,11 @@ struct wr_dsport {
 	UInteger32 calPeriod;		/* microseconsds, never changed */
 	UInteger8 calRetry;
 	Enumeration8 parentWrConfig;
-	Boolean parentIsWRnode; /* FIXME Not in the doc */
+	bool parentIsWRnode; /* FIXME Not in the doc */
 	/* FIXME check doc: (parentWrMode?) */
 	Enumeration16 msgTmpWrMessageID; /* FIXME Not in the doc */
-	Boolean parentWrModeOn;
-	Boolean parentCalibrated;
+	bool parentWrModeOn;
+	bool parentCalibrated;
 
 	/* FIXME: are they in the doc? */
 	UInteger16 otherNodeCalSendPattern;
@@ -47,8 +47,8 @@ struct wr_dsport {
 	UInteger8 otherNodeCalRetry;
 	FixedDelta otherNodeDeltaTx;
 	FixedDelta otherNodeDeltaRx;
-	Boolean doRestart;
-	Boolean linkUP;
+	bool doRestart;
+	bool linkUP;
 };
 
 /* This uppercase name matches "DSPOR(ppi)" used by standard protocol */

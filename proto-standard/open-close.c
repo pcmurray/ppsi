@@ -46,7 +46,7 @@ int pp_init_globals(struct pp_globals *ppg, struct pp_runtime_opts *pp_rt_opts)
 	 */
 	int i;
 	struct DSDefault *def = ppg->defaultDS;
-	def->twoStepFlag = TRUE;
+	def->twoStepFlag = true;
 
 	/* if ppg->nlinks == 0, let's assume that the 'pp_links style'
 	 * configuration was not used, so we have 1 port */
