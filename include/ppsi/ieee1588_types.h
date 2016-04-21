@@ -158,7 +158,7 @@ typedef struct PortIdentity { /* page 13 (33) */
 } PortIdentity;
 
 typedef struct PortAdress { /* page 13 (33) */
-	Enumeration16	networkProtocol;
+	enum ENNetworkProtocol	networkProtocol;
 	uint16_t	adressLength;
 	uint8_t		*adressField;
 } PortAdress;
