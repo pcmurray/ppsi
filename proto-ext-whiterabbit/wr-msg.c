@@ -73,7 +73,7 @@ void msg_pack_announce_wr_tlv(struct pp_instance *ppi)
 		if (class != DSDEF(ppi)->clockQuality.clockClass) {
 			pp_error("New class %i\n", class);
 			DSDEF(ppi)->clockQuality.clockClass = class;
-			*(UInteger8 *) (buf + 48) = class;
+			*(uint8_t *) (buf + 48) = class;
 		}
 	}
 
@@ -146,7 +146,7 @@ int msg_pack_wrsig(struct pp_instance *ppi, Enumeration16 wr_msg_id)
 	*(char *)(buf+0) = *(char *)(buf+0) & 0xF0; /* RAZ messageType */
 	*(char *)(buf+0) = *(char *)(buf+0) | 0x0C; /* Table 19 -> signaling */
 
-	*(UInteger8 *)(buf+32) = 0x05; //Table 23 -> all other
+	*(uint8_t *)(buf+32) = 0x05; //Table 23 -> all other
 
 	/* target portIdentity */
 	memcpy((buf+34), &DSPAR(ppi)->parentPortIdentity.clockIdentity,

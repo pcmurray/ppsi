@@ -53,9 +53,9 @@ struct ptp_announce { /* page 129 (149 of pdf) */
 	struct stamp	originTimestamp;		/* 34 */
 	int16_t		currentUtcOffset;		/* 44 */
 	uint8_t		reserved46;
-	UInteger8	grandmasterPriority1;		/* 47 */
+	uint8_t		grandmasterPriority1;		/* 47 */
 	ClockQuality	grandmasterClockQuality;	/* 48 */
-	UInteger8	grandmasterPriority2;		/* 52 */
+	uint8_t		grandmasterPriority2;		/* 52 */
 	ClockIdentity	grandmasterIdentity;		/* 53 */
 	UInteger16	stepsRemoved;			/* 61 */
 	Enumeration8	timeSource;			/* 63 */

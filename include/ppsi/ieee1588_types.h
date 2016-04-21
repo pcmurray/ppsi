@@ -16,7 +16,6 @@
 /* See F.2, pag.223 */
 #define PP_ETHERTYPE	0x88f7
 
-typedef uint8_t		UInteger8;
 typedef uint16_t	UInteger16;
 typedef uint32_t	UInteger32;
 /* Enumerations are unsigned, see 5.4.2, page 15 */
@@ -110,7 +109,7 @@ struct TLV { /* page 14 (34) -- never used */
 };
 
 struct PTPText { /* page 14 (34) -- never used */
-	UInteger8	lengthField;
+	uint8_t		lengthField;
 	uint8_t		*textField;
 };
 
@@ -130,12 +129,12 @@ typedef struct MsgHeader {
 	Enumeration4	messageType;
 	UInteger4	versionPTP;
 	UInteger16	messageLength;
-	UInteger8	domainNumber;
+	uint8_t		domainNumber;
 	uint8_t		flagField[2];
 	Integer64	correctionfield;
 	PortIdentity	sourcePortIdentity;
 	UInteger16	sequenceId;
-	UInteger8	controlField;
+	uint8_t		controlField;
 	int8_t	logMessageInterval;
 } MsgHeader;
 
@@ -143,9 +142,9 @@ typedef struct MsgHeader {
 typedef struct MsgAnnounce {
 	Timestamp	originTimestamp;
 	int16_t		currentUtcOffset;
-	UInteger8	grandmasterPriority1;
+	uint8_t		grandmasterPriority1;
 	ClockQuality	grandmasterClockQuality;
-	UInteger8	grandmasterPriority2;
+	uint8_t		grandmasterPriority2;
 	ClockIdentity	grandmasterIdentity;
 	UInteger16	stepsRemoved;
 	Enumeration8	timeSource;
@@ -200,8 +199,8 @@ typedef struct MsgSignaling {
 /* Management Message (table 37, page 137) */
 typedef struct MsgManagement{
 	PortIdentity	targetPortIdentity;
-	UInteger8	startingBoundaryHops;
-	UInteger8	boundaryHops;
+	uint8_t		startingBoundaryHops;
+	uint8_t		boundaryHops;
 	Enumeration4	actionField;
 	char		*tlv;
 } MsgManagement;
@@ -215,9 +214,9 @@ typedef struct DSDefault {		/* page 65 */
 	/* Dynamic */
 	ClockQuality	clockQuality;
 	/* Configurable */
-	UInteger8	priority1;
-	UInteger8	priority2;
-	UInteger8	domainNumber;
+	uint8_t		priority1;
+	uint8_t		priority2;
+	uint8_t		domainNumber;
 	bool		slaveOnly;
 } DSDefault;
 
@@ -241,8 +240,8 @@ typedef struct DSParent {		/* page 68 */
 	int32_t		observedParentClockPhaseChangeRate;
 	ClockIdentity	grandmasterIdentity;
 	ClockQuality	grandmasterClockQuality;
-	UInteger8	grandmasterPriority1;
-	UInteger8	grandmasterPriority2;
+	uint8_t		grandmasterPriority1;
+	uint8_t		grandmasterPriority2;
 } DSParent;
 
 /* Port Data set */
@@ -255,7 +254,7 @@ typedef struct DSPort {			/* page 72 */
 	/* TimeInternal	peerMeanPathDelay; -- not used */
 	/* Configurable */
 	int8_t	logAnnounceInterval;
-	UInteger8	announceReceiptTimeout;
+	uint8_t		announceReceiptTimeout;
 	int8_t	logSyncInterval;
 	/* Enumeration8	delayMechanism; -- not used */
 	UInteger4	versionNumber;
