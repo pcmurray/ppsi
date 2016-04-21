@@ -142,7 +142,7 @@ static int msg_pack_announce(struct pp_instance *ppi)
 
 	/* Announce message */
 	memset((buf + 34), 0, 10);
-	*(Integer16 *) (buf + 44) = htons(DSPRO(ppi)->currentUtcOffset);
+	*(int16_t *) (buf + 44) = htons(DSPRO(ppi)->currentUtcOffset);
 	*(UInteger8 *) (buf + 47) = DSPAR(ppi)->grandmasterPriority1;
 	*(UInteger8 *) (buf + 48) = DSPAR(ppi)->grandmasterClockQuality.clockClass;
 	*(Enumeration8 *) (buf + 49) = DSPAR(ppi)->grandmasterClockQuality.clockAccuracy;

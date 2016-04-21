@@ -21,8 +21,8 @@ struct pp_runtime_opts {
 	Integer32 max_dly; /* Maximum number of nanoseconds of delay */
 	Integer32 ttl;
 	int flags;		/* see below */
-	Integer16 ap, ai;
-	Integer16 s;
+	int16_t ap, ai;
+	int16_t s;
 	int8_t announce_intvl;
 	int sync_intvl;
 	int prio1;
@@ -162,7 +162,7 @@ struct pp_instance {
 	 * foreignMasterDS data set for the purposes of qualifying Announce
 	 * messages */
 	UInteger16 frgn_rec_num;
-	Integer16  frgn_rec_best;
+	int16_t  frgn_rec_best;
 	struct pp_frgn_master frgn_master[PP_NR_FOREIGN_RECORDS];
 
 	DSPort *portDS;				/* page 72 */

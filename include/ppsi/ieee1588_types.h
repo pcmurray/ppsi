@@ -16,7 +16,6 @@
 /* See F.2, pag.223 */
 #define PP_ETHERTYPE	0x88f7
 
-typedef int16_t		Integer16;
 typedef int32_t		Integer32;
 typedef uint8_t		UInteger8;
 typedef uint16_t	UInteger16;
@@ -64,7 +63,7 @@ typedef struct TimeInternal {
 	Integer32	nanoseconds;
 	/* White Rabbit extension begin */
 	Integer32	phase;		/* This is the set point */
-	int 		correct;	/* 0 or 1 */
+	int		correct;	/* 0 or 1 */
 #if 0
 	/*
 	 * The following two fields may be used for diagnostics, but
@@ -144,7 +143,7 @@ typedef struct MsgHeader {
 /* Announce Message (table 25, page 129) */
 typedef struct MsgAnnounce {
 	Timestamp	originTimestamp;
-	Integer16	currentUtcOffset;
+	int16_t		currentUtcOffset;
 	UInteger8	grandmasterPriority1;
 	ClockQuality	grandmasterClockQuality;
 	UInteger8	grandmasterPriority2;
@@ -268,7 +267,7 @@ typedef struct DSPort {			/* page 72 */
 /* Time Properties Data Set */
 typedef struct DSTimeProperties {	/* page 70 */
 	/* Dynamic */
-	Integer16	currentUtcOffset;
+	int16_t	        currentUtcOffset;
 	bool		currentUtcOffsetValid;
 	bool		leap59;
 	bool		leap61;

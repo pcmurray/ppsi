@@ -51,7 +51,7 @@ struct stamp {
 
 struct ptp_announce { /* page 129 (149 of pdf) */
 	struct stamp	originTimestamp;		/* 34 */
-	Integer16	currentUtcOffset;		/* 44 */
+	int16_t		currentUtcOffset;		/* 44 */
 	uint8_t		reserved46;
 	UInteger8	grandmasterPriority1;		/* 47 */
 	ClockQuality	grandmasterClockQuality;	/* 48 */

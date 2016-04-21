@@ -197,7 +197,7 @@ int msg_pack_wrsig(struct pp_instance *ppi, Enumeration16 wr_msg_id)
 	/* header len */
 	put_be16(buf + 2, WR_SIGNALING_MSG_BASE_LENGTH + len);
 	/* TLV len */
-	*(Integer16 *)(buf+46) = htons(len);
+	*(int16_t *)(buf+46) = htons(len);
 
 	/* FIXME diagnostic */
 	return WR_SIGNALING_MSG_BASE_LENGTH + len;
