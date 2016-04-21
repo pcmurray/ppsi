@@ -216,7 +216,7 @@ struct FaultRecord { /* page 14 (34) -- never used */
 /* Common Message header (table 18, page 124) */
 typedef struct MsgHeader {
 	Nibble		transportSpecific;
-	Enumeration4	messageType;
+	enum pp_std_messages	messageType;
 	UInteger4	versionPTP;
 	uint16_t	messageLength;
 	uint8_t		domainNumber;
