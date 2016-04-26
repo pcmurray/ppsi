@@ -15,7 +15,7 @@
  * Runtime options. Default values can be overridden by command line.
  */
 struct pp_runtime_opts {
-	ClockQuality clock_quality;
+	struct clock_quality clock_quality;
 	TimeInternal inbound_latency, outbound_latency;
 	int32_t max_rst; /* Maximum number of nanoseconds to reset */
 	int32_t max_dly; /* Maximum number of nanoseconds of delay */

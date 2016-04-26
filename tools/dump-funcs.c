@@ -99,7 +99,7 @@ static void dump_1stamp(char *prefix, char *s, struct stamp *t)
 	       s, (unsigned long)sec, (int)ntohl(t->nsec));
 }
 
-static void dump_1quality(char *prefix, char *s, ClockQuality *q)
+static void dump_1quality(char *prefix, char *s, struct clock_quality *q)
 {
 	printf("%s%s%02x-%02x-%04x\n", prefix, s, q->clockClass,
 	       q->clockAccuracy, q->offsetScaledLogVariance);

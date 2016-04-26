@@ -222,11 +222,11 @@ typedef struct PortAddress { /* page 13 (33) -- never used */
 	uint8_t		*adressField;
 } PortAddress;
 
-typedef struct ClockQuality { /* page 14 (34) -- int because of lib/config.c */
+struct clock_quality { /* page 14 (34) -- int because of lib/config.c */
 	int		clockClass;
 	int		clockAccuracy;
 	int		offsetScaledLogVariance;
-} ClockQuality;
+};
 
 struct TLV { /* page 14 (34) -- never used */
 	enum ENtlvType	tlvType;
@@ -269,7 +269,7 @@ typedef struct MsgAnnounce {
 	Timestamp	originTimestamp;
 	int16_t		currentUtcOffset;
 	uint8_t		grandmasterPriority1;
-	ClockQuality	grandmasterClockQuality;
+	struct clock_quality	grandmasterClockQuality;
 	uint8_t		grandmasterPriority2;
 	struct clock_identity	grandmasterIdentity;
 	uint16_t	stepsRemoved;
@@ -338,7 +338,7 @@ typedef struct DSDefault {		/* page 65 */
 	struct clock_identity	clockIdentity;
 	uint16_t	numberPorts;
 	/* Dynamic */
-	ClockQuality	clockQuality;
+	struct clock_quality	clockQuality;
 	/* Configurable */
 	uint8_t		priority1;
 	uint8_t		priority2;
@@ -365,7 +365,7 @@ typedef struct DSParent {		/* page 68 */
 	uint16_t	observedParentOffsetScaledLogVariance;
 	int32_t		observedParentClockPhaseChangeRate;
 	struct clock_identity	grandmasterIdentity;
-	ClockQuality	grandmasterClockQuality;
+	struct clock_quality	grandmasterClockQuality;
 	uint8_t		grandmasterPriority1;
 	uint8_t		grandmasterPriority2;
 } DSParent;

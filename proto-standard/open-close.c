@@ -59,7 +59,7 @@ int pp_init_globals(struct pp_globals *ppg, struct pp_runtime_opts *pp_rt_opts)
 	rt_opts = ppg->rt_opts;
 
 	memcpy(&def->clockQuality, &rt_opts->clock_quality,
-		   sizeof(ClockQuality));
+	       sizeof(def->clockQuality));
 
 	if (def->numberPorts == 1)
 		def->slaveOnly = (INST(ppg, 0)->role == PPSI_ROLE_SLAVE);

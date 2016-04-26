@@ -116,7 +116,7 @@ static int bmc_dataset_cmp(struct pp_instance *ppi,
 			   struct pp_frgn_master *a,
 			   struct pp_frgn_master *b)
 {
-	struct ClockQuality *qa, *qb;
+	struct clock_quality *qa, *qb;
 	struct MsgAnnounce *aa = &a->ann;
 	struct MsgAnnounce *ab = &b->ann;
 	struct clock_identity *ida = &a->hdr.sourcePortIdentity.clockIdentity;
