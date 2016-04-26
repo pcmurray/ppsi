@@ -61,7 +61,7 @@ void pp_timeout_set(struct pp_instance *ppi, int index)
 		uint32_t *p;
 		/* use the least 32 bits of the mac address as seed */
 		p = (void *)(&DSDEF(ppi)->clockIdentity)
-			+ sizeof(ClockIdentity) - 4;
+			+ sizeof(struct clock_identity) - 4;
 		seed = *p;
 	}
 	/* From uclibc: they make 11 + 10 + 10 bits, we stop at 21 */

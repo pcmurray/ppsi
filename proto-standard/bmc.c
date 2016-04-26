@@ -102,7 +102,7 @@ static void copy_d0(struct pp_instance *ppi, struct pp_frgn_master *m)
 	hdr->sourcePortIdentity.clockIdentity = defds->clockIdentity;
 }
 
-static int idcmp(struct ClockIdentity *a, struct ClockIdentity *b)
+static int idcmp(struct clock_identity *a, struct clock_identity *b)
 {
 	return memcmp(a, b, sizeof(*a));
 }
@@ -119,9 +119,9 @@ static int bmc_dataset_cmp(struct pp_instance *ppi,
 	struct ClockQuality *qa, *qb;
 	struct MsgAnnounce *aa = &a->ann;
 	struct MsgAnnounce *ab = &b->ann;
-	struct ClockIdentity *ida = &a->hdr.sourcePortIdentity.clockIdentity;
-	struct ClockIdentity *idb = &b->hdr.sourcePortIdentity.clockIdentity;
-	struct ClockIdentity *idparent;
+	struct clock_identity *ida = &a->hdr.sourcePortIdentity.clockIdentity;
+	struct clock_identity *idb = &b->hdr.sourcePortIdentity.clockIdentity;
+	struct clock_identity *idparent;
 	int diff;
 
 	/* dataset_cmp is called several times, so report only at level 2 */

@@ -105,7 +105,7 @@ static void dump_1quality(char *prefix, char *s, ClockQuality *q)
 	       q->clockAccuracy, q->offsetScaledLogVariance);
 }
 
-static void dump_1clockid(char *prefix, char *s, ClockIdentity i)
+static void dump_1clockid(char *prefix, char *s, struct clock_identity i)
 {
 	printf("%s%s%02x-%02x-%02x-%02x-%02x-%02x-%02x-%02x\n", prefix, s,
 	       i.id[0], i.id[1], i.id[2], i.id[3],

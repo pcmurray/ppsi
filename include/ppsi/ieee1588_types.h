@@ -206,13 +206,13 @@ static inline void clear_TimeInternal(struct TimeInternal *t)
 	memset(t, 0, sizeof(*t));
 }
 
-typedef struct ClockIdentity { /* page 13 (33) */
+struct clock_identity { /* page 13 (33) */
 	uint8_t		id[8];
-} ClockIdentity;
-#define PP_CLOCK_IDENTITY_LENGTH	sizeof(ClockIdentity)
+};
+#define PP_CLOCK_IDENTITY_LENGTH	sizeof(struct clock_identity)
 
 typedef struct PortIdentity { /* page 13 (33) */
-	ClockIdentity	clockIdentity;
+	struct clock_identity	clockIdentity;
 	uint16_t	portNumber;
 } PortIdentity;
 
@@ -271,7 +271,7 @@ typedef struct MsgAnnounce {
 	uint8_t		grandmasterPriority1;
 	ClockQuality	grandmasterClockQuality;
 	uint8_t		grandmasterPriority2;
-	ClockIdentity	grandmasterIdentity;
+	struct clock_identity	grandmasterIdentity;
 	uint16_t	stepsRemoved;
 	enum ENTimeSource	timeSource;
 	unsigned long	ext_specific;	/* used by extension */
@@ -335,7 +335,7 @@ typedef struct MsgManagement{
 typedef struct DSDefault {		/* page 65 */
 	/* Static */
 	bool		twoStepFlag;
-	ClockIdentity	clockIdentity;
+	struct clock_identity	clockIdentity;
 	uint16_t	numberPorts;
 	/* Dynamic */
 	ClockQuality	clockQuality;
@@ -364,7 +364,7 @@ typedef struct DSParent {		/* page 68 */
 	/* bool		parentStats; -- not used */
 	uint16_t	observedParentOffsetScaledLogVariance;
 	int32_t		observedParentClockPhaseChangeRate;
-	ClockIdentity	grandmasterIdentity;
+	struct clock_identity	grandmasterIdentity;
 	ClockQuality	grandmasterClockQuality;
 	uint8_t		grandmasterPriority1;
 	uint8_t		grandmasterPriority2;
