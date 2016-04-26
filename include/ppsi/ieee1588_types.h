@@ -211,10 +211,10 @@ struct clock_identity { /* page 13 (33) */
 };
 #define PP_CLOCK_IDENTITY_LENGTH	sizeof(struct clock_identity)
 
-typedef struct PortIdentity { /* page 13 (33) */
+struct port_identity { /* page 13 (33) */
 	struct clock_identity	clockIdentity;
 	uint16_t	portNumber;
-} PortIdentity;
+};
 
 typedef struct PortAdress { /* page 13 (33) */
 	enum ENNetworkProtocol	networkProtocol;
@@ -258,7 +258,7 @@ typedef struct MsgHeader {
 	uint8_t		domainNumber;
 	uint8_t		flagField[2];
 	int64_t		correctionfield;
-	PortIdentity	sourcePortIdentity;
+	struct port_identity	sourcePortIdentity;
 	uint16_t	sequenceId;
 	uint8_t		controlField;
 	int8_t	logMessageInterval;
@@ -296,7 +296,7 @@ typedef struct MsgFollowUp {
 /* DelayResp Message (table 28, page 130) */
 typedef struct MsgDelayResp {
 	Timestamp	receiveTimestamp;
-	PortIdentity	requestingPortIdentity;
+	struct port_identity	requestingPortIdentity;
 } MsgDelayResp;
 
 /* PdelayReq Message (table 29, page 131) */
@@ -307,24 +307,24 @@ typedef struct MsgPDelayReq {
 /* PdelayResp Message (table 30, page 131) */
 typedef struct MsgPDelayResp {
 	Timestamp	requestReceiptTimestamp;
-	PortIdentity	requestingPortIdentity;
+	struct port_identity	requestingPortIdentity;
 } MsgPDelayResp;
 
 /* PdelayRespFollowUp Message (table 31, page 132) */
 typedef struct MsgPDelayRespFollowUp {
 	Timestamp	responseOriginTimestamp;
-	PortIdentity	requestingPortIdentity;
+	struct port_identity	requestingPortIdentity;
 } MsgPDelayRespFollowUp;
 
 /* Signaling Message (table 33, page 133) */
 typedef struct MsgSignaling {
-	PortIdentity	targetPortIdentity;
+	struct port_identity	targetPortIdentity;
 	char		*tlv;
 } MsgSignaling;
 
 /* Management Message (table 37, page 137) - never used */
 typedef struct MsgManagement{
-	PortIdentity	targetPortIdentity;
+	struct port_identity	targetPortIdentity;
 	uint8_t		startingBoundaryHops;
 	uint8_t		boundaryHops;
 	enum ENactionField	actionField;
@@ -360,7 +360,7 @@ typedef struct DSCurrent {		/* page 67 */
 /* Parent Data Set */
 typedef struct DSParent {		/* page 68 */
 	/* Dynamic */
-	PortIdentity	parentPortIdentity;
+	struct port_identity	parentPortIdentity;
 	/* bool		parentStats; -- not used */
 	uint16_t	observedParentOffsetScaledLogVariance;
 	int32_t		observedParentClockPhaseChangeRate;
@@ -373,7 +373,7 @@ typedef struct DSParent {		/* page 68 */
 /* Port Data set */
 typedef struct DSPort {			/* page 72 */
 	/* Static */
-	PortIdentity	portIdentity;
+	struct port_identity	portIdentity;
 	/* Dynamic */
 	/* Enumeration8	portState; -- not used */
 	int8_t		logMinDelayReqInterval; /* -- same as pdelay one */

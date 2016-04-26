@@ -71,7 +71,7 @@ struct pp_channel {
  * it is called foreignMasterDS, see 9.3.2.4
  */
 struct pp_frgn_master {
-	PortIdentity port_id;	/* used to identify old/new masters */
+	struct port_identity port_id;	/* used to identify old/new masters */
 
 	/* We don't need all fields of the following ones */
 	MsgAnnounce ann;
