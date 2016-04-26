@@ -153,23 +153,23 @@ typedef struct uint48_wire {
 	uint32_t	lsdw;
 } __attribute__((packed)) uint48_wire;
 
-typedef struct Integer64 {
-	uint32_t	lsb;
-	int32_t		msb;
-} Integer64;
+typedef struct uint64_wire {
+	uint32_t	msdw;
+	uint32_t	lsdw;
+} uint64_wire;
 
-typedef struct UInteger64 {
-	uint32_t	lsb;
-	uint32_t		msb;
-} UInteger64;
+typedef struct int64_wire {
+	int32_t		msdw;
+	uint32_t	lsdw;
+} int64_wire;
 
 struct TimeInterval { /* page 12 (32) -- never used */
-	Integer64	scaledNanoseconds;
+	int64_t		scaledNanoseconds;
 };
 
 /* White Rabbit extension */
 typedef struct FixedDelta {
-	UInteger64 scaledPicoseconds;
+	uint64_t	scaledPicoseconds;
 } FixedDelta;
 
 typedef struct Timestamp { /* page 13 (33) -- no typedef expected */
@@ -257,7 +257,7 @@ typedef struct MsgHeader {
 	uint16_t	messageLength;
 	uint8_t		domainNumber;
 	uint8_t		flagField[2];
-	Integer64	correctionfield;
+	int64_t		correctionfield;
 	PortIdentity	sourcePortIdentity;
 	uint16_t	sequenceId;
 	uint8_t		controlField;

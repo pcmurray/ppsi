@@ -9,15 +9,13 @@
 #include <limits.h>
 #include <ppsi/ppsi.h>
 
-void cField_to_TimeInternal(TimeInternal *internal, Integer64 cField)
+void cField_to_TimeInternal(TimeInternal *internal, int64_t cField)
 {
 	uint64_t i64;
 
-	i64 = cField.lsb;
-	i64 |= ((int64_t)cField.msb) << 32;
-
-	if ((int32_t)cField.msb < 0)
+	if (cField < 0)
 		pp_error("BUG: %s doesn't support negatives\n", __func__);
+	i64 = cField;
 
 	/*
 	 * the correctionField is nanoseconds scaled by 16 bits.

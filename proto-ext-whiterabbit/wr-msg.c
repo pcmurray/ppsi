@@ -178,17 +178,18 @@ int msg_pack_wrsig(struct pp_instance *ppi, uint16_t wr_msg_id)
 		break;
 
 	case CALIBRATED: /* new fsm */
-		/* delta TX */
-		put_be32(buf+56, WR_DSPOR(ppi)->deltaTx.scaledPicoseconds.msb);
-		put_be32(buf+60, WR_DSPOR(ppi)->deltaTx.scaledPicoseconds.lsb);
+	{
+		uint64_t dtx = WR_DSPOR(ppi)->deltaTx.scaledPicoseconds,
+			drx = WR_DSPOR(ppi)->deltaRx.scaledPicoseconds;
 
+		/* delta TX */
+		uint64_internal_to_wire((uint64_wire *)(buf + 56), &dtx);
 		/* delta RX */
-		put_be32(buf+64, WR_DSPOR(ppi)->deltaRx.scaledPicoseconds.msb);
-		put_be32(buf+68, WR_DSPOR(ppi)->deltaRx.scaledPicoseconds.lsb);
+		uint64_internal_to_wire((uint64_wire *)(buf + 64), &drx);
 		len = 24;
 
 		break;
-
+	}
 	default:
 		/* only WR TLV "header" and wrMessageID */
 		len = 8;
@@ -266,19 +267,17 @@ void msg_unpack_wrsig(struct pp_instance *ppi, void *buf,
 		break;
 
 	case CALIBRATED:
+	{
+		uint64_t sp;
+
 		/* delta TX */
-		WR_DSPOR(ppi)->otherNodeDeltaTx.scaledPicoseconds.msb =
-			get_be32(buf+56);
-		WR_DSPOR(ppi)->otherNodeDeltaTx.scaledPicoseconds.lsb =
-			get_be32(buf+60);
-
+		uint64_wire_to_internal(&sp, (uint64_wire *)(buf + 56));
+		WR_DSPOR(ppi)->otherNodeDeltaTx.scaledPicoseconds = sp;
 		/* delta RX */
-		WR_DSPOR(ppi)->otherNodeDeltaRx.scaledPicoseconds.msb =
-			get_be32(buf+64);
-		WR_DSPOR(ppi)->otherNodeDeltaRx.scaledPicoseconds.lsb =
-			get_be32(buf+68);
+		uint64_wire_to_internal(&sp, (uint64_wire *)(buf + 64));
+		WR_DSPOR(ppi)->otherNodeDeltaRx.scaledPicoseconds = sp;
 		break;
-
+	}
 	default:
 		/* no data */
 		break;

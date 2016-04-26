@@ -13,6 +13,7 @@
 int msg_unpack_header(struct pp_instance *ppi, void *buf, int plen)
 {
 	MsgHeader *hdr = &ppi->received_ptp_header;
+	int64_wire *cf = (int64_wire *)(buf + 8);
 
 	hdr->transportSpecific = (*(uint8_t *) (buf + 0)) >> 4;
 	hdr->messageType = (*(uint8_t *) (buf + 0)) & 0x0F;
@@ -24,10 +25,7 @@ int msg_unpack_header(struct pp_instance *ppi, void *buf, int plen)
 
 	memcpy(hdr->flagField, (buf + 6), PP_FLAG_FIELD_LENGTH);
 
-	memcpy(&hdr->correctionfield.msb, (buf + 8), 4);
-	memcpy(&hdr->correctionfield.lsb, (buf + 12), 4);
-	hdr->correctionfield.msb = htonl(hdr->correctionfield.msb);
-	hdr->correctionfield.lsb = htonl(hdr->correctionfield.lsb);
+	int64_wire_to_internal(&hdr->correctionfield, cf);
 	memcpy(&hdr->sourcePortIdentity.clockIdentity, (buf + 20),
 	       PP_CLOCK_IDENTITY_LENGTH);
 	hdr->sourcePortIdentity.portNumber =
@@ -214,9 +212,11 @@ void msg_pack_pdelay_resp_follow_up(struct pp_instance *ppi,
 {
 	void *buf;
 	timestamp_wire *ts;
+	int64_wire *cf;
 
 	buf = ppi->tx_ptp;
 	ts = buf + 34;
+	cf = buf + 8;
 
 	/* header */
 	*(char *)(buf + 0) = *(char *)(buf + 0) & 0xF0;
@@ -226,8 +226,7 @@ void msg_pack_pdelay_resp_follow_up(struct pp_instance *ppi,
 	*(uint16_t *) (buf + 2) = htons(PP_PDELAY_RESP_LENGTH);
 	*(uint8_t *) (buf + 4) = hdr->domainNumber;
 	/* copy the correction field, 11.4.3 c.3) */
-	*(int32_t *) (buf + 8) = htonl(hdr->correctionfield.msb);
-	*(int32_t *) (buf + 12) = htonl(hdr->correctionfield.lsb);
+	int64_internal_to_wire(cf, &hdr->correctionfield);
 
 	*(uint16_t *) (buf + 30) = htons(hdr->sequenceId);
 	*(uint8_t *) (buf + 32) = 0x05;	/* controlField */
@@ -362,8 +361,10 @@ static void msg_pack_delay_resp(struct pp_instance *ppi,
 {
 	void *buf;
 	timestamp_wire *ts;
+	int64_wire *cf;
 
 	buf = ppi->tx_ptp;
+	cf = buf + 8;
 	ts = buf + 34;
 
 	/* changes in header */
@@ -377,8 +378,7 @@ static void msg_pack_delay_resp(struct pp_instance *ppi,
 	memset((buf + 8), 0, 8);
 
 	/* Copy correctionField of delayReqMessage */
-	*(int32_t *) (buf + 8) = htonl(hdr->correctionfield.msb);
-	*(int32_t *) (buf + 12) = htonl(hdr->correctionfield.lsb);
+	int64_internal_to_wire(cf, &hdr->correctionfield);
 
 	*(uint16_t *) (buf + 30) = htons(hdr->sequenceId);
 

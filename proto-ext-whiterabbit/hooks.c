@@ -73,9 +73,8 @@ static int wr_listening(struct pp_instance *ppi, unsigned char *pkt, int plen)
 
 static int wr_handle_preq(struct pp_instance *ppi)
 {
-	ppi->received_ptp_header.correctionfield.msb = 0;
-	ppi->received_ptp_header.correctionfield.lsb =
-		phase_to_cf_units(ppi->last_rcv_time.phase);
+	ppi->received_ptp_header.correctionfield =
+	    phase_to_cf_units(ppi->last_rcv_time.phase);
 	return 0;
 }
 
@@ -92,8 +91,7 @@ static int wr_master_msg(struct pp_instance *ppi, unsigned char *pkt, int plen,
 
 	/* This case is modified from the default one */
 	case PPM_DELAY_REQ:
-		hdr->correctionfield.msb = 0;
-		hdr->correctionfield.lsb =
+		hdr->correctionfield =
 			phase_to_cf_units(ppi->last_rcv_time.phase);
 		msg_issue_delay_resp(ppi, time); /* no error check */
 		msgtype = PPM_NOTHING_TO_DO;
@@ -160,7 +158,7 @@ static int wr_handle_resp(struct pp_instance *ppi)
 			wrp->ops->enable_timing_output(ppi, 1);
 
 	}
-	wr_servo_got_delay(ppi, hdr->correctionfield.lsb);
+	wr_servo_got_delay(ppi, hdr->correctionfield);
 	wr_servo_update(ppi);
 	return 0;
 }
@@ -254,7 +252,7 @@ static int wr_handle_presp(struct pp_instance *ppi)
 		return 0;
 	}
 
-	ppi->t4_cf = hdr->correctionfield.lsb;
+	ppi->t4_cf = hdr->correctionfield & 0xffffffff;
 	wr_servo_got_delay(ppi, ppi->t4_cf);
 	return 0;
 }

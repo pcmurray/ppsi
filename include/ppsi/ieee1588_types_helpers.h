@@ -17,6 +17,30 @@ static inline void uint48_wire_to_internal(uint64_t *dst,
 	*dst = ntohl(src->lsdw) + (((uint64_t)ntohs(src->msw)) << 32);
 }
 
+static inline void uint64_internal_to_wire(uint64_wire *dst,
+					   const uint64_t *src)
+{
+	dst->lsdw = htonl(*src & 0xffffffffULL);
+	dst->msdw = htonl(*src >> 32);
+}
+
+static inline void uint64_wire_to_internal(uint64_t *dst,
+					   const uint64_wire *src)
+{
+	*dst = ntohl(src->lsdw) + (((uint64_t)ntohl(src->msdw)) << 32);
+}
+
+static inline void int64_internal_to_wire(int64_wire *dst, const int64_t *src)
+{
+	dst->lsdw = htonl(*src & 0xffffffffULL);
+	dst->msdw = htonl(*src >> 32);
+}
+
+static inline void int64_wire_to_internal(int64_t *dst, const int64_wire *src)
+{
+	*dst = ntohl(src->lsdw) + (((uint64_t)ntohl(src->msdw)) << 32);
+}
+
 static inline void timestamp_internal_to_wire(timestamp_wire *dst,
 					      const Timestamp *src)
 {

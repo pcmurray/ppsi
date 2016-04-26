@@ -57,7 +57,7 @@ static inline struct wr_dsport *WR_DSPOR(struct pp_instance *ppi)
 	return ppi->portDS->ext_dsport;
 }
 
-static inline int32_t phase_to_cf_units(int32_t phase)
+static inline int64_t phase_to_cf_units(int32_t phase)
 {
 	uint64_t ph64;
 	if (phase >= 0) {
@@ -135,7 +135,7 @@ void wr_servo_reset(struct pp_instance *ppi);
 void wr_servo_enable_tracking(int enable);
 int wr_servo_got_sync(struct pp_instance *ppi, TimeInternal *t1,
 		      TimeInternal *t2);
-int wr_servo_got_delay(struct pp_instance *ppi, int32_t cf);
+int wr_servo_got_delay(struct pp_instance *ppi, int64_t cf);
 int wr_servo_update(struct pp_instance *ppi);
 
 struct wr_servo_state {

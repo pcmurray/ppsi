@@ -9,6 +9,25 @@
 #include <ppsi/ppsi.h>
 #include "wr-api.h"
 
+static inline uint64_t delta_to_scaled_ps(uint32_t delta)
+{
+	uint64_t d = delta, spm, spl;
+
+	spm = 0xffffffffUL & (d >> 16);
+	spl = 0xffffffffUL & (d << 16);
+	return (spm << 32) | spl;
+}
+
+static inline void print_scaled_ps(struct pp_instance *ppi, const char *s,
+				   uint64_t sps)
+{
+	uint32_t h = sps >> 32;
+	uint32_t l = sps & 0xffffffffULL;
+
+	pp_diag(ppi, ext, 1, "%s=>>scaledPicoseconds.msb = 0x%x\n", s, h);
+	pp_diag(ppi, ext, 1, "%s=>>scaledPicoseconds.lsb = 0x%x\n", s, l);
+}
+
 /*
  * We enter this state from  WRS_M_LOCK or WRS_RESP_CALIB_REQ.
  * We send CALIBRATE and do the hardware steps; finally we send CALIBRATED.
@@ -61,15 +80,10 @@ int wr_calibration(struct pp_instance *ppi, unsigned char *pkt, int plen)
 		/* wait until Tx calibration is finished */
 		if (wrp->ops->calib_poll(ppi, WR_HW_CALIB_TX, &delta) ==
 			WR_HW_CALIB_READY) {
-			wrp->deltaTx.scaledPicoseconds.msb =
-				0xFFFFFFFF & (((uint64_t)delta) >> 16);
-			wrp->deltaTx.scaledPicoseconds.lsb =
-				0xFFFFFFFF & (((uint64_t)delta) << 16);
-			pp_diag(ppi, ext, 1, "Tx=>>scaledPicoseconds.msb = 0x%x\n",
-				wrp->deltaTx.scaledPicoseconds.msb);
-			pp_diag(ppi, ext, 1, "Tx=>>scaledPicoseconds.lsb = 0x%x\n",
-				wrp->deltaTx.scaledPicoseconds.lsb);
-
+			wrp->deltaTx.scaledPicoseconds =
+				delta_to_scaled_ps(delta);
+			print_scaled_ps(ppi, "Tx",
+					wrp->deltaTx.scaledPicoseconds);
 			wrp->wrPortState = WR_PORT_CALIBRATION_3;
 		} else {
 			break; /* again */
@@ -103,15 +117,10 @@ int wr_calibration(struct pp_instance *ppi, unsigned char *pkt, int plen)
 		if (wrp->ops->calib_poll(ppi, WR_HW_CALIB_RX, &delta) ==
 			WR_HW_CALIB_READY) {
 			pp_diag(ppi, ext, 1, "Rx fixed delay = %d\n", (int)delta);
-			wrp->deltaRx.scaledPicoseconds.msb =
-				0xFFFFFFFF & (delta >> 16);
-			wrp->deltaRx.scaledPicoseconds.lsb =
-				0xFFFFFFFF & (delta << 16);
-			pp_diag(ppi, ext, 1, "Rx=>>scaledPicoseconds.msb = 0x%x\n",
-				wrp->deltaRx.scaledPicoseconds.msb);
-			pp_diag(ppi, ext, 1, "Rx=>>scaledPicoseconds.lsb = 0x%x\n",
-				wrp->deltaRx.scaledPicoseconds.lsb);
-
+			wrp->deltaRx.scaledPicoseconds =
+				delta_to_scaled_ps(delta);
+			print_scaled_ps(ppi, "Rx",
+					wrp->deltaRx.scaledPicoseconds);
 			wrp->wrPortState = WR_PORT_CALIBRATION_7;
 		} else {
 			break; /* again */
