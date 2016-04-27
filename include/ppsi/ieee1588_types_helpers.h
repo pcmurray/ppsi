@@ -69,4 +69,20 @@ static inline void timestamp_internal_to_time_internal(TimeInternal *dst,
 	dst->nanoseconds = src->nanosecondsField;
 }
 
+static inline int clock_id_cmp(const struct clock_identity *a,
+			       const struct clock_identity *b)
+{
+	return memcmp(a, b, sizeof(*a));
+}
+
+static inline int port_id_cmp(const struct port_identity *a,
+			      const struct port_identity *b)
+{
+	int ret;
+
+	ret = clock_id_cmp(&a->clockIdentity, &b->clockIdentity);
+	if (ret)
+		return ret;
+	return a->portNumber - b->portNumber;
+}
 #endif /* __IEEE1588_TYPES_HELPERS_H__ */
