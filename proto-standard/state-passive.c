@@ -12,7 +12,7 @@
 int pp_passive(struct pp_instance *ppi, unsigned char *pkt, int plen)
 {
 	int e = 0; /* error var, to check errors in msg handling */
-	MsgHeader *hdr = &ppi->received_ptp_header;
+	struct msg_header_wire *hdr = &ppi->received_ptp_header;
 	MsgPDelayRespFollowUp respFllw;
 
 	/* when the clock is using peer-delay, listening must send it too */
@@ -22,7 +22,7 @@ int pp_passive(struct pp_instance *ppi, unsigned char *pkt, int plen)
 	if (plen == 0)
 		goto no_incoming_msg;
 
-	switch (ppi->received_ptp_header.messageType) {
+	switch (msg_hdr_get_msg_type(&ppi->received_ptp_header))  {
 
 	case PPM_ANNOUNCE:
 		e = st_com_master_handle_announce(ppi, pkt, plen);
@@ -50,7 +50,7 @@ int pp_passive(struct pp_instance *ppi, unsigned char *pkt, int plen)
 			    &respFllw.requestingPortIdentity.clockIdentity,
 			    PP_CLOCK_IDENTITY_LENGTH) == 0) &&
 		    ((ppi->sent_seq[PPM_PDELAY_REQ]) ==
-		     hdr->sequenceId) &&
+		     msg_hdr_get_msg_seq_id(hdr)) &&
 		    (DSPOR(ppi)->portIdentity.portNumber ==
 		     respFllw.requestingPortIdentity.portNumber) &&
 		    (ppi->flags & PPI_FLAG_FROM_CURRENT_PARENT)) {

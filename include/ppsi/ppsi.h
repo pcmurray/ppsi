@@ -148,7 +148,8 @@ struct pp_ext_hooks {
 			  int plen, int msgtype);
 	int (*new_slave)(struct pp_instance *ppi, unsigned char *pkt, int plen);
 	int (*handle_resp)(struct pp_instance *ppi);
-	void (*s1)(struct pp_instance *ppi, MsgHeader *hdr, MsgAnnounce *ann);
+	void (*s1)(struct pp_instance *ppi, struct msg_header_wire *hdr,
+		   MsgAnnounce *ann);
 	int (*execute_slave)(struct pp_instance *ppi);
 	void (*handle_announce)(struct pp_instance *ppi);
 	int (*handle_followup)(struct pp_instance *ppi, TimeInternal *orig,
@@ -368,11 +369,12 @@ extern void msg_unpack_pdelay_resp_follow_up(void *buf,
 					     MsgPDelayRespFollowUp *
 					     pdelay_resp_flwup);
 extern void msg_pack_pdelay_resp_follow_up(struct pp_instance *ppi,
-					   MsgHeader * hdr,
+					   struct msg_header_wire * hdr,
 					   Timestamp * prec_orig_tstamp);
 extern void msg_unpack_pdelay_resp(void *buf, MsgPDelayResp * presp);
 extern void msg_pack_pdelay_resp(struct pp_instance *ppi,
-				 MsgHeader * hdr, Timestamp * rcv_tstamp);
+				 struct msg_header_wire * hdr,
+				 Timestamp * rcv_tstamp);
 extern void msg_unpack_pdelay_req(void *buf, MsgPDelayReq * pdelay_req);
 extern void msg_pack_pdelay_req(struct pp_instance *ppi,
 				Timestamp * orig_tstamp);
@@ -382,7 +384,6 @@ extern void msg_pack_pdelay_req(struct pp_instance *ppi,
 #define PP_SEND_ERROR		-1
 #define PP_SEND_NO_STAMP	1
 
-extern void *msg_copy_header(MsgHeader *dest, MsgHeader *src); /* REMOVE ME!! */
 extern int msg_issue_announce(struct pp_instance *ppi);
 extern int msg_issue_sync_followup(struct pp_instance *ppi);
 extern int msg_issue_request(struct pp_instance *ppi);

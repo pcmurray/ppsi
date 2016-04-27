@@ -10,29 +10,14 @@
 #include "common-fun.h"
 
 /* Unpack header from in buffer to receieved_ptp_header field */
-int msg_unpack_header(struct pp_instance *ppi, void *buf, int plen)
+int msg_unpack_header(struct pp_instance *ppi, void *_buf, int plen)
 {
-	MsgHeader *hdr = &ppi->received_ptp_header;
-	int64_wire *cf = (int64_wire *)(buf + 8);
+	struct msg_header_wire *hdr = &ppi->received_ptp_header;
+	struct msg_header_wire *buf = _buf;
+	const struct clock_identity *cid;
+	struct port_identity pid;
 
-	hdr->transportSpecific = (*(uint8_t *) (buf + 0)) >> 4;
-	hdr->messageType = (*(uint8_t *) (buf + 0)) & 0x0F;
-	hdr->versionPTP = (*(uint8_t *) (buf + 1)) & 0x0F;
-
-	/* force reserved bit to zero if not */
-	hdr->messageLength = htons(*(uint16_t *) (buf + 2));
-	hdr->domainNumber = (*(uint8_t *) (buf + 4));
-
-	memcpy(hdr->flagField, (buf + 6), PP_FLAG_FIELD_LENGTH);
-
-	int64_wire_to_internal(&hdr->correctionfield, cf);
-	memcpy(&hdr->sourcePortIdentity.clockIdentity, (buf + 20),
-	       PP_CLOCK_IDENTITY_LENGTH);
-	hdr->sourcePortIdentity.portNumber =
-		htons(*(uint16_t *) (buf + 28));
-	hdr->sequenceId = htons(*(uint16_t *) (buf + 30));
-	hdr->controlField = (*(uint8_t *) (buf + 32));
-	hdr->logMessageInterval = (*(int8_t *) (buf + 33));
+	msg_hdr_copy(hdr, buf);
 
 	/*
 	 * If the message is from us, we should discard it.
@@ -41,21 +26,17 @@ int msg_unpack_header(struct pp_instance *ppi, void *buf, int plen)
 	 * any port, not only the same port, as we can't sync with
 	 * ourself even when we'll run in multi-port mode.
 	 */
-	if (!memcmp(&ppi->received_ptp_header.sourcePortIdentity.clockIdentity,
-			&DSPOR(ppi)->portIdentity.clockIdentity,
-		    PP_CLOCK_IDENTITY_LENGTH))
+	cid = msg_hdr_get_src_port_id_clock_id(hdr);
+	if (!clock_id_cmp(cid, &DSPOR(ppi)->portIdentity.clockIdentity))
 		return -1;
 
 	/*
 	 * This FLAG_FROM_CURRENT_PARENT must be killed. Meanwhile, say it's
 	 * from current parent if we have no current parent, so the rest works
 	 */
+	msg_hdr_get_src_port_id(&pid, hdr);
 	if (!DSPAR(ppi)->parentPortIdentity.portNumber ||
-	    (!memcmp(&DSPAR(ppi)->parentPortIdentity.clockIdentity,
-			&hdr->sourcePortIdentity.clockIdentity,
-			PP_CLOCK_IDENTITY_LENGTH) &&
-			(DSPAR(ppi)->parentPortIdentity.portNumber ==
-			 hdr->sourcePortIdentity.portNumber)))
+	    !port_id_cmp(&DSPAR(ppi)->parentPortIdentity, &pid))
 		ppi->flags |= PPI_FLAG_FROM_CURRENT_PARENT;
 	else
 		ppi->flags &= ~PPI_FLAG_FROM_CURRENT_PARENT;
@@ -65,20 +46,13 @@ int msg_unpack_header(struct pp_instance *ppi, void *buf, int plen)
 /* Pack header message into out buffer of ppi */
 void msg_pack_header(struct pp_instance *ppi, void *buf)
 {
-	/* (spec annex D and F) */
-	*(uint8_t *) (buf + 0) = 0; /* message type changed later */
-	*(uint8_t *) (buf + 1) = DSPOR(ppi)->versionNumber;
-	*(uint8_t *) (buf + 4) = DSDEF(ppi)->domainNumber;
+	uint8_t flags[2] = { PP_TWO_STEP_FLAG, 0, };
 
-	*(uint8_t *) (buf + 6) = PP_TWO_STEP_FLAG;
-
-	memset((buf + 8), 0, 8);
-	memcpy((buf + 20), &DSPOR(ppi)->portIdentity.clockIdentity,
-	       PP_CLOCK_IDENTITY_LENGTH);
-	*(uint16_t *) (buf + 28) =
-				htons(DSPOR(ppi)->portIdentity.portNumber);
-	*(uint8_t *) (buf + 33) = 0x7F;
-	/* Default value(spec Table 24) */
+	/*
+	 * (spec annex D and F),
+	 * log_msg_intvl is the default value (spec Table 24)
+	 */
+	msg_hdr_init(buf, ppi, flags, 0x7f);
 }
 
 /* Pack Sync message into out buffer of ppi */
@@ -86,25 +60,15 @@ static void msg_pack_sync(struct pp_instance *ppi, Timestamp *orig_tstamp)
 {
 	void *buf;
 	timestamp_wire *ts;
+	uint16_t s;
 
 	buf = ppi->tx_ptp;
 	ts = buf + 34;
 
-	/* changes in header */
-	*(char *)(buf + 0) = *(char *)(buf + 0) & 0xF0;
-	/* RAZ messageType */
-	*(char *)(buf + 0) = *(char *)(buf + 0) | 0x00;
-
-	/* Table 19 */
-	*(uint16_t *) (buf + 2) = htons(PP_SYNC_LENGTH);
-	ppi->sent_seq[PPM_SYNC]++;
-	*(uint16_t *) (buf + 30) = htons(ppi->sent_seq[PPM_SYNC]);
-	*(uint8_t *) (buf + 32) = 0x00;
-
-	/* Table 23 */
-	*(int8_t *) (buf + 33) = DSPOR(ppi)->logSyncInterval;
-	memset((buf + 8), 0, 8);
-
+	s = ppi->sent_seq[PPM_SYNC]++;
+	msg_hdr_prepare(ppi->tx_ptp, PPM_SYNC, PP_SYNC_LENGTH, s, 0,
+			DSPOR(ppi)->logSyncInterval);
+	msg_hdr_set_cf(ppi->tx_ptp, 0ULL);
 	/* Sync message */
 	timestamp_internal_to_wire(ts, orig_tstamp);
 }
@@ -121,19 +85,12 @@ void msg_unpack_sync(void *buf, MsgSync *sync)
 static int msg_pack_announce(struct pp_instance *ppi)
 {
 	void *buf;
+	uint16_t s;
 
 	buf = ppi->tx_ptp;
-	/* changes in header */
-	*(char *)(buf + 0) = *(char *)(buf + 0) & 0xF0;
-	/* RAZ messageType */
-	*(char *)(buf + 0) = *(char *)(buf + 0) | 0x0B;
-	/* Table 19 */
-	*(uint16_t *) (buf + 2) = htons(PP_ANNOUNCE_LENGTH);
-	ppi->sent_seq[PPM_ANNOUNCE]++;
-	*(uint16_t *) (buf + 30) = htons(ppi->sent_seq[PPM_ANNOUNCE]);
-	*(uint8_t *) (buf + 32) = 0x05;
-	/* Table 23 */
-	*(int8_t *) (buf + 33) = DSPOR(ppi)->logAnnounceInterval;
+	s = ppi->sent_seq[PPM_ANNOUNCE]++;
+	msg_hdr_prepare(ppi->tx_ptp, PPM_ANNOUNCE, PP_ANNOUNCE_LENGTH, s, 5,
+			DSPOR(ppi)->logAnnounceInterval);
 
 	/* Announce message */
 	memset((buf + 34), 0, 10);
@@ -182,24 +139,15 @@ void msg_unpack_announce(void *buf, MsgAnnounce *ann)
 static void msg_pack_follow_up(struct pp_instance *ppi, Timestamp *prec_orig_tstamp)
 {
 	void *buf;
+	/* sentSyncSequenceId has already been incremented in msg_issue_sync */
+	uint16_t s = ppi->sent_seq[PPM_SYNC];
+	struct timestamp_wire *ts;
 
 	buf = ppi->tx_ptp;
-	struct timestamp_wire *ts = buf + 34;
+	ts = buf + 34;
 
-	/* changes in header */
-	*(char *)(buf + 0) = *(char *)(buf + 0) & 0xF0;
-	/* RAZ messageType */
-	*(char *)(buf + 0) = *(char *)(buf + 0) | 0x08;
-
-	/* Table 19 */
-	*(uint16_t *) (buf + 2) = htons(PP_FOLLOW_UP_LENGTH);
-	*(uint16_t *) (buf + 30) = htons(ppi->sent_seq[PPM_SYNC]);
-
-	/* sentSyncSequenceId has already been incremented in msg_issue_sync */
-	*(uint8_t *) (buf + 32) = 0x02;
-
-	/* Table 23 */
-	*(int8_t *) (buf + 33) = DSPOR(ppi)->logSyncInterval;
+	msg_hdr_prepare(ppi->tx_ptp, PPM_FOLLOW_UP, PP_FOLLOW_UP_LENGTH, s, 2,
+			DSPOR(ppi)->logSyncInterval);
 
 	/* Follow Up message */
 	timestamp_internal_to_wire(ts, prec_orig_tstamp);
@@ -207,12 +155,13 @@ static void msg_pack_follow_up(struct pp_instance *ppi, Timestamp *prec_orig_tst
 
 /* Pack PDelay Follow Up message into out buffer of ppi*/
 void msg_pack_pdelay_resp_follow_up(struct pp_instance *ppi,
-				    MsgHeader * hdr,
+				    struct msg_header_wire * hdr,
 				    Timestamp * prec_orig_tstamp)
 {
 	void *buf;
 	timestamp_wire *ts;
-	int64_wire *cf;
+	uint64_wire *cf;
+	uint64_t v;
 
 	buf = ppi->tx_ptp;
 	ts = buf + 34;
@@ -224,20 +173,19 @@ void msg_pack_pdelay_resp_follow_up(struct pp_instance *ppi,
 	*(char *)(buf + 0) = *(char *)(buf + 0) | 0x0A;
 
 	*(uint16_t *) (buf + 2) = htons(PP_PDELAY_RESP_LENGTH);
-	*(uint8_t *) (buf + 4) = hdr->domainNumber;
+	*(uint8_t *) (buf + 4) = msg_hdr_get_msg_dn(hdr);
 	/* copy the correction field, 11.4.3 c.3) */
-	int64_internal_to_wire(cf, &hdr->correctionfield);
+	v = msg_hdr_get_cf(hdr);
+	uint64_internal_to_wire(cf, &v);
 
-	*(uint16_t *) (buf + 30) = htons(hdr->sequenceId);
+	*(uint16_t *) (buf + 30) = htons(msg_hdr_get_msg_seq_id(hdr));
 	*(uint8_t *) (buf + 32) = 0x05;	/* controlField */
 
 	/* requestReceiptTimestamp */
 	timestamp_internal_to_wire(ts, prec_orig_tstamp);
 
-	/* requestingPortIdentity */
-	memcpy((buf + 44), &hdr->sourcePortIdentity.clockIdentity,
-	       PP_CLOCK_IDENTITY_LENGTH);
-	*(uint16_t *) (buf + 52) = htons(hdr->sourcePortIdentity.portNumber);
+	/* requestingPortIdentity, FIXME: use proper sizeof() */
+	memcpy((buf + 44), &hdr, 10);
 }
 
 /* Unpack FollowUp message from in buffer of ppi to internal structure */
@@ -267,26 +215,15 @@ static void msg_pack_delay_req(struct pp_instance *ppi, Timestamp *orig_tstamp)
 {
 	void *buf;
 	struct timestamp_wire *ts;
+	uint16_t s = ppi->sent_seq[PPM_DELAY_REQ]++;
 
 	buf = ppi->tx_ptp;
 	ts = buf + 34;
 
-	/* changes in header */
-	*(char *)(buf + 0) = *(char *)(buf + 0) & 0xF0;
-	/* RAZ messageType */
-	*(char *)(buf + 0) = *(char *)(buf + 0) | 0x01;
-
-	/* Table 19 */
-	*(uint16_t *) (buf + 2) = htons(PP_DELAY_REQ_LENGTH);
-	ppi->sent_seq[PPM_DELAY_REQ]++;
-	*(uint16_t *) (buf + 30) = htons(ppi->sent_seq[PPM_DELAY_REQ]);
-	*(uint8_t *) (buf + 32) = 0x01;
-
-	/* Table 23 */
-	*(int8_t *) (buf + 33) = 0x7F;
-
+	msg_hdr_prepare(ppi->tx_ptp, PPM_DELAY_REQ,
+			PP_DELAY_REQ_LENGTH, s, 1, 0x7f);
 	/* Table 24 */
-	memset((buf + 8), 0, 8);
+	msg_hdr_set_cf(ppi->tx_ptp, 0);
 
 	/* Delay_req message */
 	timestamp_internal_to_wire(ts, orig_tstamp);
@@ -325,7 +262,7 @@ void msg_pack_pdelay_req(struct pp_instance *ppi, Timestamp * orig_tstamp)
 
 /* pack PDelayResp message into OUT buffer of ppi */
 void msg_pack_pdelay_resp(struct pp_instance *ppi,
-			  MsgHeader * hdr, Timestamp * rcv_tstamp)
+			  struct msg_header_wire * hdr, Timestamp * rcv_tstamp)
 {
 	void *buf;
 	struct timestamp_wire *ts;
@@ -339,62 +276,41 @@ void msg_pack_pdelay_resp(struct pp_instance *ppi,
 	*(char *)(buf + 0) = *(char *)(buf + 0) | 0x03;
 
 	*(uint16_t *) (buf + 2) = htons(PP_PDELAY_RESP_LENGTH);
-	*(uint8_t *) (buf + 4) = hdr->domainNumber;
+	*(uint8_t *) (buf + 4) = msg_hdr_get_msg_dn(hdr);
 	/* set 0 the correction field, 11.4.3 c.3) */
 	memset((buf + 8), 0, 8);
 
-	*(uint16_t *) (buf + 30) = htons(hdr->sequenceId);
+	*(uint16_t *) (buf + 30) = htons(msg_hdr_get_msg_seq_id(hdr));
 	*(uint8_t *) (buf + 32) = 0x05;	/* controlField */
 
 	/* requestReceiptTimestamp */
 	
 	timestamp_internal_to_wire(ts, rcv_tstamp);
 	/* requestingPortIdentity */
-	memcpy((buf + 44), &hdr->sourcePortIdentity.clockIdentity,
-	       PP_CLOCK_IDENTITY_LENGTH);
-	*(uint16_t *) (buf + 52) = htons(hdr->sourcePortIdentity.portNumber);
+	memcpy((buf + 44), &hdr->spid, sizeof(hdr->spid));
 }
 
 /* pack DelayResp message into OUT buffer of ppi */
 static void msg_pack_delay_resp(struct pp_instance *ppi,
-			 MsgHeader *hdr, Timestamp *rcv_tstamp)
+				struct msg_header_wire *hdr,
+				Timestamp *rcv_tstamp)
 {
 	void *buf;
 	timestamp_wire *ts;
-	int64_wire *cf;
 
 	buf = ppi->tx_ptp;
-	cf = buf + 8;
 	ts = buf + 34;
 
-	/* changes in header */
-	*(char *)(buf + 0) = *(char *)(buf + 0) & 0xF0;
-	/* RAZ messageType */
-	*(char *)(buf + 0) = *(char *)(buf + 0) | 0x09;
-
-	/* Table 19 */
-	*(uint16_t *) (buf + 2) = htons(PP_DELAY_RESP_LENGTH);
-	*(uint8_t *) (buf + 4) = hdr->domainNumber;
-	memset((buf + 8), 0, 8);
-
-	/* Copy correctionField of delayReqMessage */
-	int64_internal_to_wire(cf, &hdr->correctionfield);
-
-	*(uint16_t *) (buf + 30) = htons(hdr->sequenceId);
-
-	*(uint8_t *) (buf + 32) = 0x03;
-
-	/* Table 23 */
-	*(int8_t *) (buf + 33) = DSPOR(ppi)->logMinDelayReqInterval;
-
-	/* Table 24 */
+	msg_hdr_prepare(ppi->tx_ptp, PPM_DELAY_RESP, PP_DELAY_RESP_LENGTH,
+			msg_hdr_get_msg_seq_id(hdr), 3,
+			DSPOR(ppi)->logMinDelayReqInterval);
+	msg_hdr_set_cf(ppi->tx_ptp, msg_hdr_get_cf(hdr));
 
 	/* Delay_resp message */
 	timestamp_internal_to_wire(ts, rcv_tstamp);
-	memcpy((buf + 44), &hdr->sourcePortIdentity.clockIdentity,
-		  PP_CLOCK_IDENTITY_LENGTH);
-	*(uint16_t *) (buf + 52) =
-		htons(hdr->sourcePortIdentity.portNumber);
+	memcpy((buf + 44), msg_hdr_get_src_port_id_clock_id(hdr),
+	       PP_CLOCK_IDENTITY_LENGTH);
+	*(uint16_t *) (buf + 52) = msg_hdr_get_src_port_id_port_no(hdr);
 }
 
 /* Unpack delayReq message from in buffer of ppi to internal structure */

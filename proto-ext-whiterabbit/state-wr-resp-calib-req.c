@@ -38,7 +38,7 @@ int wr_resp_calib_req(struct pp_instance *ppi, unsigned char *pkt, int plen)
 	if (plen == 0)
 		goto out;
 
-	if (ppi->received_ptp_header.messageType == PPM_SIGNALING) {
+	if (msg_hdr_get_msg_type(&ppi->received_ptp_header) == PPM_SIGNALING) {
 
 		msg_unpack_wrsig(ppi, pkt, &wrsig_msg,
 			 &(wrp->msgTmpWrMessageID));

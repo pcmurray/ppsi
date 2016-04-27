@@ -44,16 +44,18 @@ void m1(struct pp_instance *ppi)
 
 
 /* ppi->port_idx port is synchronized to Ebest Table 16 (9.3.5) of the spec. */
-static void s1(struct pp_instance *ppi, MsgHeader *hdr, MsgAnnounce *ann)
+static void s1(struct pp_instance *ppi, struct msg_header_wire *hdr,
+	       MsgAnnounce *ann)
 {
 	struct DSParent *parent = DSPAR(ppi);
 	struct DSTimeProperties *prop = DSPRO(ppi);
+	const uint8_t *flags;
 
 	/* Current DS */
 	DSCUR(ppi)->stepsRemoved = ann->stepsRemoved + 1;
 
 	/* Parent DS */
-	parent->parentPortIdentity = hdr->sourcePortIdentity;
+	msg_hdr_get_src_port_id(&parent->parentPortIdentity, hdr);
 	parent->grandmasterIdentity = ann->grandmasterIdentity;
 	parent->grandmasterClockQuality = ann->grandmasterClockQuality;
 	parent->grandmasterPriority1 = ann->grandmasterPriority1;
@@ -69,18 +71,20 @@ static void s1(struct pp_instance *ppi, MsgHeader *hdr, MsgAnnounce *ann)
 	}
 
 	/* FIXME: can't we just copy the bit keeping values? */
-	prop->currentUtcOffsetValid = ((hdr->flagField[1] & FFB_UTCV)	!= 0);
-	prop->leap59 = ((hdr->flagField[1] & FFB_LI59) != 0);
-	prop->leap61 = ((hdr->flagField[1] & FFB_LI61) != 0);
-	prop->timeTraceable = ((hdr->flagField[1] & FFB_TTRA) != 0);
-	prop->frequencyTraceable = ((hdr->flagField[1] & FFB_FTRA) != 0);
-	prop->ptpTimescale = ((hdr->flagField[1] & FFB_PTP) != 0);
+	flags = msg_hdr_get_flags(hdr);
+	prop->currentUtcOffsetValid = ((flags[1] & FFB_UTCV)	!= 0);
+	prop->leap59 = ((flags[1] & FFB_LI59) != 0);
+	prop->leap61 = ((flags[1] & FFB_LI61) != 0);
+	prop->timeTraceable = ((flags[1] & FFB_TTRA) != 0);
+	prop->frequencyTraceable = ((flags[1] & FFB_FTRA) != 0);
+	prop->ptpTimescale = ((flags[1] & FFB_PTP) != 0);
 
 	if (pp_hooks.s1)
 		pp_hooks.s1(ppi, hdr, ann);
 }
 
-static void p1(struct pp_instance *ppi, MsgHeader *hdr, MsgAnnounce *ann)
+static void p1(struct pp_instance *ppi, struct msg_header_wire *hdr,
+	       MsgAnnounce *ann)
 {
 	/* In the default implementation, nothing should be done when a port goes
 	 * to passive state. This empty function is a placeholder for
@@ -91,7 +95,7 @@ static void p1(struct pp_instance *ppi, MsgHeader *hdr, MsgAnnounce *ann)
 static void copy_d0(struct pp_instance *ppi, struct pp_frgn_master *m)
 {
 	struct DSDefault *defds = DSDEF(ppi);
-	struct MsgHeader *hdr = &m->hdr;
+	struct msg_header_wire *hdr = &m->hdr;
 	struct MsgAnnounce *ann = &m->ann;
 
 	ann->grandmasterIdentity = defds->clockIdentity;
@@ -99,10 +103,10 @@ static void copy_d0(struct pp_instance *ppi, struct pp_frgn_master *m)
 	ann->grandmasterPriority1 = defds->priority1;
 	ann->grandmasterPriority2 = defds->priority2;
 	ann->stepsRemoved = 0;
-	hdr->sourcePortIdentity.clockIdentity = defds->clockIdentity;
+	msg_hdr_set_src_port_id_clock_id(hdr, &defds->clockIdentity);
 }
 
-static int idcmp(struct clock_identity *a, struct clock_identity *b)
+static int idcmp(const struct clock_identity *a, const struct clock_identity *b)
 {
 	return memcmp(a, b, sizeof(*a));
 }
@@ -119,8 +123,10 @@ static int bmc_dataset_cmp(struct pp_instance *ppi,
 	struct clock_quality *qa, *qb;
 	struct MsgAnnounce *aa = &a->ann;
 	struct MsgAnnounce *ab = &b->ann;
-	struct clock_identity *ida = &a->hdr.sourcePortIdentity.clockIdentity;
-	struct clock_identity *idb = &b->hdr.sourcePortIdentity.clockIdentity;
+	const struct clock_identity *ida =
+	    msg_hdr_get_src_port_id_clock_id(&a->hdr);
+	const struct clock_identity *idb =
+	    msg_hdr_get_src_port_id_clock_id(&b->hdr);
 	struct clock_identity *idparent;
 	int diff;
 

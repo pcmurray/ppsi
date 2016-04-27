@@ -73,15 +73,15 @@ static int wr_listening(struct pp_instance *ppi, unsigned char *pkt, int plen)
 
 static int wr_handle_preq(struct pp_instance *ppi)
 {
-	ppi->received_ptp_header.correctionfield =
-	    phase_to_cf_units(ppi->last_rcv_time.phase);
+	msg_hdr_set_cf(&ppi->received_ptp_header,
+		       phase_to_cf_units(ppi->last_rcv_time.phase));
 	return 0;
 }
 
 static int wr_master_msg(struct pp_instance *ppi, unsigned char *pkt, int plen,
 			 int msgtype)
 {
-	MsgHeader *hdr = &ppi->received_ptp_header;
+	struct msg_header_wire *hdr = &ppi->received_ptp_header;
 	MsgSignaling wrsig_msg;
 	TimeInternal *time = &ppi->last_rcv_time;
 
@@ -91,8 +91,8 @@ static int wr_master_msg(struct pp_instance *ppi, unsigned char *pkt, int plen,
 
 	/* This case is modified from the default one */
 	case PPM_DELAY_REQ:
-		hdr->correctionfield =
-			phase_to_cf_units(ppi->last_rcv_time.phase);
+		msg_hdr_set_cf(hdr,
+			       phase_to_cf_units(ppi->last_rcv_time.phase));
 		msg_issue_delay_resp(ppi, time); /* no error check */
 		msgtype = PPM_NOTHING_TO_DO;
 		break;
@@ -127,7 +127,7 @@ static int wr_new_slave(struct pp_instance *ppi, unsigned char *pkt, int plen)
 
 static int wr_handle_resp(struct pp_instance *ppi)
 {
-	MsgHeader *hdr = &ppi->received_ptp_header;
+	struct msg_header_wire *hdr = &ppi->received_ptp_header;
 	TimeInternal correction_field;
 	TimeInternal *ofm = &DSCUR(ppi)->offsetFromMaster;
 	struct wr_dsport *wrp = WR_DSPOR(ppi);
@@ -135,7 +135,7 @@ static int wr_handle_resp(struct pp_instance *ppi)
 	pp_diag(ppi, ext, 2, "hook: %s\n", __func__);
 
 	/* FIXME: check sub-nano relevance of correction filed */
-	cField_to_TimeInternal(&correction_field, hdr->correctionfield);
+	cField_to_TimeInternal(&correction_field, msg_hdr_get_cf(hdr));
 
 	/*
 	 * If no WR mode is on, run normal code, if T2/T3 are valid.
@@ -158,12 +158,13 @@ static int wr_handle_resp(struct pp_instance *ppi)
 			wrp->ops->enable_timing_output(ppi, 1);
 
 	}
-	wr_servo_got_delay(ppi, hdr->correctionfield);
+	wr_servo_got_delay(ppi, msg_hdr_get_cf(hdr));
 	wr_servo_update(ppi);
 	return 0;
 }
 
-static void wr_s1(struct pp_instance *ppi, MsgHeader *hdr, MsgAnnounce *ann)
+static void wr_s1(struct pp_instance *ppi, struct msg_header_wire *hdr,
+		  MsgAnnounce *ann)
 {
 	pp_diag(ppi, ext, 2, "hook: %s\n", __func__);
 	WR_DSPOR(ppi)->parentIsWRnode =
@@ -220,13 +221,13 @@ static int wr_handle_followup(struct pp_instance *ppi,
 
 static int wr_handle_presp(struct pp_instance *ppi)
 {
-	MsgHeader *hdr = &ppi->received_ptp_header;
+	struct msg_header_wire *hdr = &ppi->received_ptp_header;
 	TimeInternal correction_field;
 	struct wr_dsport *wrp = WR_DSPOR(ppi);
 	TimeInternal *ofm = &DSCUR(ppi)->offsetFromMaster;
 
 	/* FIXME: check sub-nano relevance of correction filed */
-	cField_to_TimeInternal(&correction_field, hdr->correctionfield);
+	cField_to_TimeInternal(&correction_field, msg_hdr_get_cf(hdr));
 
 	/*
 	 * If no WR mode is on, run normal code, if T2/T3 are valid.
@@ -252,7 +253,7 @@ static int wr_handle_presp(struct pp_instance *ppi)
 		return 0;
 	}
 
-	ppi->t4_cf = hdr->correctionfield & 0xffffffff;
+	ppi->t4_cf = msg_hdr_get_cf(hdr) & 0xffffffff;
 	wr_servo_got_delay(ppi, ppi->t4_cf);
 	return 0;
 }

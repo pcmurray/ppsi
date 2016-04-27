@@ -16,7 +16,7 @@ int pp_uncalibrated(struct pp_instance *ppi, unsigned char *pkt, int plen)
 	if (plen == 0)
 		goto no_incoming_msg;
 
-	switch (ppi->received_ptp_header.messageType) {
+	switch (msg_hdr_get_msg_type(&ppi->received_ptp_header))  {
 
 	case PPM_ANNOUNCE:
 		e = st_com_slave_handle_announce(ppi, pkt, plen);

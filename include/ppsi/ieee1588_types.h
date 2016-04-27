@@ -269,21 +269,6 @@ struct msg_header_wire {
 	uint8_t		log_msg_intvl;
 } __attribute__((packed));
 
-/* Common Message header (table 18, page 124) */
-typedef struct MsgHeader {
-	uint8_t		transportSpecific;
-	enum pp_std_messages	messageType;
-	uint8_t		versionPTP;
-	uint16_t	messageLength;
-	uint8_t		domainNumber;
-	uint8_t		flagField[2];
-	int64_t		correctionfield;
-	struct port_identity	sourcePortIdentity;
-	uint16_t	sequenceId;
-	uint8_t		controlField;
-	int8_t	logMessageInterval;
-} MsgHeader;
-
 /* Announce Message (table 25, page 129) */
 typedef struct MsgAnnounce {
 	Timestamp	originTimestamp;

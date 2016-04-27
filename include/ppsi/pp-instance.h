@@ -75,7 +75,7 @@ struct pp_frgn_master {
 
 	/* We don't need all fields of the following ones */
 	MsgAnnounce ann;
-	MsgHeader hdr;
+	struct msg_header_wire hdr;
 };
 
 /*
@@ -171,8 +171,7 @@ struct pp_instance {
 	uint16_t recv_sync_sequence_id;
 
 	uint16_t sent_seq[__PP_NR_MESSAGES_TYPES]; /* last sent this type */
-	MsgHeader received_ptp_header;
-
+	struct msg_header_wire received_ptp_header;
 	char *iface_name; /* for direct actions on hardware */
 	char *port_name; /* for diagnostics, mainly */
 	int port_idx;

@@ -16,11 +16,6 @@
 #define ARCH_IS_WRS 0
 #endif
 
-void *msg_copy_header(MsgHeader *dest, MsgHeader *src)
-{
-	return memcpy(dest, src, sizeof(MsgHeader));
-}
-
 static void *__align_pointer(void *p)
 {
 	unsigned long ip, align = 0;
@@ -104,15 +99,18 @@ int st_com_execute_slave(struct pp_instance *ppi)
 static void st_com_add_foreign(struct pp_instance *ppi, unsigned char *buf)
 {
 	int i;
-	MsgHeader *hdr = &ppi->received_ptp_header;
+	struct msg_header_wire *hdr = &ppi->received_ptp_header;
 
 	/* Check if foreign master is already known */
 	for (i = 0; i < ppi->frgn_rec_num; i++) {
-		if (!memcmp(&hdr->sourcePortIdentity,
-			    &ppi->frgn_master[i].port_id,
-			    sizeof(hdr->sourcePortIdentity))) {
+		struct port_identity p1, *p2;
+
+		msg_hdr_get_src_port_id(&p1, hdr);
+		p2 = &ppi->frgn_master[i].port_id;
+
+		if (!memcmp(&p1, p2, sizeof(p1))) {
 			/* already in Foreign master data set, update info */
-			msg_copy_header(&ppi->frgn_master[i].hdr, hdr);
+			msg_hdr_copy(&ppi->frgn_master[i].hdr, hdr);
 			msg_unpack_announce(buf, &ppi->frgn_master[i].ann);
 			return;
 		}
@@ -126,14 +124,13 @@ static void st_com_add_foreign(struct pp_instance *ppi, unsigned char *buf)
 	i = ppi->frgn_rec_num - 1;
 
 	/* Copy new foreign master data set from announce message */
-	memcpy(&ppi->frgn_master[i].port_id,
-	       &hdr->sourcePortIdentity, sizeof(hdr->sourcePortIdentity));
+	msg_hdr_get_src_port_id(&ppi->frgn_master[i].port_id, hdr);
 
 	/*
 	 * header and announce field of each Foreign Master are
 	 * useful to run Best Master Clock Algorithm
 	 */
-	msg_copy_header(&ppi->frgn_master[i].hdr, hdr);
+	msg_hdr_copy(&ppi->frgn_master[i].hdr, hdr);
 	msg_unpack_announce(buf, &ppi->frgn_master[i].ann);
 
 	pp_diag(ppi, bmc, 1, "New foreign Master %i added\n", i);
@@ -165,7 +162,7 @@ int st_com_slave_handle_announce(struct pp_instance *ppi, unsigned char *buf,
 int st_com_slave_handle_sync(struct pp_instance *ppi, unsigned char *buf,
 			     int len)
 {
-	MsgHeader *hdr = &ppi->received_ptp_header;
+	struct msg_header_wire *hdr = &ppi->received_ptp_header;
 	MsgSync sync;
 
 	if (len < PP_SYNC_LENGTH)
@@ -175,11 +172,11 @@ int st_com_slave_handle_sync(struct pp_instance *ppi, unsigned char *buf,
 
 	/* t2 may be overriden by follow-up, cField is always valid */
 	ppi->t2 = ppi->last_rcv_time;
-	cField_to_TimeInternal(&ppi->cField, hdr->correctionfield);
+	cField_to_TimeInternal(&ppi->cField, msg_hdr_get_cf(hdr));
 
-	if ((hdr->flagField[0] & PP_TWO_STEP_FLAG) != 0) {
+	if ((msg_hdr_get_flags(hdr)[0] & PP_TWO_STEP_FLAG) != 0) {
 		ppi->flags |= PPI_FLAG_WAITING_FOR_F_UP;
-		ppi->recv_sync_sequence_id = hdr->sequenceId;
+		ppi->recv_sync_sequence_id = msg_hdr_get_msg_seq_id(hdr);
 		return 0;
 	}
 	msg_unpack_sync(buf, &sync);
@@ -197,7 +194,7 @@ int st_com_peer_handle_pres(struct pp_instance *ppi, unsigned char *buf,
 			    int len)
 {
 	MsgPDelayResp resp;
-	MsgHeader *hdr = &ppi->received_ptp_header;
+	struct msg_header_wire *hdr = &ppi->received_ptp_header;
 
 	if (len < PP_PDELAY_RESP_LENGTH)
 		return -1;
@@ -208,7 +205,7 @@ int st_com_peer_handle_pres(struct pp_instance *ppi, unsigned char *buf,
 		    &resp.requestingPortIdentity.clockIdentity,
 		    PP_CLOCK_IDENTITY_LENGTH) == 0) &&
 	    ((ppi->sent_seq[PPM_PDELAY_REQ]) ==
-	     hdr->sequenceId) &&
+	     msg_hdr_get_msg_seq_id(hdr)) &&
 	    (DSPOR(ppi)->portIdentity.portNumber ==
 	     resp.requestingPortIdentity.portNumber) &&
 	    (ppi->flags & PPI_FLAG_FROM_CURRENT_PARENT)) {
@@ -253,7 +250,7 @@ int st_com_slave_handle_followup(struct pp_instance *ppi, unsigned char *buf,
 	MsgFollowUp follow;
 	int ret = 0;
 
-	MsgHeader *hdr = &ppi->received_ptp_header;
+	struct msg_header_wire *hdr = &ppi->received_ptp_header;
 
 	if (len < PP_FOLLOW_UP_LENGTH)
 		return -1;
@@ -270,9 +267,10 @@ int st_com_slave_handle_followup(struct pp_instance *ppi, unsigned char *buf,
 		return 0;
 	}
 
-	if (ppi->recv_sync_sequence_id != hdr->sequenceId) {
+	if (ppi->recv_sync_sequence_id != msg_hdr_get_msg_seq_id(hdr)) {
 		pp_error("%s: SequenceID %d doesn't match last Sync message %d\n",
-				 __func__, hdr->sequenceId, ppi->recv_sync_sequence_id);
+			 __func__, msg_hdr_get_msg_seq_id(hdr),
+			 ppi->recv_sync_sequence_id);
 		return 0;
 	}
 
