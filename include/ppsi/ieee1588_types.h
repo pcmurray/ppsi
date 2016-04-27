@@ -248,6 +248,26 @@ struct FaultRecord { /* page 14 (34) -- never used */
 	struct PTPText	faultDescription;
 };
 
+/*
+ * Message header as encoded on wire, see clause 13.3.1
+ */
+struct msg_header_wire {
+	uint8_t		ts_mt;
+	uint8_t		ptp_version;
+	uint16_t	msg_length;
+	uint8_t		domain;
+	uint8_t		resvd1;
+	uint8_t		flags[2];
+	uint64_wire	cf;
+	uint32_t	resvd2;
+	struct {
+		uint8_t cid[8];
+		uint16_t pn;
+	} __attribute__((packed)) spid;
+	uint16_t	seq_id;
+	uint8_t		ctrl;
+	uint8_t		log_msg_intvl;
+} __attribute__((packed));
 
 /* Common Message header (table 18, page 124) */
 typedef struct MsgHeader {
