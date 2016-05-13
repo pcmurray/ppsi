@@ -199,4 +199,170 @@ static inline void msg_hdr_prepare(struct msg_header_wire *hdr,
 }
 
 
+static inline struct msg_announce_body_wire *
+msg_announce_get_body(struct msg_announce_wire *ann)
+{
+	return &ann->body;
+}
+
+static inline struct msg_header_wire *
+msg_announce_get_header(struct msg_announce_wire *ann)
+{
+	return &ann->header;
+}
+
+static inline struct msg_announce_wrext_wire *
+msg_announce_get_wrext(struct msg_announce_wire *ann)
+{
+	if (ann->header.msg_length <= PP_ANNOUNCE_LENGTH)
+		/* No white rabbit extensions */
+		return NULL;
+	return &ann->wrext;
+}
+
+static inline uint16_t
+msg_announce_get_steps_removed(const struct msg_announce_body_wire *a)
+{
+	return a->steps_removed;
+}
+
+static inline
+void msg_announce_get_gm_cid(struct clock_identity *dst,
+			     const struct msg_announce_body_wire *src)
+{
+	*dst = src->grandmaster_identity;
+}
+
+static inline struct clock_identity *
+msg_announce_get_gm_cid_ptr(struct msg_announce_body_wire *src)
+{
+	return &src->grandmaster_identity;
+}
+
+static inline void
+msg_announce_get_gm_cq(struct clock_quality *dst,
+		       const struct msg_announce_body_wire *src)
+{
+	dst->clockClass = src->grandmaster_clock_quality.clock_class;
+	dst->clockAccuracy = src->grandmaster_clock_quality.clock_accuracy;
+	dst->offsetScaledLogVariance =
+		ntohs(src->grandmaster_clock_quality.offs_slv);
+}
+
+static inline uint8_t
+msg_announce_get_gm_p1(const struct msg_announce_body_wire *src)
+{
+	return src->grandmaster_priority1;
+}
+
+static inline uint8_t
+msg_announce_get_gm_p2(const struct msg_announce_body_wire *src)
+{
+	return src->grandmaster_priority2;
+}
+
+static inline uint8_t
+msg_announce_get_ts(const struct msg_announce_body_wire *src)
+{
+	return src->time_source;
+}
+
+static inline int16_t
+msg_announce_get_utc_offs(const struct msg_announce_body_wire *src)
+{
+	return src->current_utc_offset;
+}
+
+static inline void
+msg_announce_set_steps_removed(struct msg_announce_body_wire *dst,
+			       uint16_t s)
+{
+	dst->steps_removed = htons(s);
+}
+
+static inline void
+msg_announce_set_gm_cid(struct msg_announce_body_wire *dst,
+			const struct clock_identity *src)
+{
+	dst->grandmaster_identity = *src;
+}
+
+static inline void
+msg_announce_set_gm_cq(struct msg_announce_body_wire *dst,
+		       const struct clock_quality *src)
+{
+	dst->grandmaster_clock_quality.clock_class = src->clockClass;
+	dst->grandmaster_clock_quality.clock_accuracy = src->clockAccuracy;
+	dst->grandmaster_clock_quality.offs_slv =
+		htons(src->offsetScaledLogVariance);
+}
+
+static inline void
+msg_announce_set_gm_p1(struct msg_announce_body_wire *dst, uint8_t p)
+{
+	dst->grandmaster_priority1 = p;
+}
+
+static inline void
+msg_announce_set_gm_p2(struct msg_announce_body_wire *dst, uint8_t p)
+{
+	dst->grandmaster_priority2 = p;
+}
+
+static inline
+void msg_announce_set_ts(struct msg_announce_body_wire *dst, uint8_t ts)
+{
+	dst->time_source = ts;
+}
+
+static inline
+void msg_announce_set_utc_offs(struct msg_announce_body_wire *dst,
+			       uint16_t o)
+{
+	dst->current_utc_offset = htons(o);
+}
+
+static inline void
+msg_announce_set_origts(struct msg_announce_body_wire *dst,
+			const struct timestamp_wire *origts)
+{
+	dst->origin_ts = *origts;
+}
+
+static inline uint16_t
+msg_announce_wr_get_tlv_type(const struct msg_announce_wrext_wire *e)
+{
+	return ntohs(e->tlv_type);
+}
+
+static inline uint32_t
+msg_announce_wr_get_tlv_oid(const struct msg_announce_wrext_wire *e)
+{
+	return (e->orgid[0] << 16) | (e->orgid[1] << 8) | e->orgid[2];
+}
+
+static inline uint16_t
+msg_announce_wr_get_tlv_magic(const struct msg_announce_wrext_wire *e)
+{
+	return (e->magic[0] << 8) | e->magic[1];
+}
+
+static inline uint16_t
+msg_announce_wr_get_tlv_ver(const struct msg_announce_wrext_wire *e)
+{
+	return e->version;
+}
+
+static inline uint16_t
+msg_announce_wr_get_tlv_mid(const struct msg_announce_wrext_wire *e)
+{
+	return (e->wr_msgid[0] << 8) | e->wr_msgid[1];
+}
+
+static inline const uint8_t *
+msg_announce_wr_get_tlv_flags(const struct msg_announce_wrext_wire *e)
+{
+	return e->wr_flags;
+}
+
 #endif /* __IEEE1588_TYPES_HELPERS_H__ */

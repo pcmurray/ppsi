@@ -269,6 +269,39 @@ struct msg_header_wire {
 	uint8_t		log_msg_intvl;
 } __attribute__((packed));
 
+struct clock_quality_wire {
+	uint8_t clock_class;
+	uint8_t clock_accuracy;
+	uint16_t offs_slv;
+} __attribute__((packed));
+
+struct msg_announce_wire {
+	struct msg_header_wire header;
+	struct msg_announce_body_wire {
+		struct timestamp_wire origin_ts;
+		int16_t current_utc_offset;
+		uint8_t reserved;
+		uint8_t grandmaster_priority1;
+		struct clock_quality_wire grandmaster_clock_quality;
+		uint8_t grandmaster_priority2;
+		struct clock_identity grandmaster_identity;
+		uint16_t steps_removed;
+		uint8_t time_source;
+	} __attribute__((packed)) body;
+	struct msg_announce_wrext_wire {
+		uint16_t tlv_type;
+		uint16_t length;
+		uint8_t orgid[3];
+		/* Avoid unaligned accesses */
+		uint8_t magic[2];
+		uint8_t  version;
+		/* Avoid unaligned accesses */
+		uint8_t wr_msgid[2];
+		/* Avoid unaligned accesses */
+		uint8_t wr_flags[2];
+	} __attribute__((packed)) wrext;
+} __attribute__((packed));
+
 /* Announce Message (table 25, page 129) */
 typedef struct MsgAnnounce {
 	Timestamp	originTimestamp;
