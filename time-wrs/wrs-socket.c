@@ -20,7 +20,6 @@
 #include <linux/if_ether.h>
 #include <linux/if_arp.h>
 #include <linux/net_tstamp.h>
-#include <linux/errqueue.h>
 #include <linux/sockios.h>
 #include <sys/time.h>
 #include <sys/ioctl.h>
