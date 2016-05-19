@@ -131,8 +131,6 @@ st_com_add_foreign(struct pp_instance *ppi, void *buf)
 		if (!memcmp(&p1, p2, sizeof(p1))) {
 			/* already in Foreign master data set, update info */
 			out = &ppi->frgn_master[i];
-			msg_hdr_copy(&out->hdr, hdr);
-			msg_unpack_announce(buf, &out->ann);
 			store_master_data(out, ann);
 			return out;
 		}
@@ -153,8 +151,6 @@ st_com_add_foreign(struct pp_instance *ppi, void *buf)
 	 * header and announce field of each Foreign Master are
 	 * useful to run Best Master Clock Algorithm
 	 */
-	msg_hdr_copy(&out->hdr, hdr);
-	msg_unpack_announce(buf, &out->ann);
 	store_master_data(out, ann);
 
 	pp_diag(ppi, bmc, 1, "New foreign Master %i added\n", i);
