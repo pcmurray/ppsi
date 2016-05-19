@@ -302,19 +302,6 @@ struct msg_announce_wire {
 	} __attribute__((packed)) wrext;
 } __attribute__((packed));
 
-/* Announce Message (table 25, page 129) */
-typedef struct MsgAnnounce {
-	Timestamp	originTimestamp;
-	int16_t		currentUtcOffset;
-	uint8_t		grandmasterPriority1;
-	struct clock_quality	grandmasterClockQuality;
-	uint8_t		grandmasterPriority2;
-	struct clock_identity	grandmasterIdentity;
-	uint16_t	stepsRemoved;
-	enum ENTimeSource	timeSource;
-	unsigned long	ext_specific;	/* used by extension */
-} MsgAnnounce;
-
 /* Sync Message (table 26, page 129) */
 typedef struct MsgSync {
 	Timestamp originTimestamp;
