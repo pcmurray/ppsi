@@ -73,7 +73,6 @@ static inline int64_t phase_to_cf_units(int32_t phase)
 
 /* Pack/Unkpack White rabbit message in the suffix of PTP announce message */
 void msg_pack_announce_wr_tlv(struct pp_instance *ppi);
-void msg_unpack_announce_wr_tlv(void *buf, MsgAnnounce *ann);
 
 /* Pack/Unkpack/Issue White rabbit message signaling msg */
 int msg_pack_wrsig(struct pp_instance *ppi, uint16_t wr_msg_id);

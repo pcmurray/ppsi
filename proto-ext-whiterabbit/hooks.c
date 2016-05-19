@@ -192,7 +192,33 @@ static void wr_handle_announce(struct pp_instance *ppi,
 			       struct pp_frgn_master *m,
 			       struct msg_announce_wire *ann)
 {
+	uint16_t tlv_type;
+	uint32_t tlv_organizationID;
+	uint16_t tlv_magicNumber;
+	uint16_t tlv_versionNumber;
+	uint16_t tlv_wrMessageID;
+	struct msg_announce_wrext_wire *ext = msg_announce_get_wrext(ann);
+
 	pp_diag(ppi, ext, 2, "hook: %s\n", __func__);
+	if (!ext)
+		/* No wr extensions, ignore */
+		return;
+	tlv_type = msg_announce_wr_get_tlv_type(ext);
+	tlv_organizationID = msg_announce_wr_get_tlv_oid(ext);
+	tlv_magicNumber = msg_announce_wr_get_tlv_magic(ext);
+	tlv_versionNumber = msg_announce_wr_get_tlv_ver(ext);
+	tlv_wrMessageID = msg_announce_wr_get_tlv_mid(ext);
+	/* Ignore if no wr extensions */
+	if (tlv_type != ORGANIZATION_EXTENSION ||
+	    tlv_organizationID != WR_TLV_ORGANIZATION_ID ||
+	    tlv_magicNumber != WR_TLV_MAGIC_NUMBER ||
+	    tlv_versionNumber != WR_TLV_WR_VERSION_NUMBER ||
+	    tlv_wrMessageID != ANN_SUFIX) {
+		return;
+	}
+	memcpy(m->ext_specific, msg_announce_wr_get_tlv_flags(ext),
+	       sizeof(m->ext_specific));
+
 	if ((WR_DSPOR(ppi)->wrConfig & WR_S_ONLY) &&
 	    (1 /* FIXME: Recommended State, see page 33*/) &&
 	    (WR_DSPOR(ppi)->parentWrConfig & WR_M_ONLY) &&
@@ -272,11 +298,6 @@ static int wr_pack_announce(struct pp_instance *ppi)
 
 static void wr_unpack_announce(void *buf, MsgAnnounce *ann)
 {
-	int msg_len = htons(*(uint16_t *) (buf + 2));
-
-	pp_diag(NULL, ext, 2, "hook: %s\n", __func__);
-	if (msg_len > PP_ANNOUNCE_LENGTH)
-		msg_unpack_announce_wr_tlv(buf, ann);
 }
 
 

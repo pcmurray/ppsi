@@ -100,33 +100,6 @@ void msg_pack_announce_wr_tlv(struct pp_instance *ppi)
 	*(uint16_t *)(buf + 76) = htons(wr_flags);
 }
 
-void msg_unpack_announce_wr_tlv(void *buf, MsgAnnounce *ann)
-{
-	uint16_t tlv_type;
-	uint32_t tlv_organizationID;
-	uint16_t tlv_magicNumber;
-	uint16_t tlv_versionNumber;
-	uint16_t tlv_wrMessageID;
-
-	tlv_type = (uint16_t)get_be16(buf+64);
-	tlv_organizationID = htons(*(uint16_t *)(buf+68)) << 8;
-	tlv_organizationID = htons(*(uint16_t *)(buf+70)) >> 8
-		| tlv_organizationID;
-	tlv_magicNumber = 0xFF00 & (htons(*(uint16_t *)(buf+70)) << 8);
-	tlv_magicNumber = htons(*(uint16_t *)(buf+72)) >> 8
-		| tlv_magicNumber;
-	tlv_versionNumber = 0xFF & htons(*(uint16_t *)(buf+72));
-	tlv_wrMessageID = htons(*(uint16_t *)(buf+74));
-
-	if (tlv_type == ORGANIZATION_EXTENSION &&
-		tlv_organizationID == WR_TLV_ORGANIZATION_ID &&
-		tlv_magicNumber == WR_TLV_MAGIC_NUMBER &&
-		tlv_versionNumber == WR_TLV_WR_VERSION_NUMBER &&
-		tlv_wrMessageID == ANN_SUFIX) {
-		ann->ext_specific = (uint16_t)get_be16(buf+76);
-	}
-}
-
 /* White Rabbit: packing WR Signaling messages*/
 int msg_pack_wrsig(struct pp_instance *ppi, uint16_t wr_msg_id)
 {
