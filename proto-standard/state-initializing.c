@@ -36,7 +36,7 @@ static void init_parent_ds(struct pp_instance *ppi)
  * Initializes network and other stuff
  */
 
-int pp_initializing(struct pp_instance *ppi, unsigned char *pkt, int plen)
+int pp_initializing(struct pp_instance *ppi, void *pkt, int plen)
 {
 	unsigned char *id, *mac;
 	struct DSPort *port = DSPOR(ppi);

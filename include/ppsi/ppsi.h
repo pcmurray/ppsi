@@ -140,13 +140,13 @@ extern void pp_prepare_pointers(struct pp_instance *ppi);
  * allow NULL pointers.
  */
 struct pp_ext_hooks {
-	int (*init)(struct pp_instance *ppg, unsigned char *pkt, int plen);
+	int (*init)(struct pp_instance *ppg, void *pkt, int plen);
 	int (*open)(struct pp_globals *ppi, struct pp_runtime_opts *rt_opts);
 	int (*close)(struct pp_globals *ppg);
-	int (*listening)(struct pp_instance *ppi, unsigned char *pkt, int plen);
-	int (*master_msg)(struct pp_instance *ppi, unsigned char *pkt,
+	int (*listening)(struct pp_instance *ppi, void *pkt, int plen);
+	int (*master_msg)(struct pp_instance *ppi, void *pkt,
 			  int plen, int msgtype);
-	int (*new_slave)(struct pp_instance *ppi, unsigned char *pkt, int plen);
+	int (*new_slave)(struct pp_instance *ppi, void *pkt, int plen);
 	int (*handle_resp)(struct pp_instance *ppi);
 	void (*s1)(struct pp_instance *ppi, struct msg_header_wire *hdr,
 		   MsgAnnounce *ann);
@@ -406,7 +406,7 @@ extern void div2_TimeInternal(TimeInternal *r);
  */
 
 /* Use a typedef, to avoid long prototypes */
-typedef int pp_action(struct pp_instance *ppi, uint8_t *packet, int plen);
+typedef int pp_action(struct pp_instance *ppi, void *packet, int plen);
 
 struct pp_state_table_item {
 	int state;

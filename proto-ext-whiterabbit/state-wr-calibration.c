@@ -32,7 +32,7 @@ static inline void print_scaled_ps(struct pp_instance *ppi, const char *s,
  * We enter this state from  WRS_M_LOCK or WRS_RESP_CALIB_REQ.
  * We send CALIBRATE and do the hardware steps; finally we send CALIBRATED.
  */
-int wr_calibration(struct pp_instance *ppi, unsigned char *pkt, int plen)
+int wr_calibration(struct pp_instance *ppi, void *pkt, int plen)
 {
 	struct wr_dsport *wrp = WR_DSPOR(ppi);
 	int e = 0, sendmsg = 0;

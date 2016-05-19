@@ -13,7 +13,7 @@
  * We enter here from WRS_CALIBRATION.  If master we wait for
  * a CALIBRATE message, if slave we wait for LINK_ON.
  */
-int wr_calibrated(struct pp_instance *ppi, unsigned char *pkt, int plen)
+int wr_calibrated(struct pp_instance *ppi, void *pkt, int plen)
 {
 	struct wr_dsport *wrp = WR_DSPOR(ppi);
 	MsgSignaling wrsig_msg;

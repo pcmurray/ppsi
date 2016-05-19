@@ -13,7 +13,7 @@
  * This is the last WR state: ack the other party and go master or slave.
  * There is no timeout nor a check for is_new_state: we just do things once
  */
-int wr_link_on(struct pp_instance *ppi, unsigned char *pkt, int plen)
+int wr_link_on(struct pp_instance *ppi, void *pkt, int plen)
 {
 	struct wr_dsport *wrp = WR_DSPOR(ppi);
 	int e = 0;

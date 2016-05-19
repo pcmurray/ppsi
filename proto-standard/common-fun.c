@@ -96,7 +96,7 @@ int st_com_execute_slave(struct pp_instance *ppi)
 }
 
 /* Called by this file, basically when an announce is got, all states */
-static void st_com_add_foreign(struct pp_instance *ppi, unsigned char *buf)
+static void st_com_add_foreign(struct pp_instance *ppi, void *buf)
 {
 	int i;
 	struct msg_header_wire *hdr = &ppi->received_ptp_header;
@@ -138,8 +138,7 @@ static void st_com_add_foreign(struct pp_instance *ppi, unsigned char *buf)
 
 
 /* Called by slave and uncalibrated */
-int st_com_slave_handle_announce(struct pp_instance *ppi, unsigned char *buf,
-				 int len)
+int st_com_slave_handle_announce(struct pp_instance *ppi, void *buf, int len)
 {
 	if (len < PP_ANNOUNCE_LENGTH)
 		return -1;
@@ -159,8 +158,7 @@ int st_com_slave_handle_announce(struct pp_instance *ppi, unsigned char *buf,
 }
 
 /* Called by slave and uncalibrated */
-int st_com_slave_handle_sync(struct pp_instance *ppi, unsigned char *buf,
-			     int len)
+int st_com_slave_handle_sync(struct pp_instance *ppi, void *buf, int len)
 {
 	struct msg_header_wire *hdr = &ppi->received_ptp_header;
 	MsgSync sync;
@@ -244,8 +242,7 @@ int st_com_peer_handle_preq(struct pp_instance *ppi, unsigned char *buf,
 }
 
 /* Called by slave and uncalibrated */
-int st_com_slave_handle_followup(struct pp_instance *ppi, unsigned char *buf,
-				 int len)
+int st_com_slave_handle_followup(struct pp_instance *ppi, void *buf, int len)
 {
 	MsgFollowUp follow;
 	int ret = 0;
@@ -295,8 +292,7 @@ int st_com_slave_handle_followup(struct pp_instance *ppi, unsigned char *buf,
 }
 
 /* Called by master, listenting, passive. */
-int st_com_master_handle_announce(struct pp_instance *ppi, unsigned char *buf,
-				  int len)
+int st_com_master_handle_announce(struct pp_instance *ppi, void *buf, int len)
 {
 	if (len < PP_ANNOUNCE_LENGTH)
 		return -1;
@@ -316,8 +312,7 @@ int st_com_master_handle_announce(struct pp_instance *ppi, unsigned char *buf,
  * Called by master, listenting, passive.
  * FIXME: this must be implemented to support one-step masters
  */
-int st_com_master_handle_sync(struct pp_instance *ppi, unsigned char *buf,
-			      int len)
+int st_com_master_handle_sync(struct pp_instance *ppi, void *buf, int len)
 {
 	/* No more used: follow up is sent right after the corresponding sync */
 	return 0;

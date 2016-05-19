@@ -9,7 +9,7 @@
 #include <ppsi/ppsi.h>
 #include "common-fun.h"
 
-int pp_uncalibrated(struct pp_instance *ppi, unsigned char *pkt, int plen)
+int pp_uncalibrated(struct pp_instance *ppi, void *pkt, int plen)
 {
 	int e = 0; /* error var, to check errors in msg handling */
 

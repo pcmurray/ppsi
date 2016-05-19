@@ -4,7 +4,7 @@
 
 /* ext-whiterabbit must offer its own hooks */
 
-static int wr_init(struct pp_instance *ppi, unsigned char *pkt, int plen)
+static int wr_init(struct pp_instance *ppi, void *pkt, int plen)
 {
 	struct wr_dsport *wrp = WR_DSPOR(ppi);
 
@@ -62,7 +62,7 @@ static int wr_open(struct pp_globals *ppg, struct pp_runtime_opts *rt_opts)
 	return 0;
 }
 
-static int wr_listening(struct pp_instance *ppi, unsigned char *pkt, int plen)
+static int wr_listening(struct pp_instance *ppi, void *pkt, int plen)
 {
 	struct wr_dsport *wrp = WR_DSPOR(ppi);
 
@@ -78,7 +78,7 @@ static int wr_handle_preq(struct pp_instance *ppi)
 	return 0;
 }
 
-static int wr_master_msg(struct pp_instance *ppi, unsigned char *pkt, int plen,
+static int wr_master_msg(struct pp_instance *ppi, void *pkt, int plen,
 			 int msgtype)
 {
 	struct msg_header_wire *hdr = &ppi->received_ptp_header;
@@ -118,7 +118,7 @@ static int wr_master_msg(struct pp_instance *ppi, unsigned char *pkt, int plen,
 	return msgtype;
 }
 
-static int wr_new_slave(struct pp_instance *ppi, unsigned char *pkt, int plen)
+static int wr_new_slave(struct pp_instance *ppi, void *pkt, int plen)
 {
 	pp_diag(ppi, ext, 2, "hook: %s\n", __func__);
 	wr_servo_init(ppi);

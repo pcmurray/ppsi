@@ -8,7 +8,7 @@
 
 #include <ppsi/ppsi.h>
 
-int pp_disabled(struct pp_instance *ppi, unsigned char *pkt, int plen)
+int pp_disabled(struct pp_instance *ppi, void *pkt, int plen)
 {
 	/* nothing to do */
 	ppi->next_delay = PP_DEFAULT_NEXT_DELAY_MS;

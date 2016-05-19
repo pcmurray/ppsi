@@ -9,7 +9,7 @@
 #include <ppsi/ppsi.h>
 #include "wr-api.h"
 
-int wr_resp_calib_req(struct pp_instance *ppi, unsigned char *pkt, int plen)
+int wr_resp_calib_req(struct pp_instance *ppi, void *pkt, int plen)
 {
 	struct wr_dsport *wrp = WR_DSPOR(ppi);
 	MsgSignaling wrsig_msg;

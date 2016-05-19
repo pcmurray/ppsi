@@ -20,19 +20,19 @@ int st_com_execute_slave(struct pp_instance *ppi);
  * message, -1 in case the message contained in buf is not proper (e.g. size
  * is not the expected one
  */
-int st_com_slave_handle_announce(struct pp_instance *ppi, unsigned char *buf,
+int st_com_slave_handle_announce(struct pp_instance *ppi, void *buf,
 				 int len);
 
-int st_com_master_handle_announce(struct pp_instance *ppi, unsigned char *buf,
+int st_com_master_handle_announce(struct pp_instance *ppi, void *buf,
 				  int len);
 
-int st_com_slave_handle_sync(struct pp_instance *ppi, unsigned char *buf,
+int st_com_slave_handle_sync(struct pp_instance *ppi, void *buf,
 			     int len);
 
-int st_com_master_handle_sync(struct pp_instance *ppi, unsigned char *buf,
+int st_com_master_handle_sync(struct pp_instance *ppi, void *buf,
 			      int len);
 
-int st_com_slave_handle_followup(struct pp_instance *ppi, unsigned char *buf,
+int st_com_slave_handle_followup(struct pp_instance *ppi, void *buf,
 				 int len);
 
 int st_com_peer_handle_preq(struct pp_instance *ppi, unsigned char *buf,

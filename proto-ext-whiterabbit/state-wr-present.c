@@ -16,7 +16,7 @@
  * Here we send SLAVE_PRESENT and wait for LOCK. If timeout,
  * resent SLAVE_PRESENT from WR_STATE_RETRY times
  */
-int wr_present(struct pp_instance *ppi, unsigned char *pkt, int plen)
+int wr_present(struct pp_instance *ppi, void *pkt, int plen)
 {
 	int e = 0, sendmsg = 0;
 	struct wr_dsport *wrp = WR_DSPOR(ppi);

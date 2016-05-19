@@ -82,14 +82,14 @@ void msg_unpack_wrsig(struct pp_instance *ppi, void *buf,
 int msg_issue_wrsig(struct pp_instance *ppi, uint16_t wr_msg_id);
 
 /* White rabbit state functions */
-int wr_present(struct pp_instance *ppi, unsigned char *pkt, int plen);
-int wr_m_lock(struct pp_instance *ppi, unsigned char *pkt, int plen);
-int wr_s_lock(struct pp_instance *ppi, unsigned char *pkt, int plen);
-int wr_locked(struct pp_instance *ppi, unsigned char *pkt, int plen);
-int wr_calibration(struct pp_instance *ppi, unsigned char *pkt, int plen);
-int wr_calibrated(struct pp_instance *ppi, unsigned char *pkt, int plen);
-int wr_resp_calib_req(struct pp_instance *ppi, unsigned char *pkt, int plen);
-int wr_link_on(struct pp_instance *ppi, unsigned char *pkt, int plen);
+int wr_present(struct pp_instance *ppi, void *pkt, int plen);
+int wr_m_lock(struct pp_instance *ppi, void *pkt, int plen);
+int wr_s_lock(struct pp_instance *ppi, void *pkt, int plen);
+int wr_locked(struct pp_instance *ppi, void *pkt, int plen);
+int wr_calibration(struct pp_instance *ppi, void *pkt, int plen);
+int wr_calibrated(struct pp_instance *ppi, void *pkt, int plen);
+int wr_resp_calib_req(struct pp_instance *ppi, void *pkt, int plen);
+int wr_link_on(struct pp_instance *ppi, void *pkt, int plen);
 
 /* Common functions, used by various states and hooks */
 void wr_handshake_init(struct pp_instance *ppi, int mode);

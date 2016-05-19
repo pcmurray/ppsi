@@ -11,7 +11,7 @@
 #include <ppsi/ppsi.h>
 #include "common-fun.h"
 
-int pp_slave(struct pp_instance *ppi, unsigned char *pkt, int plen)
+int pp_slave(struct pp_instance *ppi, void *pkt, int plen)
 {
 	int e = 0; /* error var, to check errors in msg handling */
 	struct msg_header_wire *hdr = &ppi->received_ptp_header;

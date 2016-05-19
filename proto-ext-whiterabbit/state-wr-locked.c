@@ -13,7 +13,7 @@
  * WR slave: got here from WRS_S_LOCK: send LOCKED, wait for CALIBRATE.
  * On timeout resend.
  */
-int wr_locked(struct pp_instance *ppi, unsigned char *pkt, int plen)
+int wr_locked(struct pp_instance *ppi, void *pkt, int plen)
 {
 	int e = 0, sendmsg = 0;
 	MsgSignaling wrsig_msg;
