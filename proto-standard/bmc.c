@@ -191,6 +191,20 @@ static int bmc_dataset_cmp(struct pp_instance *ppi,
 	return idcmp(&aa->grandmasterIdentity, &ab->grandmasterIdentity);
 }
 
+/* Set up a foreign master data structure for us */
+static void setup_master_data(struct pp_frgn_master *m, struct pp_instance *ppi)
+{
+	struct DSDefault *defds = DSDEF(ppi);
+
+	memcpy(&m->port_id.clockIdentity, &defds->clockIdentity,
+	       sizeof(m->port_id.clockIdentity));
+	m->grandmaster_identity = defds->clockIdentity;
+	m->grandmaster_clock_quality = defds->clockQuality;
+	m->grandmaster_priority1 = defds->priority1;
+	m->grandmaster_priority2 = defds->priority2;
+	m->steps_removed = 0;
+}
+
 /* State decision algorithm 9.3.3 Fig 26 */
 static int bmc_state_decision(struct pp_instance *ppi,
 							  struct pp_frgn_master *m)
@@ -206,6 +220,7 @@ static int bmc_state_decision(struct pp_instance *ppi,
 
 	/* copy local information to a foreign_master structure */
 	copy_d0(ppi, &myself);
+	setup_master_data(&myself, ppi);
 
 	/* dataset_cmp is "a - b" but lower values win */
 	cmpres = bmc_dataset_cmp(ppi, &myself, m);
