@@ -188,7 +188,9 @@ static int wr_execute_slave(struct pp_instance *ppi)
 	return 1; /* the caller returns too */
 }
 
-static void wr_handle_announce(struct pp_instance *ppi)
+static void wr_handle_announce(struct pp_instance *ppi,
+			       struct pp_frgn_master *m,
+			       struct msg_announce_wire *ann)
 {
 	pp_diag(ppi, ext, 2, "hook: %s\n", __func__);
 	if ((WR_DSPOR(ppi)->wrConfig & WR_S_ONLY) &&

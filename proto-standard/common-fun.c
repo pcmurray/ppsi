@@ -113,11 +113,13 @@ int st_com_execute_slave(struct pp_instance *ppi)
 }
 
 /* Called by this file, basically when an announce is got, all states */
-static void st_com_add_foreign(struct pp_instance *ppi, void *buf)
+static struct pp_frgn_master *
+st_com_add_foreign(struct pp_instance *ppi, void *buf)
 {
 	int i;
 	struct msg_header_wire *hdr = &ppi->received_ptp_header;
 	struct msg_announce_wire *ann = buf;
+	struct pp_frgn_master *out;
 
 	/* Check if foreign master is already known */
 	for (i = 0; i < ppi->frgn_rec_num; i++) {
@@ -128,10 +130,11 @@ static void st_com_add_foreign(struct pp_instance *ppi, void *buf)
 
 		if (!memcmp(&p1, p2, sizeof(p1))) {
 			/* already in Foreign master data set, update info */
-			msg_hdr_copy(&ppi->frgn_master[i].hdr, hdr);
-			msg_unpack_announce(buf, &ppi->frgn_master[i].ann);
-			store_master_data(&ppi->frgn_master[i], ann);
-			return;
+			out = &ppi->frgn_master[i];
+			msg_hdr_copy(&out->hdr, hdr);
+			msg_unpack_announce(buf, &out->ann);
+			store_master_data(out, ann);
+			return out;
 		}
 	}
 
@@ -141,30 +144,34 @@ static void st_com_add_foreign(struct pp_instance *ppi, void *buf)
 
 	/* FIXME: replace the worst */
 	i = ppi->frgn_rec_num - 1;
+	out = &ppi->frgn_master[i];
 
 	/* Copy new foreign master data set from announce message */
-	msg_hdr_get_src_port_id(&ppi->frgn_master[i].port_id, hdr);
+	msg_hdr_get_src_port_id(&out->port_id, hdr);
 
 	/*
 	 * header and announce field of each Foreign Master are
 	 * useful to run Best Master Clock Algorithm
 	 */
-	msg_hdr_copy(&ppi->frgn_master[i].hdr, hdr);
-	msg_unpack_announce(buf, &ppi->frgn_master[i].ann);
-	store_master_data(&ppi->frgn_master[i], ann);
+	msg_hdr_copy(&out->hdr, hdr);
+	msg_unpack_announce(buf, &out->ann);
+	store_master_data(out, ann);
 
 	pp_diag(ppi, bmc, 1, "New foreign Master %i added\n", i);
+	return out;
 }
 
 
 /* Called by slave and uncalibrated */
 int st_com_slave_handle_announce(struct pp_instance *ppi, void *buf, int len)
 {
+	struct pp_frgn_master *m;
+
 	if (len < PP_ANNOUNCE_LENGTH)
 		return -1;
 
 	/* st_com_add_foreign takes care of announce unpacking */
-	st_com_add_foreign(ppi, buf);
+	m = st_com_add_foreign(ppi, buf);
 
 	/*Reset Timer handling Announce receipt timeout*/
 	pp_timeout_set(ppi, PP_TO_ANN_RECEIPT);
@@ -172,7 +179,7 @@ int st_com_slave_handle_announce(struct pp_instance *ppi, void *buf, int len)
 	ppi->next_state = bmc(ppi); /* got a new announce: run bmc */
 
 	if (pp_hooks.handle_announce)
-		pp_hooks.handle_announce(ppi);
+		pp_hooks.handle_announce(ppi, m, buf);
 
 	return 0;
 }
@@ -314,16 +321,18 @@ int st_com_slave_handle_followup(struct pp_instance *ppi, void *buf, int len)
 /* Called by master, listenting, passive. */
 int st_com_master_handle_announce(struct pp_instance *ppi, void *buf, int len)
 {
+	struct pp_frgn_master *m;
+
 	if (len < PP_ANNOUNCE_LENGTH)
 		return -1;
 
 	pp_diag(ppi, bmc, 2, "Announce message from another foreign master\n");
 
-	st_com_add_foreign(ppi, buf);
+	m = st_com_add_foreign(ppi, buf);
 	ppi->next_state = bmc(ppi); /* got a new announce: run bmc */
 
 	if (pp_hooks.handle_announce)
-		pp_hooks.handle_announce(ppi);
+		pp_hooks.handle_announce(ppi, m, buf);
 
 	return 0;
 }
