@@ -133,8 +133,6 @@ void msg_unpack_announce(void *buf, MsgAnnounce *ann)
 	ann->stepsRemoved = htons(*(uint16_t *) (buf + 61));
 	ann->timeSource = *(uint8_t *) (buf + 63);
 
-	if (pp_hooks.unpack_announce)
-		pp_hooks.unpack_announce(buf, ann);
 }
 
 /* Pack Follow Up message into out buffer of ppi*/

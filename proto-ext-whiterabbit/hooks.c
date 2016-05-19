@@ -296,9 +296,6 @@ static int wr_pack_announce(struct pp_instance *ppi)
 	return PP_ANNOUNCE_LENGTH;
 }
 
-static void wr_unpack_announce(void *buf, MsgAnnounce *ann)
-{
-}
 
 
 struct pp_ext_hooks pp_hooks = {
@@ -315,5 +312,4 @@ struct pp_ext_hooks pp_hooks = {
 	.handle_preq = wr_handle_preq,
 	.handle_presp = wr_handle_presp,
 	.pack_announce = wr_pack_announce,
-	.unpack_announce = wr_unpack_announce,
 };

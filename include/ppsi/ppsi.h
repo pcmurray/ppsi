@@ -158,7 +158,6 @@ struct pp_ext_hooks {
 	int (*handle_preq) (struct pp_instance * ppi);
 	int (*handle_presp) (struct pp_instance * ppi);
 	int (*pack_announce)(struct pp_instance *ppi);
-	void (*unpack_announce)(void *buf, MsgAnnounce *ann);
 };
 
 extern struct pp_ext_hooks pp_hooks; /* The one for the extension we build */
