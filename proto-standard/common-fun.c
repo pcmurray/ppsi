@@ -26,6 +26,23 @@ static void *__align_pointer(void *p)
 	return p + align;
 }
 
+static void store_master_data(struct pp_frgn_master *dst,
+			      struct msg_announce_wire *ann)
+{
+	struct msg_header_wire *hdr = msg_announce_get_header(ann);
+	struct msg_announce_body_wire *body = msg_announce_get_body(ann);
+
+	msg_hdr_get_src_port_id(&dst->port_id, hdr);
+	memcpy(dst->flags, msg_hdr_get_flags(hdr), sizeof(dst->flags));
+	msg_announce_get_gm_cid(&dst->grandmaster_identity, body);
+	msg_announce_get_gm_cq(&dst->grandmaster_clock_quality, body);
+	dst->grandmaster_priority1 = msg_announce_get_gm_p1(body);
+	dst->grandmaster_priority2 = msg_announce_get_gm_p2(body);
+	dst->steps_removed = msg_announce_get_steps_removed(body);
+	dst->time_source = msg_announce_get_ts(body);
+	dst->current_utc_offset = msg_announce_get_utc_offs(body);
+}
+
 void pp_prepare_pointers(struct pp_instance *ppi)
 {
 	/*
@@ -100,6 +117,7 @@ static void st_com_add_foreign(struct pp_instance *ppi, void *buf)
 {
 	int i;
 	struct msg_header_wire *hdr = &ppi->received_ptp_header;
+	struct msg_announce_wire *ann = buf;
 
 	/* Check if foreign master is already known */
 	for (i = 0; i < ppi->frgn_rec_num; i++) {
@@ -112,6 +130,7 @@ static void st_com_add_foreign(struct pp_instance *ppi, void *buf)
 			/* already in Foreign master data set, update info */
 			msg_hdr_copy(&ppi->frgn_master[i].hdr, hdr);
 			msg_unpack_announce(buf, &ppi->frgn_master[i].ann);
+			store_master_data(&ppi->frgn_master[i], ann);
 			return;
 		}
 	}
@@ -132,6 +151,7 @@ static void st_com_add_foreign(struct pp_instance *ppi, void *buf)
 	 */
 	msg_hdr_copy(&ppi->frgn_master[i].hdr, hdr);
 	msg_unpack_announce(buf, &ppi->frgn_master[i].ann);
+	store_master_data(&ppi->frgn_master[i], ann);
 
 	pp_diag(ppi, bmc, 1, "New foreign Master %i added\n", i);
 }
