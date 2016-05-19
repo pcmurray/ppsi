@@ -148,8 +148,7 @@ struct pp_ext_hooks {
 			  int plen, int msgtype);
 	int (*new_slave)(struct pp_instance *ppi, void *pkt, int plen);
 	int (*handle_resp)(struct pp_instance *ppi);
-	void (*s1)(struct pp_instance *ppi, struct msg_header_wire *hdr,
-		   MsgAnnounce *ann);
+	void (*s1)(struct pp_instance *ppi, struct pp_frgn_master *m);
 	int (*execute_slave)(struct pp_instance *ppi);
 	void (*handle_announce)(struct pp_instance *ppi);
 	int (*handle_followup)(struct pp_instance *ppi, TimeInternal *orig,

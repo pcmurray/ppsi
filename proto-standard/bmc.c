@@ -44,43 +44,40 @@ void m1(struct pp_instance *ppi)
 
 
 /* ppi->port_idx port is synchronized to Ebest Table 16 (9.3.5) of the spec. */
-static void s1(struct pp_instance *ppi, struct msg_header_wire *hdr,
-	       MsgAnnounce *ann)
+static void s1(struct pp_instance *ppi, struct pp_frgn_master *m)
 {
 	struct DSParent *parent = DSPAR(ppi);
 	struct DSTimeProperties *prop = DSPRO(ppi);
-	const uint8_t *flags;
 
 	/* Current DS */
-	DSCUR(ppi)->stepsRemoved = ann->stepsRemoved + 1;
+	DSCUR(ppi)->stepsRemoved = m->steps_removed + 1;
 
 	/* Parent DS */
-	msg_hdr_get_src_port_id(&parent->parentPortIdentity, hdr);
-	parent->grandmasterIdentity = ann->grandmasterIdentity;
-	parent->grandmasterClockQuality = ann->grandmasterClockQuality;
-	parent->grandmasterPriority1 = ann->grandmasterPriority1;
-	parent->grandmasterPriority2 = ann->grandmasterPriority2;
+	memcpy(&parent->parentPortIdentity, &m->port_id, sizeof(m->port_id));
+	parent->grandmasterIdentity = m->grandmaster_identity;
+	parent->grandmasterClockQuality = m->grandmaster_clock_quality;
+	parent->grandmasterPriority1 = m->grandmaster_priority1;
+	parent->grandmasterPriority2 = m->grandmaster_priority2;
 
 	/* Timeproperties DS */
-	prop->timeSource = ann->timeSource;
-	if (prop->currentUtcOffset != ann->currentUtcOffset) {
+	prop->timeSource = m->time_source;
+	if (prop->currentUtcOffset != m->current_utc_offset) {
 		pp_diag(ppi, bmc, 1, "New UTC offset: %i\n",
-			ann->currentUtcOffset);
-		prop->currentUtcOffset = ann->currentUtcOffset;
+			m->current_utc_offset);
+		prop->currentUtcOffset = m->current_utc_offset;
 		ppi->t_ops->set(ppi, NULL);
 	}
 
 	/* FIXME: can't we just copy the bit keeping values? */
-	flags = msg_hdr_get_flags(hdr);
-	prop->currentUtcOffsetValid = ((flags[1] & FFB_UTCV)	!= 0);
-	prop->leap59 = ((flags[1] & FFB_LI59) != 0);
-	prop->leap61 = ((flags[1] & FFB_LI61) != 0);
-	prop->timeTraceable = ((flags[1] & FFB_TTRA) != 0);
-	prop->frequencyTraceable = ((flags[1] & FFB_FTRA) != 0);
-	prop->ptpTimescale = ((flags[1] & FFB_PTP) != 0);
+	prop->currentUtcOffsetValid = ((m->flags[1] & FFB_UTCV)	!= 0);
+	prop->leap59 = ((m->flags[1] & FFB_LI59) != 0);
+	prop->leap61 = ((m->flags[1] & FFB_LI61) != 0);
+	prop->timeTraceable = ((m->flags[1] & FFB_TTRA) != 0);
+	prop->frequencyTraceable = ((m->flags[1] & FFB_FTRA) != 0);
+	prop->ptpTimescale = ((m->flags[1] & FFB_PTP) != 0);
 
 	if (pp_hooks.s1)
-		pp_hooks.s1(ppi, hdr, ann);
+		pp_hooks.s1(ppi, m);
 }
 
 static void p1(struct pp_instance *ppi, struct msg_header_wire *hdr,
@@ -274,7 +271,7 @@ master:
 	return PPS_MASTER;
 
 slave:
-	s1(ppi, &m->hdr, &m->ann);
+	s1(ppi, m);
 	pp_diag(ppi, bmc, 1,"%s: slave\n", __func__);
 	return PPS_SLAVE;
 

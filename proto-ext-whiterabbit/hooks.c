@@ -163,17 +163,16 @@ static int wr_handle_resp(struct pp_instance *ppi)
 	return 0;
 }
 
-static void wr_s1(struct pp_instance *ppi, struct msg_header_wire *hdr,
-		  MsgAnnounce *ann)
+static void wr_s1(struct pp_instance *ppi, struct pp_frgn_master *m)
 {
 	pp_diag(ppi, ext, 2, "hook: %s\n", __func__);
 	WR_DSPOR(ppi)->parentIsWRnode =
-		((ann->ext_specific & WR_NODE_MODE) != NON_WR);
+		((m->ext_specific[0] & WR_NODE_MODE) != NON_WR);
 	WR_DSPOR(ppi)->parentWrModeOn =
-		(ann->ext_specific & WR_IS_WR_MODE) ? true : false;
+		(m->ext_specific[0] & WR_IS_WR_MODE) ? true : false;
 	WR_DSPOR(ppi)->parentCalibrated =
-			((ann->ext_specific & WR_IS_CALIBRATED) ? 1 : 0);
-	WR_DSPOR(ppi)->parentWrConfig = ann->ext_specific & WR_NODE_MODE;
+			((m->ext_specific[0] & WR_IS_CALIBRATED) ? 1 : 0);
+	WR_DSPOR(ppi)->parentWrConfig = m->ext_specific[0] & WR_NODE_MODE;
 	DSCUR(ppi)->primarySlavePortNumber =
 		DSPOR(ppi)->portIdentity.portNumber;
 }
