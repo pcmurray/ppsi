@@ -72,10 +72,6 @@ struct pp_channel {
  */
 struct pp_frgn_master {
 	struct port_identity port_id;	/* used to identify old/new masters */
-
-	/* We don't need all fields of the following ones */
-	MsgAnnounce ann;
-	struct msg_header_wire hdr;
 	struct clock_identity grandmaster_identity;
 	struct clock_quality grandmaster_clock_quality;
 	uint8_t grandmaster_priority1;
