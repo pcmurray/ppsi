@@ -87,21 +87,6 @@ static void p1(struct pp_instance *ppi, struct pp_frgn_master *m)
 	 * extension-specific needs, to be implemented as a hook */
 }
 
-/* Copy local data set into header and ann message. 9.3.4 table 12. */
-static void copy_d0(struct pp_instance *ppi, struct pp_frgn_master *m)
-{
-	struct DSDefault *defds = DSDEF(ppi);
-	struct msg_header_wire *hdr = &m->hdr;
-	struct MsgAnnounce *ann = &m->ann;
-
-	ann->grandmasterIdentity = defds->clockIdentity;
-	ann->grandmasterClockQuality = defds->clockQuality;
-	ann->grandmasterPriority1 = defds->priority1;
-	ann->grandmasterPriority2 = defds->priority2;
-	ann->stepsRemoved = 0;
-	msg_hdr_set_src_port_id_clock_id(hdr, &defds->clockIdentity);
-}
-
 static int idcmp(const struct clock_identity *a, const struct clock_identity *b)
 {
 	return memcmp(a, b, sizeof(*a));
@@ -212,7 +197,6 @@ static int bmc_state_decision(struct pp_instance *ppi,
 		return PPS_LISTENING;
 
 	/* copy local information to a foreign_master structure */
-	copy_d0(ppi, &myself);
 	setup_master_data(&myself, ppi);
 
 	/* dataset_cmp is "a - b" but lower values win */
