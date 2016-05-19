@@ -80,8 +80,7 @@ static void s1(struct pp_instance *ppi, struct pp_frgn_master *m)
 		pp_hooks.s1(ppi, m);
 }
 
-static void p1(struct pp_instance *ppi, struct msg_header_wire *hdr,
-	       MsgAnnounce *ann)
+static void p1(struct pp_instance *ppi, struct pp_frgn_master *m)
 {
 	/* In the default implementation, nothing should be done when a port goes
 	 * to passive state. This empty function is a placeholder for
@@ -259,7 +258,7 @@ check_boundary_clk:
 		goto master;
 
 passive:
-	p1(ppi, &m->hdr, &m->ann);
+	p1(ppi, m);
 	pp_diag(ppi, bmc, 1,"%s: passive\n", __func__);
 	return PPS_PASSIVE;
 
