@@ -203,6 +203,7 @@ static int bmc_state_decision(struct pp_instance *ppi,
 {
 	int cmpres;
 	struct pp_frgn_master myself;
+	struct clock_identity *my_id, *master_id;
 
 	if (ppi->role == PPSI_ROLE_SLAVE)
 		goto slave;
@@ -247,8 +248,9 @@ check_boundary_clk:
 
 	/* If idcmp returns 0, it means that this port is not the best because
 		* Ebest is better by topology than Erbest */
-	if (!idcmp(&myself.ann.grandmasterIdentity,
-			&m->ann.grandmasterIdentity))
+	my_id = &DSDEF(ppi)->clockIdentity;
+	master_id = &m->grandmaster_identity;
+	if (!idcmp(my_id, master_id))
 		goto passive;
 	else
 		goto master;
