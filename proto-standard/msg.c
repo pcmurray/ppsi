@@ -113,28 +113,6 @@ static int msg_pack_announce(struct pp_instance *ppi)
 	return PP_ANNOUNCE_LENGTH;
 }
 
-/* Unpack Announce message from in buffer of ppi to internal structure */
-void msg_unpack_announce(void *buf, MsgAnnounce *ann)
-{
-	struct timestamp_wire *ts = buf + 34;
-
-	timestamp_wire_to_internal(&ann->originTimestamp, ts);
-	ann->currentUtcOffset = htons(*(uint16_t *) (buf + 44));
-	ann->grandmasterPriority1 = *(uint8_t *) (buf + 47);
-	ann->grandmasterClockQuality.clockClass =
-		*(uint8_t *) (buf + 48);
-	ann->grandmasterClockQuality.clockAccuracy =
-		*(uint8_t *) (buf + 49);
-	ann->grandmasterClockQuality.offsetScaledLogVariance =
-		htons(*(uint16_t *) (buf + 50));
-	ann->grandmasterPriority2 = *(uint8_t *) (buf + 52);
-	memcpy(&ann->grandmasterIdentity, (buf + 53),
-	       PP_CLOCK_IDENTITY_LENGTH);
-	ann->stepsRemoved = htons(*(uint16_t *) (buf + 61));
-	ann->timeSource = *(uint8_t *) (buf + 63);
-
-}
-
 /* Pack Follow Up message into out buffer of ppi*/
 static void msg_pack_follow_up(struct pp_instance *ppi, Timestamp *prec_orig_tstamp)
 {
