@@ -76,6 +76,15 @@ struct pp_frgn_master {
 	/* We don't need all fields of the following ones */
 	MsgAnnounce ann;
 	struct msg_header_wire hdr;
+	struct clock_identity grandmaster_identity;
+	struct clock_quality grandmaster_clock_quality;
+	uint8_t grandmaster_priority1;
+	uint8_t grandmaster_priority2;
+	uint8_t steps_removed;
+	enum ENTimeSource time_source;
+	int16_t current_utc_offset;
+	uint8_t flags[2];
+	uint8_t ext_specific[2];
 };
 
 /*
