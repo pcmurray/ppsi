@@ -84,27 +84,29 @@ void msg_unpack_sync(void *buf, MsgSync *sync)
 /* Pack Announce message into out buffer of ppi */
 static int msg_pack_announce(struct pp_instance *ppi)
 {
-	void *buf;
+	struct msg_announce_wire *buf;
+	struct msg_announce_body_wire *body;
+	struct msg_header_wire *hdr;
+	struct timestamp_wire tsw;
 	uint16_t s;
 
 	buf = ppi->tx_ptp;
+	hdr = msg_announce_get_header(buf);
+	body = msg_announce_get_body(buf);
 	s = ppi->sent_seq[PPM_ANNOUNCE]++;
-	msg_hdr_prepare(ppi->tx_ptp, PPM_ANNOUNCE, PP_ANNOUNCE_LENGTH, s, 5,
+	msg_hdr_prepare(hdr, PPM_ANNOUNCE, PP_ANNOUNCE_LENGTH, s, 5,
 			DSPOR(ppi)->logAnnounceInterval);
 
 	/* Announce message */
-	memset((buf + 34), 0, 10);
-	*(int16_t *) (buf + 44) = htons(DSPRO(ppi)->currentUtcOffset);
-	*(uint8_t *) (buf + 47) = DSPAR(ppi)->grandmasterPriority1;
-	*(uint8_t *) (buf + 48) = DSPAR(ppi)->grandmasterClockQuality.clockClass;
-	*(uint8_t *) (buf + 49) = DSPAR(ppi)->grandmasterClockQuality.clockAccuracy;
-	*(uint16_t *) (buf + 50) =
-		htons(DSPAR(ppi)->grandmasterClockQuality.offsetScaledLogVariance);
-	*(uint8_t *) (buf + 52) = DSPAR(ppi)->grandmasterPriority2;
-	memcpy((buf + 53), &DSPAR(ppi)->grandmasterIdentity,
-	       PP_CLOCK_IDENTITY_LENGTH);
-	*(uint16_t *) (buf + 61) = htons(DSCUR(ppi)->stepsRemoved);
-	*(uint8_t *) (buf + 63) = DSPRO(ppi)->timeSource;
+	memset(&tsw, 0, sizeof(tsw));
+	msg_announce_set_origts(body, &tsw);
+	msg_announce_set_utc_offs(body, DSPRO(ppi)->currentUtcOffset);
+	msg_announce_set_gm_p1(body, DSPAR(ppi)->grandmasterPriority1);
+	msg_announce_set_gm_cq(body, &DSPAR(ppi)->grandmasterClockQuality);
+	msg_announce_set_gm_p2(body, DSPAR(ppi)->grandmasterPriority2);
+	msg_announce_set_gm_cid(body, &DSPAR(ppi)->grandmasterIdentity);
+	msg_announce_set_steps_removed(body, DSCUR(ppi)->stepsRemoved);
+	msg_announce_set_ts(body, DSPRO(ppi)->timeSource);
 
 	if (pp_hooks.pack_announce)
 		return pp_hooks.pack_announce(ppi);
