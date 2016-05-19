@@ -417,12 +417,7 @@ typedef struct DSPort {			/* page 72 */
 typedef struct DSTimeProperties {	/* page 70 */
 	/* Dynamic */
 	int16_t		currentUtcOffset;
-	bool		currentUtcOffsetValid;
-	bool		leap59;
-	bool		leap61;
-	bool		timeTraceable;
-	bool		frequencyTraceable;
-	bool		ptpTimescale;
+	uint8_t		flags;
 	enum ENTimeSource	timeSource;
 } DSTimeProperties;
 

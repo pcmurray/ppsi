@@ -68,13 +68,7 @@ static void s1(struct pp_instance *ppi, struct pp_frgn_master *m)
 		ppi->t_ops->set(ppi, NULL);
 	}
 
-	/* FIXME: can't we just copy the bit keeping values? */
-	prop->currentUtcOffsetValid = ((m->flags[1] & FFB_UTCV)	!= 0);
-	prop->leap59 = ((m->flags[1] & FFB_LI59) != 0);
-	prop->leap61 = ((m->flags[1] & FFB_LI61) != 0);
-	prop->timeTraceable = ((m->flags[1] & FFB_TTRA) != 0);
-	prop->frequencyTraceable = ((m->flags[1] & FFB_FTRA) != 0);
-	prop->ptpTimescale = ((m->flags[1] & FFB_PTP) != 0);
+	prop->flags = m->flags[1];
 
 	if (pp_hooks.s1)
 		pp_hooks.s1(ppi, m);
