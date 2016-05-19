@@ -117,23 +117,19 @@ static int bmc_dataset_cmp(struct pp_instance *ppi,
 			   struct pp_frgn_master *b)
 {
 	struct clock_quality *qa, *qb;
-	struct MsgAnnounce *aa = &a->ann;
-	struct MsgAnnounce *ab = &b->ann;
-	const struct clock_identity *ida =
-	    msg_hdr_get_src_port_id_clock_id(&a->hdr);
-	const struct clock_identity *idb =
-	    msg_hdr_get_src_port_id_clock_id(&b->hdr);
+	const struct clock_identity *ida = &a->port_id.clockIdentity;
+	const struct clock_identity *idb = &b->port_id.clockIdentity;
 	struct clock_identity *idparent;
 	int diff;
 
 	/* dataset_cmp is called several times, so report only at level 2 */
 	pp_diag(ppi, bmc, 2,"%s\n", __func__);
 
-	if (!idcmp(&aa->grandmasterIdentity, &ab->grandmasterIdentity)) {
+	if (!idcmp(&a->grandmaster_identity, &b->grandmaster_identity)) {
 
 		/* The grandmaster is the same: part 2, fig 28, page 90. */
 
-		diff = aa->stepsRemoved - ab->stepsRemoved;
+		diff = a->steps_removed - b->steps_removed;
 		if (diff > 1 || diff < -1)
 			return diff;
 
@@ -166,11 +162,11 @@ static int bmc_dataset_cmp(struct pp_instance *ppi,
 	}
 
 	/* The grandmasters are different: part 1, fig 27, page 89. */
-	qa = &aa->grandmasterClockQuality;
-	qb = &ab->grandmasterClockQuality;
+	qa = &a->grandmaster_clock_quality;
+	qb = &b->grandmaster_clock_quality;
 
-	if (aa->grandmasterPriority1 != ab->grandmasterPriority1)
-		return aa->grandmasterPriority1 - ab->grandmasterPriority1;
+	if (a->grandmaster_priority1 != b->grandmaster_priority1)
+		return a->grandmaster_priority1 - b->grandmaster_priority1;
 
 	if (qa->clockClass != qb->clockClass)
 		return qa->clockClass - qb->clockClass;
@@ -181,10 +177,10 @@ static int bmc_dataset_cmp(struct pp_instance *ppi,
 	if (qa->offsetScaledLogVariance != qb->offsetScaledLogVariance)
 		return qa->clockClass - qb->clockClass;
 
-	if (aa->grandmasterPriority2 != ab->grandmasterPriority2)
-		return aa->grandmasterPriority2 - ab->grandmasterPriority2;
+	if (a->grandmaster_priority2 != b->grandmaster_priority2)
+		return a->grandmaster_priority2 - b->grandmaster_priority2;
 
-	return idcmp(&aa->grandmasterIdentity, &ab->grandmasterIdentity);
+	return idcmp(&a->grandmaster_identity, &b->grandmaster_identity);
 }
 
 /* Set up a foreign master data structure for us */
