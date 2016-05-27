@@ -113,6 +113,44 @@ static void process_ann_ts(struct pp_instance *ppi,
 	m->saved_timestamps = min(m->saved_timestamps + 1, 2);
 }
 
+/*
+ * Returns ts_window in milliseconds
+ */
+static unsigned long ts_window(struct pp_instance *ppi)
+{
+	struct DSPort *port = DSPOR(ppi);
+	unsigned long ann_timeout = 1000 * (port->announceReceiptTimeout <<
+					    port->logAnnounceInterval);
+
+	return ann_timeout * PP_FOREIGN_MASTER_TIME_WINDOW;
+}
+
+/*
+ * Qualify a master: we need at least 2 announce messages in 4 announce
+ * intervals
+ */
+static void qualify_master(struct pp_instance *ppi,
+			   struct pp_frgn_master *m,
+			   unsigned long now)
+{
+	/* 9.3.2.5 c and d */
+	m->qualified_for_bmc = m->ann.stepsRemoved < 255 &&
+		m->saved_timestamps > 1 &&
+		!time_after(now, m->last_ann_ts[1] + ts_window(ppi));
+}
+
+/*
+ * Walk through all masters and qualify them for bmc
+ */
+static void qualify_masters(struct pp_instance *ppi, unsigned long now)
+{
+	int i;
+	struct pp_frgn_master *m;
+
+	for (i = 0, m = ppi->frgn_master; i < PP_NR_FOREIGN_RECORDS; m++, i++)
+		qualify_master(ppi, m, now);
+}
+
 /* Called by this file, basically when an announce is got, all states */
 static void st_com_add_foreign(struct pp_instance *ppi, unsigned char *buf,
 			       unsigned long now)
@@ -172,6 +210,7 @@ int st_com_slave_handle_announce(struct pp_instance *ppi, unsigned char *buf,
 	/*Reset Timer handling Announce receipt timeout*/
 	pp_timeout_set(ppi, PP_TO_ANN_RECEIPT);
 
+	qualify_masters(ppi, now);
 	ppi->next_state = bmc(ppi); /* got a new announce: run bmc */
 
 	if (pp_hooks.handle_announce)
@@ -396,6 +435,7 @@ int st_com_master_handle_announce(struct pp_instance *ppi, unsigned char *buf,
 	pp_diag(ppi, bmc, 2, "Announce message from another foreign master\n");
 
 	st_com_add_foreign(ppi, buf, now);
+	qualify_masters(ppi, now);
 	ppi->next_state = bmc(ppi); /* got a new announce: run bmc */
 
 	if (pp_hooks.handle_announce)

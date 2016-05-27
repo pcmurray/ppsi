@@ -300,11 +300,24 @@ int bmc(struct pp_instance *ppi)
 			return ppi->state;
 		}
 
+	/* Get first qualified master as best */
+	for (i = 0, best = -1; i < ppi->frgn_rec_num && best == -1; i++)
+		if (frgn_master[i].qualified_for_bmc)
+			best = i;
+
+	if (best == -1) {
+		pp_diag(ppi, bmc, 1, "No qualified masters, skipping BMC\n");
+		return ppi->state;
+	}
+
 	/* Find Erbest, 9.3.2.3 */
-	for (i = 1, best = 0; i < ppi->frgn_rec_num; i++)
+	for (i = 0; i < ppi->frgn_rec_num; i++) {
+		if (!frgn_master[i].qualified_for_bmc)
+			continue;
 		if (bmc_dataset_cmp(ppi, &frgn_master[i], &frgn_master[best])
 		    < 0)
 			best = i;
+	}
 
 	pp_diag(ppi, bmc, 1,"Best foreign master is %i/%i\n", best,
 		ppi->frgn_rec_num);
