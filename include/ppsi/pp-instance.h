@@ -76,6 +76,13 @@ struct pp_frgn_master {
 	/* We don't need all fields of the following ones */
 	MsgAnnounce ann;
 	MsgHeader hdr;
+	/*
+	 * We need at least 2 valid announce messages in 4 announce intervals.
+	 * Keep a timestamp of the last 2 valid announces here.
+	 */
+	unsigned long last_ann_ts[2];
+	unsigned int saved_timestamps;
+	int qualified_for_bmc;
 };
 
 /*
