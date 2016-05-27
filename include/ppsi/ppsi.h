@@ -320,6 +320,8 @@ struct pp_argline {
 #define GLOB_OPTION_INT(k,t,a,field)					\
 	GLOB_OPTION(f_simple_int,k,t,a,field)
 
+#define min(a,b) ((a) < (b) ? (a) : (b))
+
 /* Both the architecture and the extension can provide config arguments */
 extern struct pp_argline pp_arch_arglines[];
 extern struct pp_argline pp_ext_arglines[];
