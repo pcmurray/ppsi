@@ -130,6 +130,15 @@ typedef uint16_t	Enumeration16;
 typedef uint8_t		Enumeration8;
 typedef uint8_t		Enumeration4;
 
+/* actionField (table 38, page 158) */
+enum ENactionField {
+	AF_GET		= 0,
+	AF_SET		= 1,
+	AF_RESPONSE	= 2,
+	AF_COMMAND	= 3,
+	AF_ACKNOWLEDGE	= 4,
+};
+
 /* severityCode (table 46, page 165) */
 enum ENseverityCode {
 	EMERGENCY	= 0x00,
@@ -321,7 +330,7 @@ typedef struct MsgManagement{
 	PortIdentity	targetPortIdentity;
 	uint8_t		startingBoundaryHops;
 	uint8_t		boundaryHops;
-	Enumeration4	actionField;
+	enum ENactionField	actionField;
 	char		*tlv;
 } MsgManagement;
 
