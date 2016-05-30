@@ -108,6 +108,23 @@ enum ENDelayMechanism {
 	DELAY_DISABLED	= 0xFE
 };
 
+/* tlvType values (table 34, page 154) */
+enum ENtlvType {
+	MANAGEMENT				= 0x0001,
+	MANAGEMENT_ERROR_STATUS			= 0x0002,
+	ORGANIZATION_EXTENSION			= 0x0003,
+	REQUEST_UNICAST_TRANSMISSION		= 0x0004,
+	GRANT_UNICAST_TRANSMISSION		= 0x0005,
+	CANCEL_UNICAST_TRANSMISSION		= 0x0006,
+	ACKNOWLEDGE_CANCEL_UNICAST_TRASMISSION	= 0x0007,
+	PATH_TRACE				= 0x0008,
+	ALTERNATE_TIME_OFFSET_INDICATOR		= 0x0009,
+	AUTHENTICATION				= 0x2000,
+	AUTHENTICATION_CHALLENGE		= 0x2001,
+	SECURITY_ASSOCIATION_UPDATE		= 0x2002,
+	CUM_FREQ_SCALE_FACTOR_OFFSET		= 0x2003,
+};
+
 /* Enumerations are unsigned, see 5.4.2, page 15 */
 typedef uint16_t	Enumeration16;
 typedef uint8_t		Enumeration8;
@@ -193,7 +210,7 @@ typedef struct ClockQuality { /* page 14 (34) -- int because of lib/config.c */
 } ClockQuality;
 
 struct TLV { /* page 14 (34) -- never used */
-	Enumeration16	tlvType;
+	enum ENtlvType	tlvType;
 	uint16_t	lengthField;
 	uint8_t		*valueField;
 };

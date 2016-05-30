@@ -55,7 +55,6 @@
 
 /* new stuff for WRPTPv2 */
 
-#define TLV_TYPE_ORG_EXTENSION		0x0003 /* organization specific */
 
 #define WR_PRIORITY1                    64
 

@@ -80,7 +80,7 @@ void msg_pack_announce_wr_tlv(struct pp_instance *ppi)
 	/* Change length */
 	*(uint16_t *)(buf + 2) = htons(WR_ANNOUNCE_LENGTH);
 
-	*(uint16_t *)(buf + 64) = htons(TLV_TYPE_ORG_EXTENSION);
+	*(uint16_t *)(buf + 64) = htons(ORGANIZATION_EXTENSION);
 	*(uint16_t *)(buf + 66) = htons(WR_ANNOUNCE_TLV_LENGTH);
 	/* CERN's OUI: WR_TLV_ORGANIZATION_ID, how to flip bits? */
 	*(uint16_t *)(buf + 68) = htons((WR_TLV_ORGANIZATION_ID >> 8));
@@ -118,7 +118,7 @@ void msg_unpack_announce_wr_tlv(void *buf, MsgAnnounce *ann)
 	tlv_versionNumber = 0xFF & htons(*(uint16_t *)(buf+72));
 	tlv_wrMessageID = htons(*(uint16_t *)(buf+74));
 
-	if (tlv_type == TLV_TYPE_ORG_EXTENSION &&
+	if (tlv_type == ORGANIZATION_EXTENSION &&
 		tlv_organizationID == WR_TLV_ORGANIZATION_ID &&
 		tlv_magicNumber == WR_TLV_MAGIC_NUMBER &&
 		tlv_versionNumber == WR_TLV_WR_VERSION_NUMBER &&
@@ -154,7 +154,7 @@ int msg_pack_wrsig(struct pp_instance *ppi, Enumeration16 wr_msg_id)
 	put_be16(buf + 42, DSPAR(ppi)->parentPortIdentity.portNumber);
 
 	/* WR TLV */
-	*(uint16_t *)(buf+44) = htons(TLV_TYPE_ORG_EXTENSION);
+	*(uint16_t *)(buf+44) = htons(ORGANIZATION_EXTENSION);
 	/* leave lenght free */
 	*(uint16_t *)(buf+48) = htons((WR_TLV_ORGANIZATION_ID >> 8));
 	*(uint16_t *)(buf+50) = htons((0xFFFF &
@@ -226,7 +226,7 @@ void msg_unpack_wrsig(struct pp_instance *ppi, void *buf,
 				| tlv_magicNumber;
 	tlv_versionNumber = 0xFF & htons(*(uint16_t *)(buf + 52));
 
-	if (tlv_type != TLV_TYPE_ORG_EXTENSION) {
+	if (tlv_type != ORGANIZATION_EXTENSION) {
 		pp_diag(ppi, frames, 1, "handle Signaling msg, failed, This is not "
 			"organization extension TLV = 0x%x\n", tlv_type);
 		return;
