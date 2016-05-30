@@ -286,7 +286,7 @@ typedef struct MsgSignaling {
 	char		*tlv;
 } MsgSignaling;
 
-/* Management Message (table 37, page 137) */
+/* Management Message (table 37, page 137) - never used */
 typedef struct MsgManagement{
 	PortIdentity	targetPortIdentity;
 	uint8_t		startingBoundaryHops;
