@@ -216,11 +216,11 @@ struct port_identity { /* page 13 (33) */
 	uint16_t	portNumber;
 };
 
-typedef struct PortAdress { /* page 13 (33) */
+typedef struct PortAddress { /* page 13 (33) -- never used */
 	enum ENNetworkProtocol	networkProtocol;
 	uint16_t	adressLength;
 	uint8_t		*adressField;
-} PortAdress;
+} PortAddress;
 
 typedef struct ClockQuality { /* page 14 (34) -- int because of lib/config.c */
 	int		clockClass;
