@@ -129,6 +129,19 @@ enum ENtlvType {
 typedef uint16_t	Enumeration16;
 typedef uint8_t		Enumeration8;
 typedef uint8_t		Enumeration4;
+
+/* severityCode (table 46, page 165) */
+enum ENseverityCode {
+	EMERGENCY	= 0x00,
+	ALERT		= 0x01,
+	CRITICAL	= 0x02,
+	ERROR		= 0x03,
+	WARNING		= 0x04,
+	NOTICE		= 0x05,
+	INFORMATIONAL	= 0x06,
+	DEBUG		= 0x07,
+};
+
 typedef uint8_t		UInteger4;
 typedef uint8_t		Nibble;
 
@@ -223,7 +236,7 @@ struct PTPText { /* page 14 (34) -- never used */
 struct FaultRecord { /* page 14 (34) -- never used */
 	uint16_t	faultRecordLength;
 	Timestamp	faultTime;
-	Enumeration8	severityCode;
+	enum ENseverityCode	severityCode;
 	struct PTPText	faultName;
 	struct PTPText	faultValue;
 	struct PTPText	faultDescription;
