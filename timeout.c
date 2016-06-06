@@ -22,7 +22,7 @@ static struct timeout_config to_configs[__PP_TO_ARRAY_SIZE] = {
 	/* extension timeouts are explicitly set to a value */
 };
 
-/* Init fills the timeout values; they are not changed after program startup */
+/* Init fills the timeout values */
 void pp_timeout_init(struct pp_instance *ppi)
 {
 	struct DSPort *port = ppi->portDS;

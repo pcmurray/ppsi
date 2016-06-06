@@ -81,9 +81,9 @@ int pp_slave(struct pp_instance *ppi, unsigned char *pkt, int plen)
 			if (e)
 				goto out;
 
-			ppi->log_min_delay_req_interval =
+			DSPOR(ppi)->logMinDelayReqInterval =
 				hdr->logMessageInterval;
-
+			pp_timeout_init(ppi); /* new value for logMin */
 		} else {
 			pp_diag(ppi, frames, 2, "pp_slave : "
 			     "Delay Resp doesn't match Delay Req\n");
