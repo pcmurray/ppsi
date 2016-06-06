@@ -24,10 +24,10 @@ struct pp_runtime_opts {
 	Integer16 ap, ai;
 	Integer16 s;
 	Integer8 announce_intvl;
-	Integer8 sync_intvl;
-	UInteger8 prio1;
-	UInteger8 prio2;
-	UInteger8 domain_number;
+	int sync_intvl;
+	int prio1;
+	int prio2;
+	int domain_number;
 	void *arch_opts;
 };
 
@@ -114,7 +114,7 @@ enum { /* The two sockets. They are called "net path" for historical reasons */
 struct pp_instance_cfg {
 	char port_name[16];
 	char iface_name[16];
-	int ext;   /* 0: none, 1: whiterabbit */ /* FIXME extension enumeration */
+	int ext;   /* 0: none, 1: whiterabbit */
 };
 
 /*
@@ -127,8 +127,8 @@ struct pp_instance {
 	void *arch_data;		/* if arch needs it */
 	void *ext_data;			/* if protocol ext needs it */
 	unsigned long d_flags;		/* diagnostics, ppi-specific flags */
-	unsigned char flags,		/* protocol flags (see below) */
-		role,			/* same as in config file */
+	unsigned char flags;		/* protocol flags (see below) */
+	int	role,			/* same as in config file */
 		proto;			/* same as in config file */
 
 	/* Pointer to global instance owning this pp_instance*/

@@ -101,10 +101,10 @@ typedef struct PortAdress { /* page 13 (33) */
 	Octet		*adressField;
 } PortAdress;
 
-typedef struct ClockQuality { /* page 14 (34) */
-	UInteger8	clockClass;
-	Enumeration8	clockAccuracy;
-	UInteger16	offsetScaledLogVariance;
+typedef struct ClockQuality { /* page 14 (34) -- int because of lib/config.c */
+	int		clockClass;
+	int		clockAccuracy;
+	int		offsetScaledLogVariance;
 } ClockQuality;
 
 struct TLV { /* page 14 (34) -- never used */
