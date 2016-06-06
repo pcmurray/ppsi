@@ -216,21 +216,15 @@ int st_com_peer_handle_pres(struct pp_instance *ppi, unsigned char *buf,
 {
 	MsgPDelayResp resp;
 	struct msg_header_wire *hdr = &ppi->received_ptp_header;
+	struct port_identity *pi;
 
 	if (len < PP_PDELAY_RESP_LENGTH)
 		return -1;
 
 	msg_unpack_pdelay_resp(buf, &resp);
+	pi = &resp.requestingPortIdentity;
 
-	if ((memcmp(&DSPOR(ppi)->portIdentity.clockIdentity,
-		    &resp.requestingPortIdentity.clockIdentity,
-		    PP_CLOCK_IDENTITY_LENGTH) == 0) &&
-	    ((ppi->sent_seq[PPM_PDELAY_REQ]) ==
-	     msg_hdr_get_msg_seq_id(hdr)) &&
-	    (DSPOR(ppi)->portIdentity.portNumber ==
-	     resp.requestingPortIdentity.portNumber) &&
-	    (ppi->flags & PPI_FLAG_FROM_CURRENT_PARENT)) {
-
+	if (pdelay_resp_is_mine(ppi, hdr, pi)) {
 		to_TimeInternal(&ppi->t4, &resp.requestReceiptTimestamp);
 		ppi->t6 = ppi->last_rcv_time;
 		ppi->t6_cf = phase_to_cf_units(ppi->last_rcv_time.phase);

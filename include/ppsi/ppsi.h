@@ -428,4 +428,26 @@ extern void ppsi_drop_init(struct pp_globals *ppg, unsigned long seed);
 extern int ppsi_drop_rx(void);
 extern int ppsi_drop_tx(void);
 
+static inline int resp_is_mine(struct pp_instance *ppi,
+			       struct port_identity *pi,
+			       struct msg_header_wire *hdr,
+			       int index)
+{
+	return !(port_id_cmp(&DSPOR(ppi)->portIdentity, pi)) &&
+		 ppi->sent_seq[index] == msg_hdr_get_msg_seq_id(hdr) &&
+		 ppi->flags & PPI_FLAG_FROM_CURRENT_PARENT;
+}
+
+#define pdelay_resp_is_mine(ppi, hdr, pi) \
+	resp_is_mine(ppi, pi, hdr, PPM_PDELAY_REQ)
+
+#define delay_resp_is_mine(ppi, hdr, pi) \
+	resp_is_mine(ppi, pi, hdr, PPM_DELAY_REQ)
+
+#define pdelay_resp_follow_up_is_mine(ppi, hdr, pi) \
+	resp_is_mine(ppi, pi, hdr, PPM_PDELAY_REQ)
+
+#define delay_resp_follow_up_is_mine(ppi, hdr, pi) \
+	resp_is_mine(ppi, pi, hdr, PPM_DELAY_REQ)
+
 #endif /* __PPSI_PPSI_H__ */

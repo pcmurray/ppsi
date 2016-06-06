@@ -52,20 +52,16 @@ int pp_slave(struct pp_instance *ppi, void *pkt, int plen)
 		break;
 
 	case PPM_DELAY_RESP:
+	{
+		struct port_identity *pi;
+
 		if (plen < PP_DELAY_RESP_LENGTH)
 			break;
 
 		msg_unpack_delay_resp(pkt, &resp);
+		pi = &resp.requestingPortIdentity;
 
-		if ((memcmp(&DSPOR(ppi)->portIdentity.clockIdentity,
-			&resp.requestingPortIdentity.clockIdentity,
-			PP_CLOCK_IDENTITY_LENGTH) == 0) &&
-			((ppi->sent_seq[PPM_DELAY_REQ]) ==
-			 msg_hdr_get_msg_seq_id(hdr)) &&
-			(DSPOR(ppi)->portIdentity.portNumber ==
-			resp.requestingPortIdentity.portNumber)
-			&& (ppi->flags & PPI_FLAG_FROM_CURRENT_PARENT)) {
-
+		if (delay_resp_is_mine(ppi, hdr, pi)) {
 			to_TimeInternal(&ppi->t4, &resp.receiveTimestamp);
 
 			/*
@@ -90,7 +86,7 @@ int pp_slave(struct pp_instance *ppi, void *pkt, int plen)
 		}
 
 		break;
-
+	}
 	case PPM_PDELAY_REQ:
 		e = st_com_peer_handle_preq(ppi, pkt, plen);
 		break;
@@ -100,20 +96,16 @@ int pp_slave(struct pp_instance *ppi, void *pkt, int plen)
 		break;
 
 	case PPM_PDELAY_RESP_FOLLOW_UP:
+	{
+		struct port_identity *pi;
+
 		if (plen < PP_PDELAY_RESP_FOLLOW_UP_LENGTH)
 			break;
 
 		msg_unpack_pdelay_resp_follow_up(pkt, &respFllw);
+		pi = &respFllw.requestingPortIdentity;
 
-		if ((memcmp(&DSPOR(ppi)->portIdentity.clockIdentity,
-			    &respFllw.requestingPortIdentity.clockIdentity,
-			    PP_CLOCK_IDENTITY_LENGTH) == 0) &&
-		    ((ppi->sent_seq[PPM_PDELAY_REQ]) ==
-		     msg_hdr_get_msg_seq_id(hdr)) &&
-		    (DSPOR(ppi)->portIdentity.portNumber ==
-		     respFllw.requestingPortIdentity.portNumber) &&
-		    (ppi->flags & PPI_FLAG_FROM_CURRENT_PARENT)) {
-
+		if (pdelay_resp_follow_up_is_mine(ppi, hdr, pi)) {
 			to_TimeInternal(&ppi->t5,
 					&respFllw.responseOriginTimestamp);
 			ppi->flags |= PPI_FLAG_WAITING_FOR_RF_UP;
@@ -130,7 +122,7 @@ int pp_slave(struct pp_instance *ppi, void *pkt, int plen)
 				"PDelay Resp F-up doesn't match PDelay Req\n");
 		}
 		break;
-
+	}
 	default:
 		/* disregard, nothing to do */
 		break;
