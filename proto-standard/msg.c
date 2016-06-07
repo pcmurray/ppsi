@@ -198,9 +198,10 @@ static void msg_pack_delay_req(struct pp_instance *ppi, Timestamp *orig_tstamp)
 	buf = ppi->tx_ptp;
 	ts = buf + 34;
 
+	/* logMessageInterval is 0x7f, see Table 24 p. 128 */
 	msg_hdr_prepare(ppi->tx_ptp, PPM_DELAY_REQ,
 			PP_DELAY_REQ_LENGTH, s, 1, 0x7f);
-	/* Table 24 */
+	/* 11.3.2, 3, i: correctionField is 0 */
 	msg_hdr_set_cf(ppi->tx_ptp, 0);
 
 	/* Delay_req message */
