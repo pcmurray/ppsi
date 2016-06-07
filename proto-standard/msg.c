@@ -96,6 +96,8 @@ static int msg_pack_announce(struct pp_instance *ppi)
 	s = ppi->sent_seq[PPM_ANNOUNCE]++;
 	msg_hdr_prepare(hdr, PPM_ANNOUNCE, PP_ANNOUNCE_LENGTH, s, 5,
 			DSPOR(ppi)->logAnnounceInterval);
+	/* Table 21 */
+	msg_hdr_set_cf(hdr, 0ULL);
 
 	/* Announce message */
 	memset(&tsw, 0, sizeof(tsw));
