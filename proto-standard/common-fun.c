@@ -263,6 +263,7 @@ int st_com_slave_handle_followup(struct pp_instance *ppi, void *buf, int len)
 {
 	MsgFollowUp follow;
 	int ret = 0;
+	TimeInternal cField;
 
 	struct msg_header_wire *hdr = &ppi->received_ptp_header;
 
@@ -291,6 +292,10 @@ int st_com_slave_handle_followup(struct pp_instance *ppi, void *buf, int len)
 	msg_unpack_follow_up(buf, &follow);
 	ppi->flags &= ~PPI_FLAG_WAITING_FOR_F_UP;
 	to_TimeInternal(&ppi->t1, &follow.preciseOriginTimestamp);
+
+	/* Add correctionField in follow-up to sync correctionField, see 11.2 */
+	cField_to_TimeInternal(&cField, msg_hdr_get_cf(hdr));
+	add_TimeInternal(&ppi->cField, &ppi->cField, &cField);
 
 	/* Call the extension; it may do it all and ask to return */
 	if (pp_hooks.handle_followup)
