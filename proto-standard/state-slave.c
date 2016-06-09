@@ -63,12 +63,9 @@ int pp_slave(struct pp_instance *ppi, void *pkt, int plen)
 
 		if (delay_resp_is_mine(ppi, hdr, pi)) {
 			to_TimeInternal(&ppi->t4, &resp.receiveTimestamp);
-
-			/*
-			 * FIXME: how is correctionField handled in t3/t4?
-			 * I think the master should consider it when
-			 * generating t4, and report back a modified t4
-			 */
+			/* Save delay resp cf in ppi->cField */
+			cField_to_TimeInternal(&ppi->cField,
+					       msg_hdr_get_cf(hdr));
 
 			if (pp_hooks.handle_resp)
 				e = pp_hooks.handle_resp(ppi);
