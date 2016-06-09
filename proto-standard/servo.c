@@ -62,6 +62,8 @@ void pp_servo_got_sync(struct pp_instance *ppi)
 	/*
 	 * calc 'master_to_slave_delay', removing the correction field
 	 * added by transparent clocks in the path.
+	 * cField contains the sum of sync and followup messages
+	 * correctionField(s)
 	 */
 	sub_TimeInternal(m_to_s_dly, &ppi->t2, &ppi->t1);
 	sub_TimeInternal(m_to_s_dly, m_to_s_dly, &ppi->cField);
@@ -158,7 +160,7 @@ void pp_servo_got_resp(struct pp_instance *ppi)
 		return;
 	}
 	/*
-	 * calc 'slave_to_master_delay', removing the correction field
+	 * calc 'slave_to_master_delay', removing delay_resp correction field
 	 * added by transparent clocks in the path.
 	 */
 	sub_TimeInternal(s_to_m_dly, &ppi->t4,	&ppi->t3);
