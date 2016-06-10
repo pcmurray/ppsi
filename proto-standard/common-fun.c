@@ -216,7 +216,10 @@ int st_com_peer_handle_pres(struct pp_instance *ppi, unsigned char *buf,
 		to_TimeInternal(&ppi->t4, &resp.requestReceiptTimestamp);
 		ppi->t6 = ppi->last_rcv_time;
 		ppi->t6_cf = phase_to_cf_units(ppi->last_rcv_time.phase);
-		ppi->flags |= PPI_FLAG_WAITING_FOR_RF_UP;
+		if ((hdr->flagField[0] & PP_TWO_STEP_FLAG) != 0)
+			ppi->flags |= PPI_FLAG_WAITING_FOR_RF_UP;
+		else
+			ppi->flags &= ~PPI_FLAG_WAITING_FOR_RF_UP;
 
 		/* Save correctionField of pdelay_resp, see 11.4.3 d 3/4 */
 		cField_to_TimeInternal(&ppi->cField, hdr->correctionfield);
@@ -253,7 +256,6 @@ int st_com_peer_handle_pres_followup(struct pp_instance *ppi,
 
 		to_TimeInternal(&ppi->t5,
 				&respFllw.responseOriginTimestamp);
-		ppi->flags |= PPI_FLAG_WAITING_FOR_RF_UP;
 
 		if (pp_hooks.handle_presp)
 			e = pp_hooks.handle_presp(ppi);
