@@ -12,8 +12,6 @@
 int pp_listening(struct pp_instance *ppi, void *pkt, int plen)
 {
 	int e = 0; /* error var, to check errors in msg handling */
-	struct msg_header_wire *hdr = &ppi->received_ptp_header;
-	MsgPDelayRespFollowUp respFllw;
 
 	if (pp_hooks.listening)
 		e = pp_hooks.listening(ppi, pkt, plen);
@@ -46,34 +44,8 @@ int pp_listening(struct pp_instance *ppi, void *pkt, int plen)
 		break;
 
 	case PPM_PDELAY_RESP_FOLLOW_UP:
-	{
-		struct port_identity *pi;
-
-		if (plen < PP_PDELAY_RESP_FOLLOW_UP_LENGTH)
-			break;
-
-		msg_unpack_pdelay_resp_follow_up(pkt, &respFllw);
-		pi = &respFllw.requestingPortIdentity;
-
-		if (pdelay_resp_follow_up_is_mine(ppi, hdr, pi)) {
-			to_TimeInternal(&ppi->t5,
-					&respFllw.responseOriginTimestamp);
-			ppi->flags |= PPI_FLAG_WAITING_FOR_RF_UP;
-
-			if (pp_hooks.handle_presp)
-				e = pp_hooks.handle_presp(ppi);
-			else
-				pp_servo_got_presp(ppi);
-			if (e)
-				goto out;
-
-		} else {
-			pp_diag(ppi, frames, 2, "%s: "
-				"PDelay Resp F-up doesn't match PDelay Req\n",
-				__func__);
-		}
+		e = st_com_peer_handle_pres_followup(ppi, pkt, plen);
 		break;
-	}
 	default:
 		/* disregard, nothing to do */
 		break;
