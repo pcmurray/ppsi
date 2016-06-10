@@ -20,7 +20,7 @@ int pp_master(struct pp_instance *ppi, void *pkt, int plen)
 	pp_lib_may_issue_sync(ppi);
 	pp_lib_may_issue_announce(ppi);
 
-	/* when the clock is using peer-delay, the muster mast send it too */
+	/* when the clock is using peer-delay, the master must send it too */
 	if (ppi->glbs->delay_mech == PP_P2P_MECH)
 		pp_lib_may_issue_request(ppi);
 	else
