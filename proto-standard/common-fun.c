@@ -233,7 +233,8 @@ int st_com_peer_handle_pres(struct pp_instance *ppi, unsigned char *buf,
 		else
 			ppi->flags &= ~PPI_FLAG_WAITING_FOR_RF_UP;
 
-		/* todo: in one clock the presp carries t5-t4 */
+		/* Save correctionField of pdelay_resp, see 11.4.3 d 3/4 */
+		cField_to_TimeInternal(&ppi->cField, msg_hdr_get_cf(hdr));
 
 	} else {
 		pp_diag(ppi, frames, 2, "pp_pclock : "
