@@ -238,6 +238,7 @@ int st_com_peer_handle_pres_followup(struct pp_instance *ppi,
 	MsgHeader *hdr = &ppi->received_ptp_header;
 	MsgPDelayRespFollowUp respFllw;
 	int e = 0;
+	TimeInternal tmp;
 
 	if (plen < PP_PDELAY_RESP_FOLLOW_UP_LENGTH)
 		/* Ignore */
@@ -256,6 +257,12 @@ int st_com_peer_handle_pres_followup(struct pp_instance *ppi,
 
 		to_TimeInternal(&ppi->t5,
 				&respFllw.responseOriginTimestamp);
+		/*
+		 * Add correctionField of pdelay_resp_followup to
+		 * cf of pdelay_resp (see 11.4.3 d 4)
+		 */
+		cField_to_TimeInternal(&tmp, hdr->correctionfield);
+		add_TimeInternal(&ppi->cField, &ppi->cField, &tmp);
 
 		if (pp_hooks.handle_presp)
 			e = pp_hooks.handle_presp(ppi);
