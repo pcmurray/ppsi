@@ -218,7 +218,8 @@ int st_com_peer_handle_pres(struct pp_instance *ppi, unsigned char *buf,
 		ppi->t6_cf = phase_to_cf_units(ppi->last_rcv_time.phase);
 		ppi->flags |= PPI_FLAG_WAITING_FOR_RF_UP;
 
-		/* todo: in one clock the presp carries t5-t4 */
+		/* Save correctionField of pdelay_resp, see 11.4.3 d 3/4 */
+		cField_to_TimeInternal(&ppi->cField, hdr->correctionfield);
 
 	} else {
 		pp_diag(ppi, frames, 2, "pp_pclock : "
