@@ -191,8 +191,6 @@ struct pp_instance {
 /* The following things used to be bit fields. Other flags are now enums */
 #define PPI_FLAG_FROM_CURRENT_PARENT	0x01
 #define PPI_FLAG_WAITING_FOR_F_UP	0x02
-#define PPI_FLAG_WAITING_FOR_RF_UP	0x04
-#define PPI_FLAGS_WAITING		0x06 /* both of the above */
 
 struct pp_globals_cfg {
 	int cfg_items;			/* Remember how many we parsed */

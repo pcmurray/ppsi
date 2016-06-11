@@ -228,16 +228,12 @@ int st_com_peer_handle_pres(struct pp_instance *ppi, unsigned char *buf,
 		to_TimeInternal(&ppi->t4, &resp.requestReceiptTimestamp);
 		ppi->t6 = ppi->last_rcv_time;
 		ppi->t6_cf = phase_to_cf_units(ppi->last_rcv_time.phase);
-		if ((msg_hdr_get_flags(hdr)[0] & PP_TWO_STEP_FLAG) != 0)
-			ppi->flags |= PPI_FLAG_WAITING_FOR_RF_UP;
-		else {
-			ppi->flags &= ~PPI_FLAG_WAITING_FOR_RF_UP;
+		if (!(msg_hdr_get_flags(hdr)[0] & PP_TWO_STEP_FLAG))
 			/*
 			 * Make sure responseOriginTimestamp is forced to 0
 			 * for one-step responders
 			 */
 			memset(&ppi->t5, 0, sizeof(ppi->t5));
-		}
 
 		/* Save correctionField of pdelay_resp, see 11.4.3 d 3/4 */
 		cField_to_TimeInternal(&ppi->cField, msg_hdr_get_cf(hdr));
