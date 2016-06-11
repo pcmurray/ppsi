@@ -57,6 +57,7 @@ enum pp_timeouts {
 	PP_TO_ANN_RECEIPT,
 	PP_TO_ANN_SEND,
 	PP_TO_FAULTY,
+	PP_TO_QUALIFICATION,
 	/* Two timeouts for the protocol extension  */
 	PP_TO_EXT_0,
 	PP_TO_EXT_1,
