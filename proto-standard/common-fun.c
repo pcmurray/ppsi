@@ -8,7 +8,6 @@
 #include <ppsi/ppsi.h>
 #include "common-fun.h"
 #include "../lib/network_types.h"
-#include "../proto-ext-whiterabbit/wr-api.h" /* FIXME: phase_to_cf_units */
 
 #ifdef CONFIG_ARCH_WRS
 #define ARCH_IS_WRS 1
@@ -215,6 +214,7 @@ int st_com_peer_handle_pres(struct pp_instance *ppi, unsigned char *buf,
 	MsgPDelayResp resp;
 	struct msg_header_wire *hdr = &ppi->received_ptp_header;
 	struct port_identity *pi;
+	int e = 0;
 
 	if (len < PP_PDELAY_RESP_LENGTH)
 		return -1;
@@ -225,7 +225,6 @@ int st_com_peer_handle_pres(struct pp_instance *ppi, unsigned char *buf,
 	if (pdelay_resp_is_mine(ppi, hdr, pi)) {
 		to_TimeInternal(&ppi->t4, &resp.requestReceiptTimestamp);
 		ppi->t6 = ppi->last_rcv_time;
-		ppi->t6_cf = phase_to_cf_units(ppi->last_rcv_time.phase);
 		if (!(msg_hdr_get_flags(hdr)[0] & PP_TWO_STEP_FLAG))
 			/*
 			 * Make sure responseOriginTimestamp is forced to 0
@@ -235,12 +234,14 @@ int st_com_peer_handle_pres(struct pp_instance *ppi, unsigned char *buf,
 
 		/* Save correctionField of pdelay_resp, see 11.4.3 d 3/4 */
 		cField_to_TimeInternal(&ppi->cField, msg_hdr_get_cf(hdr));
+		if (pp_hooks.handle_presp)
+			e = pp_hooks.handle_presp(ppi);
 
 	} else {
 		pp_diag(ppi, frames, 2, "pp_pclock : "
 			"PDelay Resp doesn't match PDelay Req\n");
 	}
-	return 0;
+	return e;
 }
 
 int st_com_peer_handle_pres_followup(struct pp_instance *ppi,
