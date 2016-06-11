@@ -196,12 +196,10 @@ int st_com_slave_handle_sync(struct pp_instance *ppi, void *buf, int len)
 	cField_to_TimeInternal(&ppi->cField, msg_hdr_get_cf(hdr));
 
 	if ((msg_hdr_get_flags(hdr)[0] & PP_TWO_STEP_FLAG) != 0) {
-		ppi->flags |= PPI_FLAG_WAITING_FOR_F_UP;
 		ppi->recv_sync_sequence_id = msg_hdr_get_msg_seq_id(hdr);
 		return 0;
 	}
 	msg_unpack_sync(buf, &sync);
-	ppi->flags &= ~PPI_FLAG_WAITING_FOR_F_UP;
 	to_TimeInternal(&ppi->t1,
 			&sync.originTimestamp);
 	if (GLBS(ppi)->delay_mech)
@@ -320,12 +318,6 @@ int st_com_slave_handle_followup(struct pp_instance *ppi, void *buf, int len)
 		return 0;
 	}
 
-	if (!(ppi->flags & PPI_FLAG_WAITING_FOR_F_UP)) {
-		pp_error("%s: Slave was not waiting a follow up message\n",
-			__func__);
-		return 0;
-	}
-
 	if (ppi->recv_sync_sequence_id != msg_hdr_get_msg_seq_id(hdr)) {
 		pp_error("%s: SequenceID %d doesn't match last Sync message %d\n",
 			 __func__, msg_hdr_get_msg_seq_id(hdr),
@@ -334,7 +326,6 @@ int st_com_slave_handle_followup(struct pp_instance *ppi, void *buf, int len)
 	}
 
 	msg_unpack_follow_up(buf, &follow);
-	ppi->flags &= ~PPI_FLAG_WAITING_FOR_F_UP;
 	to_TimeInternal(&ppi->t1, &follow.preciseOriginTimestamp);
 
 	/* Add correctionField in follow-up to sync correctionField, see 11.2 */
