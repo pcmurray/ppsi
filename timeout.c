@@ -19,6 +19,7 @@ static struct timeout_config to_configs[__PP_TO_ARRAY_SIZE] = {
 	[PP_TO_ANN_RECEIPT] =	{"ANN_RECEIPT",	0,},
 	[PP_TO_ANN_SEND] =	{"ANN_SEND",	1,},
 	[PP_TO_FAULTY] =	{"FAULTY",	0, 4000},
+	[PP_TO_QUALIFICATION] = {"QUAL",	0,}
 	/* extension timeouts are explicitly set to a value */
 };
 
@@ -34,6 +35,8 @@ void pp_timeout_init(struct pp_instance *ppi)
 	to_configs[PP_TO_ANN_RECEIPT].value = 1000 * (
 		port->announceReceiptTimeout << port->logAnnounceInterval);
 	to_configs[PP_TO_ANN_SEND].value = port->logAnnounceInterval;
+	to_configs[PP_TO_QUALIFICATION].value =
+	    (1000 << port->logAnnounceInterval)*(DSCUR(ppi)->stepsRemoved + 1);
 }
 
 static void pp_timeout_log(struct pp_instance *ppi, int index)
