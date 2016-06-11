@@ -269,8 +269,8 @@ int st_com_peer_handle_pres_followup(struct pp_instance *ppi,
 		cField_to_TimeInternal(&tmp, msg_hdr_get_cf(hdr));
 		add_TimeInternal(&ppi->cField, &ppi->cField, &tmp);
 
-		if (pp_hooks.handle_presp)
-			e = pp_hooks.handle_presp(ppi);
+		if (pp_hooks.handle_presp_followup)
+			e = pp_hooks.handle_presp_followup(ppi);
 		else
 			pp_servo_got_presp(ppi);
 	} else {

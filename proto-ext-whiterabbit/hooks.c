@@ -246,7 +246,7 @@ static int wr_handle_followup(struct pp_instance *ppi,
 	return 1; /* the caller returns too */
 }
 
-static int wr_handle_presp(struct pp_instance *ppi)
+static int wr_handle_presp_followup(struct pp_instance *ppi)
 {
 	struct msg_header_wire *hdr = &ppi->received_ptp_header;
 	TimeInternal correction_field;
@@ -310,6 +310,6 @@ struct pp_ext_hooks pp_hooks = {
 	.handle_announce = wr_handle_announce,
 	.handle_followup = wr_handle_followup,
 	.handle_preq = wr_handle_preq,
-	.handle_presp = wr_handle_presp,
+	.handle_presp_followup = wr_handle_presp_followup,
 	.pack_announce = wr_pack_announce,
 };
