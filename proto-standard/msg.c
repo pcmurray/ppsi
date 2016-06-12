@@ -29,6 +29,15 @@ int msg_unpack_header(struct pp_instance *ppi, void *_buf, int plen)
 		return -1;
 
 	/*
+	 * Alternate masters (17.4) not supported
+	 * 17.4.2, NOTE:
+	 * A slave node that does not want to use information from alternate
+	 * masters merely ignores all messages with alternateMasterFlag TRUE.
+	 */
+	if (msg_hdr_get_flags(hdr)[0] & PP_ALTERNATE_MASTER_FLAG)
+		return -1;
+
+	/*
 	 * If the message is from us, we should discard it.
 	 * The best way to do that is comparing the mac address,
 	 * but it's easier to check the clock identity (we refuse
