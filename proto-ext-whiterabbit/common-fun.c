@@ -41,6 +41,9 @@ void wr_handshake_fail(struct pp_instance *ppi)
 	pp_diag(ppi, ext, 1, "Handshake failure: now non-wr %s\n",
 		wrp->wrMode == WR_MASTER ? "master" : "slave");
 	if (wrp->wrMode == WR_MASTER)
+		/*
+		 * FIXME: should we switch to PRE_MASTER ?
+		 */
 		ppi->next_state = PPS_MASTER;
 	else
 		ppi->next_state = PPS_SLAVE;
