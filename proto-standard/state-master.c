@@ -9,20 +9,35 @@
 #include <ppsi/ppsi.h>
 #include "common-fun.h"
 
-int pp_master(struct pp_instance *ppi, unsigned char *pkt, int plen)
+/*
+ * pre indicates that we're in PRE_MASTER slave
+ */
+int _pp_master(struct pp_instance *ppi, uint8_t *pkt, int plen, int pre)
 {
 	int msgtype;
 	int e = 0; /* error var, to check errors in msg handling */
 
-	/* ignore errors; we are not getting FAULTY if not transmitting */
-	pp_lib_may_issue_sync(ppi);
-	pp_lib_may_issue_announce(ppi);
+	if (pre && pp_timeout(ppi, PP_TO_QUALIFICATION)) {
+		ppi->next_state = PPS_MASTER;
+		return 0;
+	}
+
+	if (!pre) {
+		/*
+		 * ignore errors; we are not getting FAULTY if not
+		 * transmitting
+		 */
+		pp_lib_may_issue_sync(ppi);
+		pp_lib_may_issue_announce(ppi);
+	}
 
 	/* when the clock is using peer-delay, the muster mast send it too */
 	if (ppi->glbs->delay_mech == PP_P2P_MECH)
 		pp_lib_may_issue_request(ppi);
-	else
-		pp_timeout_set(ppi, PP_TO_REQUEST);
+	else {
+		if (!pre)
+			pp_timeout_set(ppi, PP_TO_REQUEST);
+	}
 
 	if (plen == 0)
 		goto out;
@@ -54,7 +69,8 @@ int pp_master(struct pp_instance *ppi, unsigned char *pkt, int plen)
 		break;
 
 	case PPM_DELAY_REQ:
-		msg_issue_delay_resp(ppi, &ppi->last_rcv_time);
+		if (!pre)
+			msg_issue_delay_resp(ppi, &ppi->last_rcv_time);
 		break;
 
 	case PPM_PDELAY_REQ:
@@ -98,4 +114,9 @@ out_fault:
 	ppi->next_state = PPS_FAULTY;
 	ppi->next_delay = 500; /* just a delay to releif the system */
 	return e;
+}
+
+int pp_master(struct pp_instance *ppi, uint8_t *pkt, int plen)
+{
+	return _pp_master(ppi, pkt, plen, 0);
 }
