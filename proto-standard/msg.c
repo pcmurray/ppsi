@@ -20,6 +20,15 @@ int msg_unpack_header(struct pp_instance *ppi, void *_buf, int plen)
 	msg_hdr_copy(hdr, buf);
 
 	/*
+	 * 9.5.1:
+	 * Only PTP messages where the domainNumber field of the PTP message
+	 * header (see 13.3.2.5) is identical to the defaultDS.domainNumber
+	 * shall be accepted for processing by the protocol.
+	 */
+	if (msg_hdr_get_msg_dn(hdr) != GDSDEF(GLBS(ppi))->domainNumber)
+		return -1;
+
+	/*
 	 * If the message is from us, we should discard it.
 	 * The best way to do that is comparing the mac address,
 	 * but it's easier to check the clock identity (we refuse
