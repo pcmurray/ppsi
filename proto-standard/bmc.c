@@ -189,7 +189,7 @@ static int bmc_dataset_cmp(struct pp_instance *ppi,
 static int bmc_state_decision(struct pp_instance *ppi,
 							  struct pp_frgn_master *m)
 {
-	int cmpres;
+	int cmpres, ret;
 	struct pp_frgn_master myself;
 
 	if (ppi->role == PPSI_ROLE_SLAVE)
@@ -247,10 +247,14 @@ passive:
 
 master:
 	//TODO: consider whether a smarter solution is needed for non-simple cases
-	if(cmpres < 0) // it is M1 and M2, see IEEE1588-2008, page 87, in short switch is a GM
+	if(cmpres < 0) { // it is M1 and M2, see IEEE1588-2008, page 87, in short switch is a GM
 		m1(ppi); //GM
-	pp_diag(ppi, bmc, 1,"%s: master\n", __func__);
-	return PPS_MASTER;
+		ret = PPS_MASTER;
+	} else
+		ret = PPS_PRE_MASTER;
+	pp_diag(ppi, bmc, 1,"%s: %smaster\n", __func__,
+		ret == PPS_PRE_MASTER ? "pre-" : "");
+	return ret;
 
 slave:
 	s1(ppi, &m->hdr, &m->ann);
