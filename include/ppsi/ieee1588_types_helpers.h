@@ -116,6 +116,11 @@ static inline uint8_t msg_hdr_get_msg_dn(const struct msg_header_wire *hdr)
 	return hdr->domain;
 }
 
+static inline void msg_hdr_set_msg_dn(struct msg_header_wire *hdr, uint8_t dn)
+{
+	hdr->domain = dn;
+}
+
 static inline uint8_t
 msg_hdr_get_log_msg_intvl(const struct msg_header_wire *hdr)
 {
