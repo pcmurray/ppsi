@@ -421,6 +421,13 @@ extern pp_action pp_initializing, pp_faulty, pp_disabled, pp_listening,
 		 pp_pre_master, pp_master, pp_passive, pp_uncalibrated,
 		 pp_slave, pp_pclock;;
 
+/*
+ * MASTER and PRE_MASTER have many things in common. This function implements
+ * both states. It is invoked by pp_master and pp_pre_master with pre
+ * respectively equal to 0 and 1.
+ */
+extern int _pp_master(struct pp_instance *ppi, void *pkt, int plen, int pre);
+
 /* The engine */
 extern int pp_state_machine(struct pp_instance *ppi, uint8_t *packet, int plen);
 
