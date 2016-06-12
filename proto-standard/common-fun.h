@@ -48,7 +48,13 @@ static inline int __send_and_log(struct pp_instance *ppi, int msglen,
 				 int msgtype, int chtype)
 {
 	int pdelay_addr = 0;
+	uint8_t *ptr = ppi->tx_ptp;
 
+	/*
+	 * We're not a transparent clock, just set our domain number in all
+	 * outgoing frames
+	 */
+	ptr[4] = GDSDEF(GLBS(ppi))->domainNumber;
 	if (msgtype == PPM_PDELAY_REQ || msgtype == PPM_PDELAY_RESP)
 		pdelay_addr = 1;
 
