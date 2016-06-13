@@ -30,7 +30,7 @@ void m1(struct pp_instance *ppi)
 	/* Parent data set: we are the parent */
 	memset(parent, 0, sizeof(*parent));
 	parent->parentPortIdentity.clockIdentity = defds->clockIdentity;
-	/* FIXME: the port? */
+	parent->parentPortIdentity.portNumber = 0;
 
 	/* Copy grandmaster params from our defds (FIXME: is ir right?) */
 	parent->grandmasterIdentity = defds->clockIdentity;
