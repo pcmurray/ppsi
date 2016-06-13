@@ -66,6 +66,7 @@ enum pp_timeouts {
 
 #define PP_ALTERNATE_MASTER_FLAG	0
 #define PP_TWO_STEP_FLAG		1
+#define PP_PTP_TIMESCALE		3
 #define PP_VERSION_PTP			2
 
 #define PP_HEADER_LENGTH		34

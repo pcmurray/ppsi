@@ -39,6 +39,7 @@ void m1(struct pp_instance *ppi)
 	parent->grandmasterPriority2 = defds->priority2;
 
 	/* Time Properties data set */
+	DSPRO(ppi)->flags = (1 << PP_PTP_TIMESCALE);
 	DSPRO(ppi)->timeSource = INTERNAL_OSCILLATOR;
 }
 
