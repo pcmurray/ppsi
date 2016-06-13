@@ -64,8 +64,8 @@ enum pp_timeouts {
 	__PP_TO_ARRAY_SIZE,
 };
 
-#define PP_ALTERNATE_MASTER_FLAG	1
-#define PP_TWO_STEP_FLAG		2
+#define PP_ALTERNATE_MASTER_FLAG	0
+#define PP_TWO_STEP_FLAG		1
 #define PP_VERSION_PTP			2
 
 #define PP_HEADER_LENGTH		34

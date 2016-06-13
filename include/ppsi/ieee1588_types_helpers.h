@@ -172,6 +172,14 @@ msg_hdr_get_flags(const struct msg_header_wire *hdr)
 	return hdr->flags;
 }
 
+static inline int msg_hdr_get_flag(const struct msg_header_wire *hdr, int pos)
+{
+	const uint8_t *ptr = &hdr->flags[pos >> 3];
+	uint8_t mask = (1 << (pos & 0x7));
+
+	return *ptr & mask;
+}
+
 static inline void msg_hdr_init(struct msg_header_wire *hdr,
 				struct pp_instance *ppi,
 				uint8_t flags[2],

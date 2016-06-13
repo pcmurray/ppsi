@@ -194,7 +194,7 @@ int st_com_slave_handle_sync(struct pp_instance *ppi, void *buf, int len)
 	ppi->t2 = ppi->last_rcv_time;
 	cField_to_TimeInternal(&ppi->cField, msg_hdr_get_cf(hdr));
 
-	if ((msg_hdr_get_flags(hdr)[0] & PP_TWO_STEP_FLAG) != 0) {
+	if (msg_hdr_get_flag(hdr, PP_TWO_STEP_FLAG)) {
 		ppi->recv_sync_sequence_id = msg_hdr_get_msg_seq_id(hdr);
 		return 0;
 	}
@@ -225,7 +225,7 @@ int st_com_peer_handle_pres(struct pp_instance *ppi, unsigned char *buf,
 	if (pdelay_resp_is_mine(ppi, hdr, pi)) {
 		to_TimeInternal(&ppi->t4, &resp.requestReceiptTimestamp);
 		ppi->t6 = ppi->last_rcv_time;
-		if (!(msg_hdr_get_flags(hdr)[0] & PP_TWO_STEP_FLAG))
+		if (!(msg_hdr_get_flag(hdr, PP_TWO_STEP_FLAG)))
 			/*
 			 * Make sure responseOriginTimestamp is forced to 0
 			 * for one-step responders

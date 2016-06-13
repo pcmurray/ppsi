@@ -34,7 +34,7 @@ int msg_unpack_header(struct pp_instance *ppi, void *_buf, int plen)
 	 * A slave node that does not want to use information from alternate
 	 * masters merely ignores all messages with alternateMasterFlag TRUE.
 	 */
-	if (msg_hdr_get_flags(hdr)[0] & PP_ALTERNATE_MASTER_FLAG)
+	if (msg_hdr_get_flag(hdr, PP_ALTERNATE_MASTER_FLAG))
 		return -1;
 
 	/*
