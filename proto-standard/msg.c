@@ -64,7 +64,7 @@ int msg_unpack_header(struct pp_instance *ppi, void *_buf, int plen)
 /* Pack header message into out buffer of ppi */
 void msg_pack_header(struct pp_instance *ppi, void *buf)
 {
-	uint8_t flags[2] = { PP_TWO_STEP_FLAG, 0, };
+	uint8_t flags[2] = { 0, 0, };
 
 	/*
 	 * (spec annex D and F),
@@ -86,6 +86,8 @@ static void msg_pack_sync(struct pp_instance *ppi, Timestamp *orig_tstamp)
 	s = ppi->sent_seq[PPM_SYNC]++;
 	msg_hdr_prepare(ppi->tx_ptp, PPM_SYNC, PP_SYNC_LENGTH, s, 0,
 			DSPOR(ppi)->logSyncInterval);
+	/* We're a two step clock, set relevant flag in sync (see Table 20) */
+	msg_hdr_set_flag(ppi->tx_ptp, PP_TWO_STEP_FLAG, 1);
 	msg_hdr_set_cf(ppi->tx_ptp, 0ULL);
 	/* Sync message */
 	timestamp_internal_to_wire(ts, orig_tstamp);
@@ -107,6 +109,9 @@ static int msg_pack_announce(struct pp_instance *ppi)
 	struct msg_header_wire *hdr;
 	struct timestamp_wire tsw;
 	uint16_t s;
+	struct DSTimeProperties *prop = DSPRO(ppi);
+	const uint8_t flags_mask[] = { 0xff, 0xff, };
+	const uint8_t flags[] = { 0, prop->flags, };
 
 	buf = ppi->tx_ptp;
 	hdr = msg_announce_get_header(buf);
@@ -116,6 +121,12 @@ static int msg_pack_announce(struct pp_instance *ppi)
 			DSPOR(ppi)->logAnnounceInterval);
 	/* Table 21 */
 	msg_hdr_set_cf(hdr, 0ULL);
+
+	/*
+	 * set byte 1 of flags taking it from timepropertiesDS' flags field,
+	 * see 13.3.2.6, Table 20
+	 */
+	msg_hdr_set_flags(hdr, flags_mask, flags);
 
 	/* Announce message */
 	memset(&tsw, 0, sizeof(tsw));
@@ -233,9 +244,11 @@ void msg_pack_pdelay_req(struct pp_instance *ppi, Timestamp * orig_tstamp)
 {
 	void *buf;
 	struct timestamp_wire *ts;
+	struct msg_header_wire *hdr;
 
 	buf = ppi->tx_ptp;
 	ts = buf + 34;
+	hdr = buf;
 
 	/* changes in header 11.4.3 */
 	*(char *)(buf + 0) = *(char *)(buf + 0) & 0xF0;
@@ -244,6 +257,9 @@ void msg_pack_pdelay_req(struct pp_instance *ppi, Timestamp * orig_tstamp)
 
 	*(uint16_t *) (buf + 2) = htons(PP_PDELAY_REQ_LENGTH);
 	ppi->sent_seq[PPM_DELAY_REQ]++;
+
+	/* Reset all flags (see Table 20) */
+	msg_hdr_reset_flags(hdr);
 
 	/* TO DO, 11.4.3 a.1) if synthed peer-to-peer TC */
 	/* *(char *)(buf + 4) = 0 .- not sythonized / X synt domain */
@@ -276,6 +292,9 @@ void msg_pack_pdelay_resp(struct pp_instance *ppi,
 
 	*(uint16_t *) (buf + 2) = htons(PP_PDELAY_RESP_LENGTH);
 	*(uint8_t *) (buf + 4) = msg_hdr_get_msg_dn(hdr);
+	/* We're a two step clock, set relevant flag in sync (see Table 20) */
+	msg_hdr_reset_flags(ppi->tx_ptp);
+	msg_hdr_set_flag(ppi->tx_ptp, PP_TWO_STEP_FLAG, 1);
 	/* set 0 the correction field, 11.4.3 c.3) */
 	memset((buf + 8), 0, 8);
 
@@ -303,6 +322,7 @@ static void msg_pack_delay_resp(struct pp_instance *ppi,
 	msg_hdr_prepare(ppi->tx_ptp, PPM_DELAY_RESP, PP_DELAY_RESP_LENGTH,
 			msg_hdr_get_msg_seq_id(hdr), 3,
 			DSPOR(ppi)->logMinDelayReqInterval);
+	msg_hdr_reset_flags(ppi->tx_ptp);
 	msg_hdr_set_cf(ppi->tx_ptp, msg_hdr_get_cf(hdr));
 
 	/* Delay_resp message */

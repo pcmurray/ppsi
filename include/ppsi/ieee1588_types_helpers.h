@@ -180,6 +180,32 @@ static inline int msg_hdr_get_flag(const struct msg_header_wire *hdr, int pos)
 	return *ptr & mask;
 }
 
+static inline void msg_hdr_set_flags(struct msg_header_wire *hdr,
+				     const uint8_t mask[2], const uint8_t v[2])
+{
+	int i;
+
+	for (i = 0; i < 2; i++) {
+		hdr->flags[i] &= ~mask[i];
+		hdr->flags[i] |= (v[i] & mask[i]);
+	}
+}
+
+static inline void msg_hdr_reset_flags(struct msg_header_wire *hdr)
+{
+	hdr->flags[1] = hdr->flags[0] = 0;
+}
+
+static inline void msg_hdr_set_flag(struct msg_header_wire *hdr, int pos, int v)
+{
+	uint8_t *ptr = &hdr->flags[pos >> 3];
+	uint8_t mask = (1 << (pos & 0x7));
+
+	*ptr &= ~mask;
+	if (v)
+		*ptr |= mask;
+}
+
 static inline void msg_hdr_init(struct msg_header_wire *hdr,
 				struct pp_instance *ppi,
 				uint8_t flags[2],
