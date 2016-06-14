@@ -188,8 +188,6 @@ struct pp_instance {
 	unsigned long ptp_tx_count;
 	unsigned long ptp_rx_count;
 };
-/* The following things used to be bit fields. Other flags are now enums */
-#define PPI_FLAG_FROM_CURRENT_PARENT	0x01
 
 struct pp_globals_cfg {
 	int cfg_items;			/* Remember how many we parsed */

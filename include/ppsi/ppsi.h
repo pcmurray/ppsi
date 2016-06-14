@@ -436,6 +436,16 @@ extern void ppsi_drop_init(struct pp_globals *ppg, unsigned long seed);
 extern int ppsi_drop_rx(void);
 extern int ppsi_drop_tx(void);
 
+/* Return !0 in case message is from current parent */
+static inline int msg_is_from_current_parent(struct pp_instance *ppi,
+					     struct msg_header_wire *hdr)
+{
+	struct port_identity pid;
+
+	msg_hdr_get_src_port_id(&pid, hdr);
+	return (!port_id_cmp(&DSPAR(ppi)->parentPortIdentity, &pid));
+}
+
 static inline int resp_is_mine(struct pp_instance *ppi,
 			       struct port_identity *pi,
 			       struct msg_header_wire *hdr,
@@ -443,7 +453,7 @@ static inline int resp_is_mine(struct pp_instance *ppi,
 {
 	return !(port_id_cmp(&DSPOR(ppi)->portIdentity, pi)) &&
 		 ppi->sent_seq[index] == msg_hdr_get_msg_seq_id(hdr) &&
-		 ppi->flags & PPI_FLAG_FROM_CURRENT_PARENT;
+		msg_is_from_current_parent(ppi, hdr);
 }
 
 #define pdelay_resp_is_mine(ppi, hdr, pi) \

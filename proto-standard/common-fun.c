@@ -187,7 +187,7 @@ int st_com_slave_handle_sync(struct pp_instance *ppi, void *buf, int len)
 
 	if (len < PP_SYNC_LENGTH)
 		return -1;
-	if (!(ppi->flags & PPI_FLAG_FROM_CURRENT_PARENT))
+	if (!msg_is_from_current_parent(ppi, hdr))
 		return 0;
 
 	/* t2 may be overriden by follow-up, cField is always valid */
@@ -313,7 +313,7 @@ int st_com_slave_handle_followup(struct pp_instance *ppi, void *buf, int len)
 	if (len < PP_FOLLOW_UP_LENGTH)
 		return -1;
 
-	if (!(ppi->flags & PPI_FLAG_FROM_CURRENT_PARENT)) {
+	if (!msg_is_from_current_parent(ppi, hdr)) {
 		pp_error("%s: Follow up message is not from current parent\n",
 			__func__);
 		return 0;

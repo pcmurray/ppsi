@@ -44,16 +44,6 @@ int msg_unpack_header(struct pp_instance *ppi, void *_buf, int plen)
 	if (!port_id_cmp(&pid, &DSPOR(ppi)->portIdentity))
 		return -1;
 
-	/*
-	 * This FLAG_FROM_CURRENT_PARENT must be killed. Meanwhile, say it's
-	 * from current parent if we have no current parent, so the rest works
-	 */
-	msg_hdr_get_src_port_id(&pid, hdr);
-	if (!DSPAR(ppi)->parentPortIdentity.portNumber ||
-	    !port_id_cmp(&DSPAR(ppi)->parentPortIdentity, &pid))
-		ppi->flags |= PPI_FLAG_FROM_CURRENT_PARENT;
-	else
-		ppi->flags &= ~PPI_FLAG_FROM_CURRENT_PARENT;
 	return 0;
 }
 
