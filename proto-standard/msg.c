@@ -55,15 +55,12 @@ int msg_unpack_header(struct pp_instance *ppi, void *buf, int plen)
 		return -1;
 
 	/*
-	 * If the message is from us, we should discard it.
-	 * The best way to do that is comparing the mac address,
-	 * but it's easier to check the clock identity (we refuse
-	 * any port, not only the same port, as we can't sync with
-	 * ourself even when we'll run in multi-port mode.
+	 * If the message is from the same port that sent it, we should
+	 * discard it (9.5.2.2)
 	 */
-	if (!memcmp(&ppi->received_ptp_header.sourcePortIdentity.clockIdentity,
-			&DSPOR(ppi)->portIdentity.clockIdentity,
-		    PP_CLOCK_IDENTITY_LENGTH))
+	if (!memcmp(&ppi->received_ptp_header.sourcePortIdentity,
+		    &DSPOR(ppi)->portIdentity,
+		    sizeof(PortIdentity)))
 		return -1;
 
 	/*
