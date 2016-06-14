@@ -14,7 +14,6 @@ int msg_unpack_header(struct pp_instance *ppi, void *_buf, int plen)
 {
 	struct msg_header_wire *hdr = &ppi->received_ptp_header;
 	struct msg_header_wire *buf = _buf;
-	const struct clock_identity *cid;
 	struct port_identity pid;
 
 	msg_hdr_copy(hdr, buf);
@@ -38,14 +37,11 @@ int msg_unpack_header(struct pp_instance *ppi, void *_buf, int plen)
 		return -1;
 
 	/*
-	 * If the message is from us, we should discard it.
-	 * The best way to do that is comparing the mac address,
-	 * but it's easier to check the clock identity (we refuse
-	 * any port, not only the same port, as we can't sync with
-	 * ourself even when we'll run in multi-port mode.
+	 * If the message is from the same port that sent it, we should
+	 * discard it (9.5.2.2)
 	 */
-	cid = msg_hdr_get_src_port_id_clock_id(hdr);
-	if (!clock_id_cmp(cid, &DSPOR(ppi)->portIdentity.clockIdentity))
+	msg_hdr_get_src_port_id(&pid, hdr);
+	if (!port_id_cmp(&pid, &DSPOR(ppi)->portIdentity))
 		return -1;
 
 	/*
