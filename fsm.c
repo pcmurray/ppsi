@@ -96,6 +96,44 @@ static int leave_current_state(struct pp_instance *ppi)
 }
 
 /*
+ * Checks whether a packet has to be discarded and maybe updates port status
+ * accordingly. Returns new packet length (0 if packet has to be discarded)
+ */
+static int pp_packet_prefilter(struct pp_instance *ppi, void *packet, int plen)
+{
+	struct msg_header_wire *hdr = packet;
+	struct port_identity pid;
+
+	/*
+	 * 9.5.1:
+	 * Only PTP messages where the domainNumber field of the PTP message
+	 * header (see 13.3.2.5) is identical to the defaultDS.domainNumber
+	 * shall be accepted for processing by the protocol.
+	 */
+	if (msg_hdr_get_msg_dn(hdr) != GDSDEF(GLBS(ppi))->domainNumber)
+		return 0;
+
+	/*
+	 * Alternate masters (17.4) not supported
+	 * 17.4.2, NOTE:
+	 * A slave node that does not want to use information from alternate
+	 * masters merely ignores all messages with alternateMasterFlag TRUE.
+	 */
+	if (msg_hdr_get_flag(hdr, PP_ALTERNATE_MASTER_FLAG))
+		return 0;
+
+	/*
+	 * If the message is from the same port that sent it, we should
+	 * discard it (9.5.2.2)
+	 */
+	msg_hdr_get_src_port_id(&pid, hdr);
+	if (!port_id_cmp(&pid, &DSPOR(ppi)->portIdentity))
+		return 0;
+
+	return plen;
+}
+
+/*
  * This is the state machine code. i.e. the extension-independent
  * function that runs the machine. Errors are managed and reported
  * here (based on the diag module). The returned value is the time
@@ -147,6 +185,17 @@ int pp_state_machine(struct pp_instance *ppi, uint8_t *packet, int plen)
 	ppi->next_delay = 0;
 	if (ppi->is_new_state)
 		pp_diag_fsm(ppi, ip->name, STATE_ENTER, plen);
+	/*
+	 * Possibly filter out packet and maybe update port state
+	 */
+	if (packet) {
+		plen = pp_packet_prefilter(ppi, packet, plen);
+		if (!plen)
+			packet = NULL;
+	}
+	if (ppi->state != ppi->next_state)
+		return leave_current_state(ppi);
+
 	err = ip->f1(ppi, packet, plen);
 	if (err)
 		pp_printf("fsm for %s: Error %i in %s\n",

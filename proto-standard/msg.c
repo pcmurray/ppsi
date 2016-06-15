@@ -14,35 +14,8 @@ int msg_unpack_header(struct pp_instance *ppi, void *_buf, int plen)
 {
 	struct msg_header_wire *hdr = &ppi->received_ptp_header;
 	struct msg_header_wire *buf = _buf;
-	struct port_identity pid;
 
 	msg_hdr_copy(hdr, buf);
-
-	/*
-	 * 9.5.1:
-	 * Only PTP messages where the domainNumber field of the PTP message
-	 * header (see 13.3.2.5) is identical to the defaultDS.domainNumber
-	 * shall be accepted for processing by the protocol.
-	 */
-	if (msg_hdr_get_msg_dn(hdr) != GDSDEF(GLBS(ppi))->domainNumber)
-		return -1;
-
-	/*
-	 * Alternate masters (17.4) not supported
-	 * 17.4.2, NOTE:
-	 * A slave node that does not want to use information from alternate
-	 * masters merely ignores all messages with alternateMasterFlag TRUE.
-	 */
-	if (msg_hdr_get_flag(hdr, PP_ALTERNATE_MASTER_FLAG))
-		return -1;
-
-	/*
-	 * If the message is from the same port that sent it, we should
-	 * discard it (9.5.2.2)
-	 */
-	msg_hdr_get_src_port_id(&pid, hdr);
-	if (!port_id_cmp(&pid, &DSPOR(ppi)->portIdentity))
-		return -1;
 
 	return 0;
 }
