@@ -68,10 +68,16 @@ get_current_state_table_item(struct pp_instance *ppi)
 	struct pp_state_table_item *ip;
 	struct pp_state_table_item *out = NULL;
 
+	/* Avoid searching if we already know where we are */
+	if (ppi->current_state_item)
+		return ppi->current_state_item;
+
 	/* a linear search is affordable up to a few dozen items */
 	for (ip = pp_state_table; ip->state != PPS_END_OF_TABLE && !out; ip++)
-		if (ip->state == ppi->state)
+		if (ip->state == ppi->state) {
 			out = ip;
+			ppi->current_state_item = ip;
+		}
 	return out;
 }
 
@@ -139,6 +145,7 @@ int pp_state_machine(struct pp_instance *ppi, uint8_t *packet, int plen)
 		pp_timeout_setall(ppi);
 		ppi->flags &= ~PPI_FLAGS_WAITING;
 		pp_diag_fsm(ppi, ip->name, STATE_LEAVE, 0);
+		ppi->current_state_item = NULL;
 		return 0; /* next_delay unused: go to new state now */
 	}
 	ppi->is_new_state = 0;

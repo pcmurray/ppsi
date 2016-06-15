@@ -78,6 +78,7 @@ int pp_init_globals(struct pp_globals *ppg, struct pp_runtime_opts *pp_rt_opts)
 			def->slaveOnly = 0;
 
 		ppi->state = PPS_INITIALIZING;
+		ppi->current_state_item = NULL;
 		ppi->port_idx = i;
 		ppi->frgn_rec_best = -1;
 	}
