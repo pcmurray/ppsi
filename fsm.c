@@ -82,6 +82,20 @@ get_current_state_table_item(struct pp_instance *ppi)
 }
 
 /*
+ * Returns delay to next state, which is always zero.
+ */
+static int leave_current_state(struct pp_instance *ppi)
+{
+	ppi->state = ppi->next_state;
+	ppi->is_new_state = 1;
+	pp_timeout_setall(ppi);
+	pp_diag_fsm(ppi, ppi->current_state_item->name, STATE_LEAVE, 0);
+	ppi->current_state_item = NULL;
+	/* next_delay unused: go to new state now */
+	return 0;
+}
+
+/*
  * This is the state machine code. i.e. the extension-independent
  * function that runs the machine. Errors are managed and reported
  * here (based on the diag module). The returned value is the time
@@ -139,14 +153,9 @@ int pp_state_machine(struct pp_instance *ppi, uint8_t *packet, int plen)
 			  ppi->port_name, err, ip->name);
 
 	/* done: if new state mark it, and enter it now (0 ms) */
-	if (ppi->state != ppi->next_state) {
-		ppi->state = ppi->next_state;
-		ppi->is_new_state = 1;
-		pp_timeout_setall(ppi);
-		pp_diag_fsm(ppi, ip->name, STATE_LEAVE, 0);
-		ppi->current_state_item = NULL;
-		return 0; /* next_delay unused: go to new state now */
-	}
+	if (ppi->state != ppi->next_state)
+		return leave_current_state(ppi);
+
 	ppi->is_new_state = 0;
 	pp_diag_fsm(ppi, ip->name, STATE_LOOP, 0);
 	return ppi->next_delay;
