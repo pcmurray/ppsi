@@ -36,32 +36,6 @@ int msg_unpack_header(struct pp_instance *ppi, void *buf, int plen)
 	hdr->controlField = (*(UInteger8 *) (buf + 32));
 	hdr->logMessageInterval = (*(Integer8 *) (buf + 33));
 
-	/*
-	 * 9.5.1:
-	 * Only PTP messages where the domainNumber field of the PTP message
-	 * header (see 13.3.2.5) is identical to the defaultDS.domainNumber
-	 * shall be accepted for processing by the protocol.
-	 */
-	if (hdr->domainNumber != GDSDEF(GLBS(ppi))->domainNumber)
-		return -1;
-
-	/*
-	 * Alternate masters (17.4) not supported
-	 * 17.4.2, NOTE:
-	 * A slave node that does not want to use information from alternate
-	 * masters merely ignores all messages with alternateMasterFlag TRUE.
-	 */
-	if (hdr->flagField[0] & PP_ALTERNATE_MASTER_FLAG)
-		return -1;
-
-	/*
-	 * If the message is from the same port that sent it, we should
-	 * discard it (9.5.2.2)
-	 */
-	if (!memcmp(&ppi->received_ptp_header.sourcePortIdentity,
-		    &DSPOR(ppi)->portIdentity,
-		    sizeof(PortIdentity)))
-		return -1;
 
 	/*
 	 * This FLAG_FROM_CURRENT_PARENT must be killed. Meanwhile, say it's
