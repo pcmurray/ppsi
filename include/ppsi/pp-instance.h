@@ -128,6 +128,7 @@ struct pp_instance_cfg {
 struct pp_instance {
 	int state;
 	int next_state, next_delay, is_new_state; /* set by state processing */
+	struct pp_state_table_item *current_state_item;
 	void *arch_data;		/* if arch needs it */
 	void *ext_data;			/* if protocol ext needs it */
 	unsigned long d_flags;		/* diagnostics, ppi-specific flags */
