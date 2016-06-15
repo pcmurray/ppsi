@@ -84,19 +84,21 @@ int pp_state_machine(struct pp_instance *ppi, uint8_t *packet, int plen)
 			   packet[0] & 0xf, pp_msg_names[packet[0] & 0xf]);
 
 	/*
+	 * Discard too short packets
+	 */
+	if (plen < PP_HEADER_LENGTH) {
+		plen = 0;
+		packet = NULL;
+	}
+
+	/*
 	 * Since all ptp frames have the same header, parse it now.
 	 * In case of error continue without a frame, so the current
 	 * ptp state can update ppi->next_delay and return a proper value
 	 */
-	if (plen) {
-		if (plen >= PP_HEADER_LENGTH)
-			err = msg_unpack_header(ppi, packet, plen);
-		else
-			err = 1;
-		if (err) {
-			plen = 0;
-			packet = NULL;
-		}
+	if (plen && msg_unpack_header(ppi, packet, plen)) {
+		packet = NULL;
+		plen = 0;
 	}
 
 	state = ppi->state;
