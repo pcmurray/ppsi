@@ -103,6 +103,7 @@ static int pp_packet_prefilter(struct pp_instance *ppi, void *packet, int plen)
 {
 	struct msg_header_wire *hdr = packet;
 	struct port_identity pid;
+	const struct clock_identity *cid;
 
 	/*
 	 * 9.5.1:
@@ -129,6 +130,21 @@ static int pp_packet_prefilter(struct pp_instance *ppi, void *packet, int plen)
 	msg_hdr_get_src_port_id(&pid, hdr);
 	if (!port_id_cmp(&pid, &DSPOR(ppi)->portIdentity))
 		return 0;
+
+	/*
+	 * 9.5.2.3: if an announce message comes from another port of the same
+	 * clock, switch all the ports but the lowest numbered one to
+	 * PASSIVE. Since all involved ports will see each other's announce,
+	 * we just switch __this__ instance's port's status to PASSIVE if we
+	 * need to.
+	 */
+	cid = msg_hdr_get_src_port_id_clock_id(hdr);
+	if (msg_hdr_get_msg_type(hdr) == PPM_ANNOUNCE &&
+	    !clock_id_cmp(cid, &DSPOR(ppi)->portIdentity.clockIdentity)) {
+		if (pid.portNumber < DSPOR(ppi)->portIdentity.portNumber)
+			ppi->next_state = PPS_PASSIVE;
+		return 0;
+	}
 
 	return plen;
 }
