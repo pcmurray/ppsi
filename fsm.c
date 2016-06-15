@@ -62,6 +62,19 @@ static void pp_diag_fsm(struct pp_instance *ppi, char *name, int sequence,
 		      name, ppi->next_state);
 }
 
+static struct pp_state_table_item *
+get_current_state_table_item(struct pp_instance *ppi)
+{
+	struct pp_state_table_item *ip;
+	struct pp_state_table_item *out = NULL;
+
+	/* a linear search is affordable up to a few dozen items */
+	for (ip = pp_state_table; ip->state != PPS_END_OF_TABLE && !out; ip++)
+		if (ip->state == ppi->state)
+			out = ip;
+	return out;
+}
+
 /*
  * This is the state machine code. i.e. the extension-independent
  * function that runs the machine. Errors are managed and reported
@@ -103,34 +116,32 @@ int pp_state_machine(struct pp_instance *ppi, uint8_t *packet, int plen)
 
 	state = ppi->state;
 
-	/* a linear search is affordable up to a few dozen items */
-	for (ip = pp_state_table; ip->state != PPS_END_OF_TABLE; ip++) {
-		if (ip->state != state)
-			continue;
-		/* found: handle this state */
-		ppi->next_state = state;
-		ppi->next_delay = 0;
-		if (ppi->is_new_state)
-			pp_diag_fsm(ppi, ip->name, STATE_ENTER, plen);
-		err = ip->f1(ppi, packet, plen);
-		if (err)
-			pp_printf("fsm for %s: Error %i in %s\n",
-				  ppi->port_name, err, ip->name);
-
-		/* done: if new state mark it, and enter it now (0 ms) */
-		if (ppi->state != ppi->next_state) {
-			ppi->state = ppi->next_state;
-			ppi->is_new_state = 1;
-			pp_timeout_setall(ppi);
-			ppi->flags &= ~PPI_FLAGS_WAITING;
-			pp_diag_fsm(ppi, ip->name, STATE_LEAVE, 0);
-			return 0; /* next_delay unused: go to new state now */
-		}
-		ppi->is_new_state = 0;
-		pp_diag_fsm(ppi, ip->name, STATE_LOOP, 0);
-		return ppi->next_delay;
+	ip = get_current_state_table_item(ppi);
+	if (!ip) {
+		pp_printf("fsm: Unknown state for port %s\n", ppi->port_name);
+		return 10000; /* No way out. Repeat message every 10s */
 	}
-	/* Unknwon state, can't happen */
-	pp_printf("fsm: Unknown state for port %s\n", ppi->port_name);
-	return 10000; /* No way out. Repeat message every 10s */
+
+	/* found: handle this state */
+	ppi->next_state = state;
+	ppi->next_delay = 0;
+	if (ppi->is_new_state)
+		pp_diag_fsm(ppi, ip->name, STATE_ENTER, plen);
+	err = ip->f1(ppi, packet, plen);
+	if (err)
+		pp_printf("fsm for %s: Error %i in %s\n",
+			  ppi->port_name, err, ip->name);
+
+	/* done: if new state mark it, and enter it now (0 ms) */
+	if (ppi->state != ppi->next_state) {
+		ppi->state = ppi->next_state;
+		ppi->is_new_state = 1;
+		pp_timeout_setall(ppi);
+		ppi->flags &= ~PPI_FLAGS_WAITING;
+		pp_diag_fsm(ppi, ip->name, STATE_LEAVE, 0);
+		return 0; /* next_delay unused: go to new state now */
+	}
+	ppi->is_new_state = 0;
+	pp_diag_fsm(ppi, ip->name, STATE_LOOP, 0);
+	return ppi->next_delay;
 }
