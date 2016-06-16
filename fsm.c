@@ -173,20 +173,16 @@ int pp_state_machine(struct pp_instance *ppi, uint8_t *packet, int plen)
 	/*
 	 * Discard too short packets
 	 */
-	if (plen < PP_HEADER_LENGTH) {
+	if (plen < PP_HEADER_LENGTH)
 		plen = 0;
-		packet = NULL;
-	}
 
 	/*
 	 * Since all ptp frames have the same header, parse it now.
 	 * In case of error continue without a frame, so the current
 	 * ptp state can update ppi->next_delay and return a proper value
 	 */
-	if (plen && msg_unpack_header(ppi, packet, plen)) {
-		packet = NULL;
+	if (plen && msg_unpack_header(ppi, packet, plen))
 		plen = 0;
-	}
 
 	state = ppi->state;
 
@@ -204,14 +200,17 @@ int pp_state_machine(struct pp_instance *ppi, uint8_t *packet, int plen)
 	/*
 	 * Possibly filter out packet and maybe update port state
 	 */
-	if (packet) {
+	if (plen)
 		plen = pp_packet_prefilter(ppi, packet, plen);
-		if (!plen)
-			packet = NULL;
-	}
 	if (ppi->state != ppi->next_state)
 		return leave_current_state(ppi);
 
+	/*
+	 * !plen means packet discarded. Make things consistent by setting
+	 * packet to NULL before calling state function.
+	 */
+	if (!plen)
+		packet = NULL;
 	err = ip->f1(ppi, packet, plen);
 	if (err)
 		pp_printf("fsm for %s: Error %i in %s\n",
