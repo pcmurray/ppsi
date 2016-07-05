@@ -9,13 +9,6 @@
 #include <ppsi/ppsi.h>
 #include "wr-api.h"
 
-static inline uint64_t delta_to_scaled_ps(uint32_t delta)
-{
-	uint64_t d = delta;
-
-	return d << 16;
-}
-
 static inline void print_scaled_ps(struct pp_instance *ppi, const char *s,
 				   uint64_t sps)
 {

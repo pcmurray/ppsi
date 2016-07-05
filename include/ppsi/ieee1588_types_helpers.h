@@ -69,6 +69,18 @@ static inline void timestamp_internal_to_time_internal(TimeInternal *dst,
 	dst->nanoseconds = src->nanosecondsField;
 }
 
+static inline uint64_t delta_to_scaled_ps(uint32_t delta)
+{
+	uint64_t d = delta;
+
+	return d << 16;
+}
+
+static inline int32_t scaled_ps_to_delta(uint64_t sps)
+{
+	return sps >> 16;
+}
+
 static inline int clock_id_cmp(const struct clock_identity *a,
 			       const struct clock_identity *b)
 {

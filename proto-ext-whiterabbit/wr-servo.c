@@ -174,11 +174,6 @@ void wr_servo_reset(struct pp_instance *ppi)
 	wrs_shm_write(ppsi_head, WRS_SHM_WRITE_END);
 }
 
-static inline int32_t scaled_ps_to_delta(uint64_t sps)
-{
-	return sps >> 16;
-}
-
 int wr_servo_init(struct pp_instance *ppi)
 {
 	struct wr_dsport *wrp = WR_DSPOR(ppi);
