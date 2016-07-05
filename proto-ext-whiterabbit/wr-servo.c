@@ -178,7 +178,7 @@ static inline int32_t delta_to_ps(struct FixedDelta d)
 {
 	uint64_t sps = d.scaledPicoseconds; /* ieee type :( */
 
-	return ((sps & 0xffffffffULL) >> 16) | ((sps >> 32) << 16);
+	return sps >> 16;
 }
 
 int wr_servo_init(struct pp_instance *ppi)
