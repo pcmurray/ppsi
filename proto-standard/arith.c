@@ -9,7 +9,7 @@
 #include <limits.h>
 #include <ppsi/ppsi.h>
 
-void cField_to_TimeInternal(TimeInternal *internal, int64_t cField)
+void cField_to_TimeInternal(TimeInternal *dst, int64_t cField)
 {
 	uint64_t i64;
 
@@ -28,37 +28,37 @@ void cField_to_TimeInternal(TimeInternal *internal, int64_t cField)
 	i64 += 0x8000;
 	i64 >>= 16;
 	/* Use __div64_32 from library, to avoid libgcc on small targets */
-	internal->nanoseconds = __div64_32(&i64, PP_NSEC_PER_SEC);
-	internal->seconds = i64;
+	dst->nanoseconds = __div64_32(&i64, PP_NSEC_PER_SEC);
+	dst->seconds = i64;
 }
 
-int from_TimeInternal(TimeInternal *internal, Timestamp *external)
+int from_TimeInternal(TimeInternal *src, Timestamp *dst)
 {
 	/*
 	 * fromInternalTime is only used to convert time given by the system
 	 * to a timestamp As a consequence, no negative value can normally
-	 * be found in (internal)
+	 * be found in (src)
 	 *
 	 * Note that offsets are also represented with TimeInternal structure,
 	 * and can be negative, but offset are never convert into Timestamp
 	 * so there is no problem here.
 	 */
 
-	if ((internal->seconds & ~INT_MAX) ||
-	    (internal->nanoseconds & ~INT_MAX)) {
+	if ((src->seconds & ~INT_MAX) ||
+	    (src->nanoseconds & ~INT_MAX)) {
 		pp_error("Negative value cannot be converted into "
 			  "timestamp\n");
 		return -1;
 	} else
-		time_internal_to_timestamp_internal(external, internal);
+		time_internal_to_timestamp_internal(dst, src);
 	return 0;
 }
 
-int to_TimeInternal(TimeInternal *internal, Timestamp *external)
+int to_TimeInternal(TimeInternal *dst, Timestamp *src)
 {
 	/* Program will not run after 2038... */
-	if (external->secondsField < INT_MAX) {
-		timestamp_internal_to_time_internal(internal, external);
+	if (src->secondsField < INT_MAX) {
+		timestamp_internal_to_time_internal(dst, src);
 		return 0;
 	} else {
 		pp_error("to_TimeInternal: "
