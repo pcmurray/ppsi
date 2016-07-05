@@ -174,10 +174,8 @@ void wr_servo_reset(struct pp_instance *ppi)
 	wrs_shm_write(ppsi_head, WRS_SHM_WRITE_END);
 }
 
-static inline int32_t delta_to_ps(struct FixedDelta d)
+static inline int32_t scaled_ps_to_delta(uint64_t sps)
 {
-	uint64_t sps = d.scaledPicoseconds; /* ieee type :( */
-
 	return sps >> 16;
 }
 
@@ -201,10 +199,14 @@ int wr_servo_init(struct pp_instance *ppi)
 	s->missed_iters = 0;
 	s->state = WR_SYNC_TAI;
 
-	s->delta_tx_m = delta_to_ps(wrp->otherNodeDeltaTx);
-	s->delta_rx_m = delta_to_ps(wrp->otherNodeDeltaRx);
-	s->delta_tx_s = delta_to_ps(wrp->deltaTx);
-	s->delta_rx_s = delta_to_ps(wrp->deltaRx);
+	s->delta_tx_m =
+	    scaled_ps_to_delta(wrp->otherNodeDeltaTx.scaledPicoseconds);
+	s->delta_rx_m =
+	    scaled_ps_to_delta(wrp->otherNodeDeltaRx.scaledPicoseconds);
+	s->delta_tx_s =
+	    scaled_ps_to_delta(wrp->deltaTx.scaledPicoseconds);
+	s->delta_rx_s =
+	    scaled_ps_to_delta(wrp->deltaRx.scaledPicoseconds);
 
 	strcpy(s->servo_state_name, "Uninitialized");
 
