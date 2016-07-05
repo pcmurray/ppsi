@@ -11,11 +11,9 @@
 
 static inline uint64_t delta_to_scaled_ps(uint32_t delta)
 {
-	uint64_t d = delta, spm, spl;
+	uint64_t d = delta;
 
-	spm = 0xffffffffUL & (d >> 16);
-	spl = 0xffffffffUL & (d << 16);
-	return (spm << 32) | spl;
+	return d << 16;
 }
 
 static inline void print_scaled_ps(struct pp_instance *ppi, const char *s,
