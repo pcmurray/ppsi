@@ -152,8 +152,8 @@ int msg_pack_wrsig(struct pp_instance *ppi, uint16_t wr_msg_id)
 
 	case CALIBRATED: /* new fsm */
 	{
-		uint64_t dtx = WR_DSPOR(ppi)->deltaTx.scaledPicoseconds,
-			drx = WR_DSPOR(ppi)->deltaRx.scaledPicoseconds;
+		uint64_t dtx = delta_to_scaled_ps(WR_DSPOR(ppi)->deltaTx),
+			drx = delta_to_scaled_ps(WR_DSPOR(ppi)->deltaRx);
 
 		/* delta TX */
 		uint64_internal_to_wire((uint64_wire *)(buf + 56), &dtx);
@@ -245,10 +245,10 @@ void msg_unpack_wrsig(struct pp_instance *ppi, void *buf,
 
 		/* delta TX */
 		uint64_wire_to_internal(&sp, (uint64_wire *)(buf + 56));
-		WR_DSPOR(ppi)->otherNodeDeltaTx.scaledPicoseconds = sp;
+		WR_DSPOR(ppi)->otherNodeDeltaTx = scaled_ps_to_delta(sp);
 		/* delta RX */
 		uint64_wire_to_internal(&sp, (uint64_wire *)(buf + 64));
-		WR_DSPOR(ppi)->otherNodeDeltaRx.scaledPicoseconds = sp;
+		WR_DSPOR(ppi)->otherNodeDeltaRx = scaled_ps_to_delta(sp);
 		break;
 	}
 	default:

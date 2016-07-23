@@ -9,16 +9,6 @@
 #include <ppsi/ppsi.h>
 #include "wr-api.h"
 
-static inline void print_scaled_ps(struct pp_instance *ppi, const char *s,
-				   uint64_t sps)
-{
-	uint32_t h = sps >> 32;
-	uint32_t l = sps & 0xffffffffULL;
-
-	pp_diag(ppi, ext, 1, "%s=>>scaledPicoseconds.msb = 0x%x\n", s, h);
-	pp_diag(ppi, ext, 1, "%s=>>scaledPicoseconds.lsb = 0x%x\n", s, l);
-}
-
 /*
  * We enter this state from  WRS_M_LOCK or WRS_RESP_CALIB_REQ.
  * We send CALIBRATE and do the hardware steps; finally we send CALIBRATED.
@@ -71,10 +61,8 @@ int wr_calibration(struct pp_instance *ppi, void *pkt, int plen)
 		/* wait until Tx calibration is finished */
 		if (wrp->ops->calib_poll(ppi, WR_HW_CALIB_TX, &delta) ==
 			WR_HW_CALIB_READY) {
-			wrp->deltaTx.scaledPicoseconds =
-				delta_to_scaled_ps(delta);
-			print_scaled_ps(ppi, "Tx",
-					wrp->deltaTx.scaledPicoseconds);
+			wrp->deltaTx = delta;
+			pp_diag(ppi, ext, 1, "Tx =>> %u ps\n", delta);
 			wrp->wrPortState = WR_PORT_CALIBRATION_3;
 		} else {
 			break; /* again */
@@ -107,11 +95,8 @@ int wr_calibration(struct pp_instance *ppi, void *pkt, int plen)
 		/* wait until Rx calibration is finished */
 		if (wrp->ops->calib_poll(ppi, WR_HW_CALIB_RX, &delta) ==
 			WR_HW_CALIB_READY) {
-			pp_diag(ppi, ext, 1, "Rx fixed delay = %d\n", (int)delta);
-			wrp->deltaRx.scaledPicoseconds =
-				delta_to_scaled_ps(delta);
-			print_scaled_ps(ppi, "Rx",
-					wrp->deltaRx.scaledPicoseconds);
+			wrp->deltaRx = delta;
+			pp_diag(ppi, ext, 1, "Rx =>> %u ps\n", delta);
 			wrp->wrPortState = WR_PORT_CALIBRATION_7;
 		} else {
 			break; /* again */

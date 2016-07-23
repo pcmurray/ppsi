@@ -194,14 +194,10 @@ int wr_servo_init(struct pp_instance *ppi)
 	s->missed_iters = 0;
 	s->state = WR_SYNC_TAI;
 
-	s->delta_tx_m =
-	    scaled_ps_to_delta(wrp->otherNodeDeltaTx.scaledPicoseconds);
-	s->delta_rx_m =
-	    scaled_ps_to_delta(wrp->otherNodeDeltaRx.scaledPicoseconds);
-	s->delta_tx_s =
-	    scaled_ps_to_delta(wrp->deltaTx.scaledPicoseconds);
-	s->delta_rx_s =
-	    scaled_ps_to_delta(wrp->deltaRx.scaledPicoseconds);
+	s->delta_tx_m = wrp->otherNodeDeltaTx;
+	s->delta_rx_m = wrp->otherNodeDeltaRx;
+	s->delta_tx_s = wrp->deltaTx;
+	s->delta_rx_s = wrp->deltaRx;
 
 	strcpy(s->servo_state_name, "Uninitialized");
 

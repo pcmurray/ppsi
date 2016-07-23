@@ -168,10 +168,6 @@ struct TimeInterval { /* page 12 (32) -- never used */
 };
 
 /* White Rabbit extension */
-typedef struct FixedDelta {
-	uint64_t	scaledPicoseconds;
-} FixedDelta;
-
 typedef struct Timestamp { /* page 13 (33) -- no typedef expected */
 	uint64_t	secondsField;
 	uint32_t	nanosecondsField;

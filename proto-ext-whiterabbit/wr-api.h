@@ -28,8 +28,8 @@ struct wr_dsport {
 	uint8_t  wrPortState; /* used for sub-states during calibration */
 	/* FIXME check doc: knownDeltaTx, knownDeltaRx, deltasKnown?) */
 	bool calibrated;
-	FixedDelta deltaTx;
-	FixedDelta deltaRx;
+	uint64_t deltaTx;
+	uint64_t deltaRx;
 	uint32_t wrStateTimeout;
 	uint8_t wrStateRetry;
 	uint32_t calPeriod;		/* microseconsds, never changed */
@@ -45,8 +45,8 @@ struct wr_dsport {
 	uint16_t otherNodeCalSendPattern;
 	uint32_t otherNodeCalPeriod;/* microseconsds, never changed */
 	uint8_t otherNodeCalRetry;
-	FixedDelta otherNodeDeltaTx;
-	FixedDelta otherNodeDeltaRx;
+	uint64_t otherNodeDeltaTx;
+	uint64_t otherNodeDeltaRx;
 	bool doRestart;
 	bool linkUP;
 };
