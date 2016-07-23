@@ -159,13 +159,6 @@ static inline void msg_hdr_set_src_port_id(struct msg_header_wire *hdr,
 	hdr->spid.pn = htons(src->portNumber);
 }
 
-static inline void
-msg_hdr_set_src_port_id_clock_id(struct msg_header_wire *hdr,
-				 const struct clock_identity *id)
-{
-	memcpy(hdr->spid.cid, id, sizeof(hdr->spid.cid));
-}
-
 static inline const struct clock_identity *
 msg_hdr_get_src_port_id_clock_id(const struct msg_header_wire *hdr)
 {
