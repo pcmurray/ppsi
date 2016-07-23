@@ -138,7 +138,7 @@ static int pp_packet_prefilter(struct pp_instance *ppi, void *packet, int plen)
 	 * we just switch __this__ instance's port's status to PASSIVE if we
 	 * need to.
 	 */
-	cid = msg_hdr_get_src_port_id_clock_id(hdr);
+	cid = msg_hdr_get_src_clock_id(hdr);
 	if (msg_hdr_get_msg_type(hdr) == PPM_ANNOUNCE &&
 	    !clock_id_cmp(cid, &DSPOR(ppi)->portIdentity.clockIdentity)) {
 		if (pid.portNumber < DSPOR(ppi)->portIdentity.portNumber)
