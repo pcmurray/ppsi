@@ -198,6 +198,7 @@ int st_com_peer_handle_pres(struct pp_instance *ppi, unsigned char *buf,
 {
 	MsgPDelayResp resp;
 	MsgHeader *hdr = &ppi->received_ptp_header;
+	int e = 0;
 
 	if (len < PP_PDELAY_RESP_LENGTH)
 		return -1;
@@ -230,11 +231,21 @@ int st_com_peer_handle_pres(struct pp_instance *ppi, unsigned char *buf,
 		/* Save correctionField of pdelay_resp, see 11.4.3 d 3/4 */
 		cField_to_TimeInternal(&ppi->cField, hdr->correctionfield);
 
+		if (pp_hooks.handle_presp)
+			e = pp_hooks.handle_presp(ppi);
+		else {
+			/*
+			 * No followup expected, trigger pp_servo_got_presp()
+			 * now
+			 */
+			if (!(hdr->flagField[0] & PP_TWO_STEP_FLAG))
+				pp_servo_got_presp(ppi);
+		}
 	} else {
 		pp_diag(ppi, frames, 2, "pp_pclock : "
 			"PDelay Resp doesn't match PDelay Req\n");
 	}
-	return 0;
+	return e;
 }
 
 
