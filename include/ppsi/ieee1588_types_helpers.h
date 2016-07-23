@@ -166,7 +166,7 @@ msg_hdr_get_src_clock_id(const struct msg_header_wire *hdr)
 }
 
 static inline uint16_t
-msg_hdr_get_src_port_id_port_no(const struct msg_header_wire *hdr)
+msg_hdr_get_src_port_no(const struct msg_header_wire *hdr)
 {
 	return ntohs(hdr->spid.pn);
 }

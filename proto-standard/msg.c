@@ -288,7 +288,7 @@ static void msg_pack_delay_resp(struct pp_instance *ppi,
 	timestamp_internal_to_wire(ts, rcv_tstamp);
 	memcpy((buf + 44), msg_hdr_get_src_clock_id(hdr),
 	       PP_CLOCK_IDENTITY_LENGTH);
-	*(uint16_t *) (buf + 52) = msg_hdr_get_src_port_id_port_no(hdr);
+	*(uint16_t *) (buf + 52) = msg_hdr_get_src_port_no(hdr);
 }
 
 /* Unpack delayReq message from in buffer of ppi to internal structure */
