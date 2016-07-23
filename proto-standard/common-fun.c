@@ -236,7 +236,14 @@ int st_com_peer_handle_pres(struct pp_instance *ppi, unsigned char *buf,
 		cField_to_TimeInternal(&ppi->cField, msg_hdr_get_cf(hdr));
 		if (pp_hooks.handle_presp)
 			e = pp_hooks.handle_presp(ppi);
-
+		else {
+			/*
+			 * No followup expected, trigger pp_servo_got_presp()
+			 * now
+			 */
+			if (!(msg_hdr_get_flag(hdr, PP_TWO_STEP_FLAG)))
+				pp_servo_got_presp(ppi);
+		}
 	} else {
 		pp_diag(ppi, frames, 2, "pp_pclock : "
 			"PDelay Resp doesn't match PDelay Req\n");
