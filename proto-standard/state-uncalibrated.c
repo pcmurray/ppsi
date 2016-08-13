@@ -13,6 +13,10 @@ int pp_uncalibrated(struct pp_instance *ppi, unsigned char *pkt, int plen)
 {
 	int e = 0; /* error var, to check errors in msg handling */
 
+	e  = pp_lib_may_issue_request(ppi);
+	if (e)
+		pp_error("Error from pp_lib_may_issue_request()\n");
+
 	if (plen == 0)
 		goto no_incoming_msg;
 
