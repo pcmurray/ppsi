@@ -349,9 +349,6 @@ int wr_e2e_offset(struct pp_instance *ppi,
 	if (wrp->ops->servo_hook)
 		wrp->ops->servo_hook(s, WR_SERVO_ENTER);
 
-	/* shmem lock */
-	wrs_shm_write(ppsi_head, WRS_SHM_WRITE_BEGIN);
-
 	errcount = 0;
 
 	s->update_count++;
