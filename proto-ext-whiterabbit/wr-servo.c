@@ -334,7 +334,6 @@ int wr_e2e_offset(struct pp_instance *ppi,
 	uint64_t delay_ms_fix;
 	TimeInternal ts_offset;
 	static int errcount;
-	int64_t picos_mu_prev = 0;
 
 	if(!s->t1.correct || !s->t2.correct ||
 	   !s->t3.correct || !s->t4.correct) {
@@ -365,7 +364,7 @@ int wr_e2e_offset(struct pp_instance *ppi,
 		dump_timestamp(ppi, "servo:t4", s->t4);
 		dump_timestamp(ppi, "->mdelay", s->mu);
 	}
-	picos_mu_prev = s->picos_mu;
+
 	s->picos_mu = ts_to_picos(s->mu);
 	big_delta_fix =  s->delta_tx_m + s->delta_tx_s
 		       + s->delta_rx_m + s->delta_rx_s;
@@ -409,6 +408,7 @@ int wr_servo_update(struct pp_instance *ppi)
 	/* shmem lock */
 	wrs_shm_write(ppsi_head, WRS_SHM_WRITE_BEGIN);
 
+	picos_mu_prev = s->picos_mu;
 	if (GLBS(ppi)->delay_mech == PP_P2P_MECH) {
 		if (!wr_p2p_offset(ppi, s, &ts_offset_hw))
 			goto out;
