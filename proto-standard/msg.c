@@ -37,13 +37,13 @@ static void msg_pack_sync(struct pp_instance *ppi, Timestamp *orig_tstamp)
 {
 	void *buf;
 	timestamp_wire *ts;
-	uint16_t s;
 
 	buf = ppi->tx_ptp;
 	ts = buf + 34;
 
-	s = ppi->sent_seq[PPM_SYNC]++;
-	msg_hdr_prepare(ppi->tx_ptp, PPM_SYNC, PP_SYNC_LENGTH, s, 0,
+	ppi->sent_seq[PPM_SYNC]++;
+	msg_hdr_prepare(ppi->tx_ptp, PPM_SYNC, PP_SYNC_LENGTH,
+			ppi->sent_seq[PPM_SYNC], 0,
 			DSPOR(ppi)->logSyncInterval);
 	/* We're a two step clock, set relevant flag in sync (see Table 20) */
 	msg_hdr_set_flag(ppi->tx_ptp, PP_TWO_STEP_FLAG, 1);
