@@ -237,7 +237,7 @@ static inline void msg_hdr_prepare(struct msg_header_wire *hdr,
 	hdr->ts_mt |= type;
 
 	hdr->msg_length = htons(length);
-	hdr->seq_id = seq_id;
+	hdr->seq_id = htons(seq_id);
 	hdr->ctrl = ctrl;
 	hdr->log_msg_intvl = log_msg_intvl;
 }
