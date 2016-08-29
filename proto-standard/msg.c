@@ -183,7 +183,7 @@ static void msg_pack_delay_req(struct pp_instance *ppi, Timestamp *orig_tstamp)
 {
 	void *buf;
 	struct timestamp_wire *ts;
-	uint16_t s = ppi->sent_seq[PPM_DELAY_REQ]++;
+	uint16_t s = ++ppi->sent_seq[PPM_DELAY_REQ];
 
 	buf = ppi->tx_ptp;
 	ts = buf + 34;
