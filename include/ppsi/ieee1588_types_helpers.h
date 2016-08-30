@@ -394,7 +394,7 @@ msg_announce_wr_get_tlv_magic(const struct msg_announce_wrext_wire *e)
 static inline uint16_t
 msg_announce_wr_get_tlv_ver(const struct msg_announce_wrext_wire *e)
 {
-	return e->version;
+	return ntohs(e->version);
 }
 
 static inline uint16_t
