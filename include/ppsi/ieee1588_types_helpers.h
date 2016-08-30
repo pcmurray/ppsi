@@ -258,7 +258,7 @@ msg_announce_get_header(struct msg_announce_wire *ann)
 static inline struct msg_announce_wrext_wire *
 msg_announce_get_wrext(struct msg_announce_wire *ann)
 {
-	if (ann->header.msg_length <= PP_ANNOUNCE_LENGTH)
+	if (ntohs(ann->header.msg_length) <= PP_ANNOUNCE_LENGTH)
 		/* No white rabbit extensions */
 		return NULL;
 	return &ann->wrext;
