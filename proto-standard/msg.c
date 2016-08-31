@@ -135,6 +135,8 @@ static int msg_pack_announce(struct pp_instance *ppi)
 	/* Table 19 */
 	*(UInteger16 *) (buf + 2) = htons(PP_ANNOUNCE_LENGTH);
 	ppi->sent_seq[PPM_ANNOUNCE]++;
+	/* Table 21, set cf to zero */
+	memset(buf + 8, 0, 8);
 	*(UInteger16 *) (buf + 30) = htons(ppi->sent_seq[PPM_ANNOUNCE]);
 	*(UInteger8 *) (buf + 32) = 0x05;
 	/* Table 23 */
