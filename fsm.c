@@ -131,6 +131,23 @@ static int pp_packet_prefilter(struct pp_instance *ppi)
 		    sizeof(PortIdentity)))
 		return -1;
 
+	/*
+	 * 9.5.2.3: if an announce message comes from another port of the same
+	 * clock, switch all the ports but the lowest numbered one to
+	 * PASSIVE. Since all involved ports will see each other's announce,
+	 * we just switch __this__ instance's port's status to PASSIVE if we
+	 * need to.
+	 */
+	if (hdr->messageType == PPM_ANNOUNCE &&
+	    !memcmp(&hdr->sourcePortIdentity.clockIdentity,
+		    &DSPOR(ppi)->portIdentity.clockIdentity,
+		    sizeof(ClockIdentity))) {
+		if (hdr->sourcePortIdentity.portNumber <
+		    DSPOR(ppi)->portIdentity.portNumber)
+			ppi->next_state = PPS_PASSIVE;
+		return -1;
+	}
+
 	return 0;
 }
 
