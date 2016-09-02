@@ -17,10 +17,11 @@
 
 /*
  * This structure is used as extension-specific data in the DSPort
- * (see wrspec.v2-06-07-2011, page 17)
+ * (see wrspec.v2-06-07-2011, page 17). It now includes some HA fields
  */
 struct wr_dsport {
 	struct wr_operations *ops; /* hardware-dependent, see below */
+
 	Enumeration8 wrConfig;
 	Enumeration8 wrMode;
 	Boolean wrModeOn;
@@ -49,6 +50,19 @@ struct wr_dsport {
 	FixedDelta otherNodeDeltaRx;
 	Boolean doRestart;
 	Boolean linkUP;
+
+	/*
+	 * Following fields added for HA support
+	 */
+	int rx_l1_count;
+
+	/* The following 4 replace "txCoherentConfigured" and friends */
+	uint8_t ha_conf, ha_active, ha_peer_conf, ha_peer_active;
+
+	Enumeration8 L1SyncState;
+	int L1SyncInterval;  /* mean time, according to what metrics? */
+	int logL1SyncInterval; /* O.5.2.5: log of above field in seconds */
+	int L1SyncReceiptTimeout; /* a number of intervals above: 3 or more */
 };
 
 /* This uppercase name matches "DSPOR(ppi)" used by standard protocol */

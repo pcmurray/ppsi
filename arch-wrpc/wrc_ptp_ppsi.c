@@ -11,8 +11,6 @@
 #include <ppsi/ppsi.h>
 #include "wrpc.h"
 #include <common-fun.h>
-#include "../proto-ext-whiterabbit/wr-api.h"
-#include "../proto-ext-whiterabbit/wr-constants.h"
 
 /* All of these live in wrpc-sw/include */
 #include "minic.h"

@@ -25,7 +25,7 @@ static pp_action *actions[] = {
 	[PPM_FOLLOW_UP]		= st_com_slave_handle_followup,
 	[PPM_DELAY_RESP]	= slave_handle_response,
 	[PPM_ANNOUNCE]		= st_com_slave_handle_announce,
-	/* skip signaling and management, for binary size */
+	[PPM_SIGNALING]		= 0, /* pp_hooks.handle_signaling */
 };
 
 static int slave_handle_response(struct pp_instance *ppi, unsigned char *pkt,
@@ -93,8 +93,10 @@ int pp_slave(struct pp_instance *ppi, unsigned char *pkt, int plen)
 	e  = pp_lib_may_issue_request(ppi);
 
 	/*
-	 * The management of messages is now table-driven
+	 * The management of messages is now table-driven,
+	 * and an extension can provide a hook for signaling.
 	 */
+	actions[PPM_SIGNALING] = pp_hooks.handle_signaling;
 	if (plen && hdr->messageType < ARRAY_SIZE(actions)
 	    && actions[hdr->messageType]) {
 		e = actions[hdr->messageType](ppi, pkt, plen);
@@ -105,11 +107,6 @@ int pp_slave(struct pp_instance *ppi, unsigned char *pkt, int plen)
 	if (e)
 		goto out;
 
-	/*
-	 * This function, common to passive,listening etc,
-	 * is the core of the slave: timeout ann-receipt, hook
-	 */
-	e = st_com_execute_slave(ppi);
 
 out:
 	switch(e) {
@@ -130,6 +127,14 @@ out:
 	}
 	ppi->next_delay = pp_next_delay_2(ppi,
 					  PP_TO_ANN_RECEIPT, PP_TO_REQUEST);
+
+	if (pp_hooks.calc_timeout) {
+		/* The extension may manage its own timeout, and do stuff */
+		int ext_to = pp_hooks.calc_timeout(ppi);
+		if (ext_to < ppi->next_delay)
+			ppi->next_delay = ext_to;
+	}
+
 	return e;
 }
 

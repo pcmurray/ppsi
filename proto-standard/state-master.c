@@ -23,7 +23,7 @@ static pp_action *actions[] = {
 	[PPM_FOLLOW_UP]		= 0,
 	[PPM_DELAY_RESP]	= 0,
 	[PPM_ANNOUNCE]		= st_com_master_handle_announce,
-	/* skip signaling and management, for binary size */
+	[PPM_SIGNALING]		= 0, /* pp_hooks.handle_signaling */
 };
 
 static int master_handle_delay_request(struct pp_instance *ppi,
@@ -84,8 +84,10 @@ int pp_master(struct pp_instance *ppi, uint8_t *pkt, int plen)
 	}
 
 	/*
-	 * The management of messages is now table-driven
+	 * The management of messages is now table-driven,
+	 * and an extension can provide a hook for signaling.
 	 */
+	actions[PPM_SIGNALING] = pp_hooks.handle_signaling;
 	if (plen && msgtype < ARRAY_SIZE(actions)
 	    && actions[msgtype]) {
 		e = actions[msgtype](ppi, pkt, plen);
@@ -114,6 +116,14 @@ out:
 	/* we also use TO_QUALIFICATION, but avoid counting it here */
 	ppi->next_delay = pp_next_delay_3(ppi,
 		PP_TO_ANN_SEND, PP_TO_SYNC_SEND, PP_TO_REQUEST);
+
+	if (pp_hooks.calc_timeout) {
+		/* The extension may manage its own timeout, and do stuff */
+		int ext_to = pp_hooks.calc_timeout(ppi);
+		if (ext_to < ppi->next_delay)
+			ppi->next_delay = ext_to;
+	}
+
 	return e;
 
 out_fault:

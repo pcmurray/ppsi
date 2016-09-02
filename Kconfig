@@ -100,20 +100,36 @@ menu "PTP Protocol Options"
 
 endmenu
 
+config EXT_HA_PREFERRED
+	bool "Prefer new (experimental) HA implementation over WR"
+
 config EXT_WR
 	bool
-	default y if ARCH_WRS || ARCH_WRPC
+	default y if !EXT_HA_PREFERRED && (ARCH_WRS || ARCH_WRPC)
+
+config EXT_HA
+	bool
+	default y if EXT_HA_PREFERRED && (ARCH_WRS || ARCH_WRPC)
 
 config EXT_NONE
 	bool
-	default !EXT_WR
+	default !(EXT_WR || EXT_HA)
 
 config EXTENSION
        string
        default "whiterabbit" if EXT_WR
+       default "high-accuracy" if EXT_HA
        default "" if EXT_NONE
 
+config HAS_HA
+       int
+       default 1 if EXT_HA
+       default 0
 
+config HAS_WR
+       int
+       default 1 if EXT_WR
+       default 0
 
 config CROSS_COMPILE
        string "Cross compiler prefix"

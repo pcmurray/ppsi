@@ -197,6 +197,8 @@ int main(int argc, char **argv)
 		}
 	}
 	for (i = 0; i < ppg->nlinks; i++) {
+		void *extds;
+
 		ppi = INST(ppg, i);
 		ppi->ch[PP_NP_EVT].fd = -1;
 		ppi->ch[PP_NP_GEN].fd = -1;
@@ -207,13 +209,14 @@ int main(int argc, char **argv)
 		ppi->port_name = ppi->cfg.port_name;
 		ppi->mech = ppi->cfg.mech;
 		ppi->portDS = calloc(1, sizeof(*ppi->portDS));
-		if (ppi->portDS)
-			ppi->portDS->ext_dsport =
-				calloc(1, sizeof(struct wr_dsport));
-		if (!ppi->portDS || !ppi->portDS->ext_dsport) {
+		extds = calloc(1, sizeof(struct wr_dsport));
+		if (!ppi->portDS || !extds) {
 			fprintf(stderr, "ppsi: out of memory\n");
 			exit(1);
 		}
+		pp_diag(ppi, ext, 3, "portds %p, extds %p\n",
+			ppi->portDS, extds);
+		ppi->portDS->ext_dsport = extds;
 		wrp = WR_DSPOR(ppi); /* just allocated above */
 		wrp->ops = &wrs_wr_operations;
 

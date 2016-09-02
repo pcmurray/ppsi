@@ -159,7 +159,8 @@ struct pp_ext_hooks {
 	int (*pack_announce)(struct pp_instance *ppi);
 	void (*unpack_announce)(void *buf, MsgAnnounce *ann);
 	/* HA needs the ones below alone. And init/open above */
-	int (*handle_signaling) (struct pp_instance * ppi);
+	int (*handle_signaling) (struct pp_instance * ppi,
+				 unsigned char *pkt, int plen);
 	int (*calc_timeout) (struct pp_instance * ppi);
 };
 
@@ -343,6 +344,7 @@ extern int f_simple_int(struct pp_argline *l, int lineno,
 
 #define PPSI_EXT_NONE		0
 #define PPSI_EXT_WR		1
+#define PPSI_EXT_HA		2
 
 
 /* Servo */

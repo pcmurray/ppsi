@@ -50,6 +50,10 @@ int pp_listening(struct pp_instance *ppi, unsigned char *pkt, int plen)
 			e = st_com_peer_handle_pres_followup(ppi, pkt, plen);
 		break;
 
+	case PPM_SIGNALING:
+		if (pp_hooks.handle_signaling)
+			e = pp_hooks.handle_signaling(ppi, pkt, plen);
+
 	default:
 		/* disregard, nothing to do */
 		break;
@@ -63,6 +67,13 @@ out:
 		ppi->next_state = PPS_FAULTY;
 
 	ppi->next_delay = pp_next_delay_1(ppi, PP_TO_ANN_RECEIPT);
+
+	if (pp_hooks.calc_timeout) {
+		/* The extension may manage its own timeout, and do stuff */
+		int ext_to = pp_hooks.calc_timeout(ppi);
+		if (ext_to < ppi->next_delay)
+			ppi->next_delay = ext_to;
+	}
 
 	return 0;
 }
