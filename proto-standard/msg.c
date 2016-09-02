@@ -90,7 +90,8 @@ void msg_pack_header(struct pp_instance *ppi, void *buf)
 	*(UInteger4 *) (buf + 1) = DSPOR(ppi)->versionNumber;
 	*(UInteger8 *) (buf + 4) = DSDEF(ppi)->domainNumber;
 
-	*(UInteger8 *) (buf + 6) = PP_TWO_STEP_FLAG;
+	/* Zero out flags, we set them when needed */
+	*(UInteger8 *) (buf + 6) = 0;
 
 	memset((buf + 8), 0, 8);
 	memcpy((buf + 20), &DSPOR(ppi)->portIdentity.clockIdentity,
@@ -105,8 +106,10 @@ void msg_pack_header(struct pp_instance *ppi, void *buf)
 static void msg_pack_sync(struct pp_instance *ppi, Timestamp *orig_tstamp)
 {
 	void *buf;
+	UInteger8 *flags;
 
 	buf = ppi->tx_ptp;
+	flags = buf + 6;
 
 	/* changes in header */
 	*(char *)(buf + 0) = *(char *)(buf + 0) & 0xF0;
@@ -116,6 +119,8 @@ static void msg_pack_sync(struct pp_instance *ppi, Timestamp *orig_tstamp)
 	/* Table 19 */
 	*(UInteger16 *) (buf + 2) = htons(PP_SYNC_LENGTH);
 	ppi->sent_seq[PPM_SYNC]++;
+	/* We're a two step clock, set relevant flag in sync (see Table 20) */
+	flags[0] = PP_TWO_STEP_FLAG;
 	*(UInteger16 *) (buf + 30) = htons(ppi->sent_seq[PPM_SYNC]);
 	*(UInteger8 *) (buf + 32) = 0x00;
 
@@ -140,12 +145,42 @@ void msg_unpack_sync(void *buf, MsgSync *sync)
 		htonl(*(UInteger32 *) (buf + 40));
 }
 
+/*
+ * Setup flags for an announce message.
+ * Set byte 1 of flags taking it from timepropertiesDS' flags field,
+ * see 13.3.2.6, Table 20
+ */
+static void msg_set_announce_flags(UInteger8 *flags, struct pp_instance *ppi)
+{
+	struct DSTimeProperties *prop = DSPRO(ppi);
+	const Boolean *ptrs[] = {
+		&prop->leap61,
+		&prop->leap59,
+		&prop->currentUtcOffsetValid,
+		&prop->ptpTimescale,
+		&prop->timeTraceable,
+		&prop->frequencyTraceable,
+	};
+	int i;
+
+	/*
+	 * alternate master always false, twoStepFlag false in announce,
+	 * unicastFlag always false, other flags always false
+	 */
+	flags[0] = 0;
+	for (flags[1] = 0, i = 0; i < ARRAY_SIZE(ptrs); i++)
+		if (*ptrs[i])
+			flags[1] |= (1 << i);
+}
+
 /* Pack Announce message into out buffer of ppi */
 static int msg_pack_announce(struct pp_instance *ppi)
 {
 	void *buf;
+	UInteger8 *flags;
 
 	buf = ppi->tx_ptp;
+	flags = buf + 6;
 	/* changes in header */
 	*(char *)(buf + 0) = *(char *)(buf + 0) & 0xF0;
 	/* RAZ messageType */
@@ -153,6 +188,12 @@ static int msg_pack_announce(struct pp_instance *ppi)
 	/* Table 19 */
 	*(UInteger16 *) (buf + 2) = htons(PP_ANNOUNCE_LENGTH);
 	ppi->sent_seq[PPM_ANNOUNCE]++;
+	/*
+         * set byte 1 of flags taking it from timepropertiesDS' flags field,
+         * see 13.3.2.6, Table 20
+         */
+	msg_set_announce_flags(flags, ppi);
+
 	/* Table 21, set cf to zero */
 	memset(buf + 8, 0, 8);
 	*(UInteger16 *) (buf + 30) = htons(ppi->sent_seq[PPM_ANNOUNCE]);
@@ -332,8 +373,10 @@ static void msg_pack_delay_req(struct pp_instance *ppi, Timestamp *orig_tstamp)
 void msg_pack_pdelay_req(struct pp_instance *ppi, Timestamp * orig_tstamp)
 {
 	void *buf;
+	UInteger8 *flags;
 
 	buf = ppi->tx_ptp;
+	flags = buf + 6;
 
 	/* changes in header 11.4.3 */
 	*(char *)(buf + 0) = *(char *)(buf + 0) & 0xF0;
@@ -342,6 +385,9 @@ void msg_pack_pdelay_req(struct pp_instance *ppi, Timestamp * orig_tstamp)
 
 	*(UInteger16 *) (buf + 2) = htons(PP_PDELAY_REQ_LENGTH);
 	ppi->sent_seq[PPM_DELAY_REQ]++;
+
+	/* Reset all flags (see Table 20) */
+	flags[0] = flags[1] = 0;
 
 	/* TO DO, 11.4.3 a.1) if synthed peer-to-peer TC */
 	/* *(char *)(buf + 4) = 0 .- not sythonized / X synt domain */
@@ -364,8 +410,10 @@ void msg_pack_pdelay_resp(struct pp_instance *ppi,
 			  MsgHeader * hdr, Timestamp * rcv_tstamp)
 {
 	void *buf;
+	UInteger8 *flags;
 
 	buf = ppi->tx_ptp;
+	flags = buf + 6;
 
 	/* header */
 	*(char *)(buf + 0) = *(char *)(buf + 0) & 0xF0;
@@ -374,6 +422,10 @@ void msg_pack_pdelay_resp(struct pp_instance *ppi,
 
 	*(UInteger16 *) (buf + 2) = htons(PP_PDELAY_RESP_LENGTH);
 	*(UInteger8 *) (buf + 4) = hdr->domainNumber;
+	/* We're a two step clock, set relevant flag (see Table 20) */
+	flags[0] = PP_TWO_STEP_FLAG;
+	/* Flags in byte 1 are all zero for pdelay response */
+	flags[1] = 0;
 	/* set 0 the correction field, 11.4.3 c.3) */
 	memset((buf + 8), 0, 8);
 
@@ -396,8 +448,10 @@ static void msg_pack_delay_resp(struct pp_instance *ppi,
 			 MsgHeader *hdr, Timestamp *rcv_tstamp)
 {
 	void *buf;
+	UInteger8 *flags;
 
 	buf = ppi->tx_ptp;
+	flags = buf + 6;
 
 	/* changes in header */
 	*(char *)(buf + 0) = *(char *)(buf + 0) & 0xF0;
@@ -407,6 +461,8 @@ static void msg_pack_delay_resp(struct pp_instance *ppi,
 	/* Table 19 */
 	*(UInteger16 *) (buf + 2) = htons(PP_DELAY_RESP_LENGTH);
 	*(UInteger8 *) (buf + 4) = hdr->domainNumber;
+	/* Flags are all zero for delay resp, see Table 20 */
+	flags[0] = flags[1] = 0;
 	memset((buf + 8), 0, 8);
 
 	/* Copy correctionField of delayReqMessage */
