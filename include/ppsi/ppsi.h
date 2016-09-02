@@ -158,6 +158,9 @@ struct pp_ext_hooks {
 	int (*handle_presp) (struct pp_instance * ppi);
 	int (*pack_announce)(struct pp_instance *ppi);
 	void (*unpack_announce)(void *buf, MsgAnnounce *ann);
+	/* HA needs the ones below alone. And init/open above */
+	int (*handle_signaling) (struct pp_instance * ppi);
+	int (*calc_timeout) (struct pp_instance * ppi);
 };
 
 extern struct pp_ext_hooks pp_hooks; /* The one for the extension we build */
