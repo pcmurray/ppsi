@@ -110,8 +110,9 @@ void pp_timeout_setall(struct pp_instance *ppi)
 {
 	int i;
 	for (i = 0; i < __PP_TO_ARRAY_SIZE; i++)
-		pp_timeout_set(ppi, i);
-	/* but announce_send must be send soon */
+		if (to_configs[i].value)
+			pp_timeout_set(ppi, i);
+	/* but announce_send must be sent soon */
 	__pp_timeout_set(ppi, PP_TO_ANN_SEND, 20);
 }
 
