@@ -45,4 +45,32 @@ enum l1_sync_states { /* O.5.3.5 */
 int ha_pack_signal(struct pp_instance *ppi);
 int ha_unpack_signal(struct pp_instance *ppi, void *pkt, int plen);
 
+#ifdef CONFIG_USE_HA
+/*
+ * We rely on wr-api.h and the WR structures, but the setup of the link
+ * is completely different. Fortunately, the ugly WR field names are unique,
+ * so we can prevent their use in HA code by defining them away. HACK!
+ *
+ * In practice, we only keep deltaTx/RX, otherNodeDeltaTx/Rx and linkUP.
+ * And, well... wrModeOn because all stamps are good in non-ha mode
+*/
+#define wrConfig		do_not_use_wrConfig
+#define wrMode			do_not_use_wrMode
+#define wrPortState		do_not_use_wrPortState
+#define calibrated		do_not_use_calibrated
+#define wrStateTimeout		do_not_use_wrStateTimeout
+#define wrStateRetry		do_not_use_wrStateRetry
+#define calPeriod		do_not_use_calPeriod
+#define calRetry		do_not_use_calRetry
+#define parentWrConfig		do_not_use_parentWrConfig
+#define parentIsWRnode		do_not_use_parentIsWRnode
+#define msgTmpWrMessageID	do_not_use_msgTmpWrMessageID
+#define parentWrModeOn		do_not_use_parentWrModeOn
+#define parentCalibrated	do_not_use_parentCalibrated
+#define otherNodeCalSendPattern	do_not_use_otherNodeCalSendPattern
+#define otherNodeCalPeriod	do_not_use_otherNodeCalPeriod
+#define otherNodeCalRetry	do_not_use_otherNodeCalRetry
+#define doRestart		do_not_use_doRestart
+#endif /* CONFIG_USE_HA */
+
 #endif /* __HAEXT_HA_API_H__ */
