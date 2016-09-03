@@ -130,7 +130,9 @@ int wrc_ptp_set_mode(int mode)
 
 	switch (mode) {
 	case WRC_MODE_GM:
+#ifdef CONFIG_EXT_WR
 		wrp->wrConfig = WR_M_ONLY;
+#endif
 		ppi->role = PPSI_ROLE_MASTER;
 		*class_ptr = PP_CLASS_WR_GM_LOCKED;
 		spll_init(SPLL_MODE_GRAND_MASTER, 0, 1);
@@ -140,7 +142,9 @@ int wrc_ptp_set_mode(int mode)
 		break;
 
 	case WRC_MODE_MASTER:
+#ifdef CONFIG_EXT_WR
 		wrp->wrConfig = WR_M_ONLY;
+#endif
 		ppi->role = PPSI_ROLE_MASTER;
 		*class_ptr = PP_CLASS_DEFAULT;
 		spll_init(SPLL_MODE_FREE_RUNNING_MASTER, 0, 1);
@@ -150,7 +154,9 @@ int wrc_ptp_set_mode(int mode)
 		break;
 
 	case WRC_MODE_SLAVE:
+#ifdef CONFIG_EXT_WR
 		wrp->wrConfig = WR_S_ONLY;
+#endif
 		ppi->role = PPSI_ROLE_SLAVE;
 		*class_ptr = PP_CLASS_SLAVE_ONLY;
 		spll_init(SPLL_MODE_SLAVE, 0, 1);
@@ -231,8 +237,10 @@ int wrc_ptp_stop()
 
 	pp_printf("PTP stop\n");
 	wrp->ops->enable_timing_output(ppi, 0);
+#ifdef CONFIG_EXT_WR
 	/* Moving fiber: forget about this parent (FIXME: shouldn't be here) */
 	wrp->parentWrConfig = wrp->parentWrModeOn = 0;
+#endif
 	memset(ppi->frgn_master, 0, sizeof(ppi->frgn_master));
 	ppi->frgn_rec_num = 0;          /* no known master */
 
