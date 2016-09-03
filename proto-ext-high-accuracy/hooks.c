@@ -107,6 +107,7 @@ static int ha_calc_timeout(struct pp_instance *ppi)
 			wrp->ops->enable_timing_output(ppi, 0);
 			wrp->L1SyncState = L1SYNC_IDLE;
 			wrp->rx_l1_count = 0;
+			wrp->wrModeOn = 0;
 			break;
 
 		case PPS_MASTER:
@@ -141,6 +142,7 @@ static int ha_calc_timeout(struct pp_instance *ppi)
 		break;
 
 	case L1SYNC_IDLE: /* If verified to be direct and active... */
+		wrp->wrModeOn = 0;
 		if (wrp->rx_l1_count) {
 			wrp->L1SyncState = L1SYNC_LINK_ALIVE;
 			/* and fall through */
@@ -186,6 +188,7 @@ static int ha_calc_timeout(struct pp_instance *ppi)
 		}
 
 	case L1SYNC_UP: /* FIXME: manage tacking-lost event */
+		wrp->wrModeOn = 1;
 		break;
 	}
 
