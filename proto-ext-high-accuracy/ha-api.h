@@ -12,6 +12,11 @@
 /* We are still very dependent on whiterabbit code, so include wr_ops etc */
 #include "../proto-ext-whiterabbit/wr-api.h"
 
+/* Rename the timeouts, for readability */
+#define HA_TO_TX	PP_TO_EXT_0
+#define HA_TO_RX	PP_TO_EXT_1
+#define HA_TO_LOCK	PP_TO_EXT_2
+
 #define HA_DEFAULT_L1SYNCRECEIPTTIMEOUT 5 /* was 3: need more for pll lock */
 
 #define  TLV_TYPE_L1_SYNC		0x8001
