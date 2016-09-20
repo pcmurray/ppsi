@@ -109,7 +109,7 @@ config EXT_WR
 
 config EXT_HA
 	bool
-	default y if EXT_HA_PREFERRED && (ARCH_WRS || ARCH_WRPC)
+	default y if EXT_HA_PREFERRED && (ARCH_WRS || ARCH_WRPC || ARCH_UNIX)
 
 config EXT_NONE
 	bool
