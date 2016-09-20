@@ -15,6 +15,8 @@ OBJ-y += $A/unix-startup.o \
 	lib/drop.o \
 	lib/div64.o
 
+OBJ-$(CONFIG_EXT_HA) += $A/ha-hacks.o $A/ha-backend.o
+
 # The user can set TIME=, but we pick unix time by default
 TIME ?= unix
 

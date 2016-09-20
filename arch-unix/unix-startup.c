@@ -19,7 +19,6 @@
 #include <fcntl.h>
 #include <time.h>
 #include <sys/timex.h>
-
 #include <ppsi/ppsi.h>
 #include "ppsi-unix.h"
 
@@ -30,6 +29,31 @@ static DSCurrent currentDS;
 static DSParent parentDS;
 static DSTimeProperties timePropertiesDS;
 static struct pp_servo servo;
+
+#ifdef CONFIG_EXT_HA
+static struct wr_operations fake_wr_operations = {
+	.locking_enable = fake_locking_enable,
+	.locking_poll = fake_locking_poll,
+	.locking_disable = fake_locking_disable,
+	.enable_ptracker = fake_enable_ptracker,
+
+	.adjust_in_progress = fake_adjust_in_progress,
+	.adjust_counters = fake_adjust_counters,
+	.adjust_phase = fake_adjust_phase,
+
+	.read_calib_data = fake_read_calibration_data,
+	.calib_disable = fake_calibrating_disable,
+	.calib_enable = fake_calibrating_enable,
+	.calib_poll = fake_calibrating_poll,
+	.calib_pattern_enable = fake_calibration_pattern_enable,
+	.calib_pattern_disable = fake_calibration_pattern_disable,
+
+	.enable_timing_output = fake_enable_timing_output,
+};
+#  define fake_wr_operations_ptr &fake_wr_operations
+#else
+#  define fake_wr_operations_ptr NULL /* prevent a build-time error later */
+#endif
 
 int main(int argc, char **argv)
 {
@@ -53,6 +77,9 @@ int main(int argc, char **argv)
 
 	/* We are hosted, so we can allocate */
 	ppg->max_links = PP_MAX_LINKS;
+	if (CONFIG_HAS_HA)
+		ppg->global_ext_data = calloc(1, sizeof(struct wr_servo_state));
+
 	ppg->arch_data = calloc(1, sizeof(struct unix_arch_data));
 	ppg->pp_instances = calloc(ppg->max_links, sizeof(struct pp_instance));
 
@@ -101,6 +128,19 @@ int main(int argc, char **argv)
 		ppi->portDS = calloc(1, sizeof(*ppi->portDS));
 		ppi->__tx_buffer = malloc(PP_MAX_FRAME_LENGTH);
 		ppi->__rx_buffer = malloc(PP_MAX_FRAME_LENGTH);
+		if (CONFIG_HAS_HA) {
+			void *extds;
+			struct wr_dsport *wrp;
+
+			extds = calloc(1, sizeof(struct wr_dsport));
+			if (!extds) {
+				fprintf(stderr, "ppsi: out of memory\n");
+				exit(1);
+			}
+			ppi->portDS->ext_dsport = extds;
+			wrp = WR_DSPOR(ppi); /* just allocated above */
+			wrp->ops = fake_wr_operations_ptr;
+		}
 
 		if (!ppi->portDS || !ppi->__tx_buffer || !ppi->__rx_buffer) {
 			fprintf(stderr, "ppsi: out of memory\n");
