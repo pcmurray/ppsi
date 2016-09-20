@@ -214,7 +214,10 @@ static struct pp_argname arg_role[] = {
 static struct pp_argname arg_ext[] = {
 	{"none", PPSI_EXT_NONE},
 	{"whiterabbit", PPSI_EXT_WR},
+	{"white-rabbit", PPSI_EXT_WR},
+	{"WR", PPSI_EXT_WR},
 	{"high-accuracy", PPSI_EXT_HA},
+	{"HA", PPSI_EXT_HA},
 	{},
 };
 static struct pp_argname arg_mech[] = {
@@ -226,6 +229,7 @@ static struct pp_argname arg_mech[] = {
 	{"p2p", PP_P2P_MECH},
 	{},
 };
+
 
 static struct pp_argline pp_global_arglines[] = {
 	LEGACY_OPTION(f_port, "port", ARG_STR),
