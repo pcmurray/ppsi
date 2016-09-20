@@ -54,7 +54,7 @@ struct wr_dsport {
 	/*
 	 * Following fields added for HA support
 	 */
-	int rx_l1_count;
+	int ha_link_ok; /* we received sth */
 
 	/* The following 4 replace "txCoherentConfigured" and friends */
 	uint8_t ha_conf, ha_active, ha_peer_conf, ha_peer_active;

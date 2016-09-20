@@ -10,6 +10,15 @@ char *ha_l1name[] = {
 	[L1SYNC_UP]		= "L1SYNC_UP",
 };
 
+/* Disgusting helpers to shorten the conditions */
+#define HAS_BITS(what, bits) ((wrp->what & (bits)) == (bits))
+#define SET_BITS(what, bits) (wrp->what |= (bits))
+#define CLR_BITS(what, bits) (wrp->what &= ~(bits))
+#define CONG HA_CONGRUENT
+#define TXCO HA_TX_COHERENT
+#define RXCO HA_RX_COHERENT
+
+
 /* open is global; called from "pp_init_globals" */
 static int ha_open(struct pp_globals *ppg, struct pp_runtime_opts *rt_opts)
 {
@@ -38,24 +47,26 @@ static int ha_init(struct pp_instance *ppi, unsigned char *pkt, int plen)
 	}
 #endif
 
-	/* If no extension is configured, nothing to do */
-	if (ppi->cfg.ext != PPSI_EXT_HA) {
-		pp_diag(ppi, ext, 2, "HA not enabled at config time\n");
-		wrp->L1SyncState = L1SYNC_DISABLED;
-		return 0;
-	}
-
-	/*
-	 * Otherwise, set up the minimal bits, and be ready to start
-	 */
-
-	wrp->ha_conf = HA_TX_COHERENT | HA_CONGRUENT; /* always */
-	wrp->ha_active = HA_TX_COHERENT;
 
 	wrp->logL1SyncInterval = 0;	/* Once per second. Average? */
 	wrp->L1SyncInterval = 4 << (wrp->logL1SyncInterval + 8);
 	wrp->L1SyncReceiptTimeout = HA_DEFAULT_L1SYNCRECEIPTTIMEOUT;
-	wrp->L1SyncState = L1SYNC_IDLE; /* Enabled but nothing being done */
+
+	/*
+	 * It looks like we can't check cfg.ext at init time
+	 * because the value can change at run time (pity me). So
+	 * go disabled, which will then clear all bits at 1st iteration
+	 */
+	wrp->L1SyncState = L1SYNC_DISABLED; /* Changed later */
+
+	/*
+	 * It looks like the braindead specification wants these to eb
+	 * changed by management, but never by the state machine. So
+	 * even if disabled I have this configuration, that for us is
+	 * always 111 (clearly tx and rx are undistinguishable or nothing
+	 * will work in the implementation (we compare tx with peer-tx)
+	 */
+	SET_BITS(ha_conf, CONG | TXCO | RXCO);
 	return 0;
 }
 
@@ -70,11 +81,9 @@ static int ha_handle_signaling(struct pp_instance * ppi,
 		ppi->state, ha_l1name[wrp->L1SyncState], plen);
 
 	to_rx = wrp->L1SyncInterval * wrp->L1SyncReceiptTimeout;
-
 	__pp_timeout_set(ppi, HA_TO_RX, to_rx);
-	wrp->rx_l1_count++;
-	if (wrp->rx_l1_count <= 0) /* overflow? */
-		wrp->rx_l1_count = 1;
+
+	wrp->ha_link_ok = 1;
 
 	ha_unpack_signal(ppi, pkt, plen);
 	return 0;
@@ -88,109 +97,131 @@ static int ha_calc_timeout(struct pp_instance *ppi)
 {
 	struct wr_dsport *wrp = WR_DSPOR(ppi);
 	int to_tx, do_xmit = 0;
+	int config_ok, state_ok;
 
 	pp_diag(ppi, ext, 2, "hook: %s (%i:%s)\n", __func__,
 		ppi->state, ha_l1name[wrp->L1SyncState]);
 
 	to_tx = wrp->L1SyncInterval; /* randomize? */
 
-	/*
-	 * Track changes in ptp state machine. Also this ensures
-	 * we initialize the timeout at the first run (is_new_state == 1)
-	 */
-	if (ppi->is_new_state) {
+	if (ppi->is_new_state) { /* sth changed (or beginning of the world) */
 		do_xmit = 1;
-
-		switch(ppi->state) {
-		case PPS_LISTENING: /* master/slave unknown: disable */
-			pp_diag(ppi, ext, 1, "PTP listening -> L1 idle");
-			wrp->ha_conf &= ~HA_RX_COHERENT;
-			wrp->ha_active &= ~HA_RX_COHERENT;
+		/*
+		 * There is one special case: if we are a _new_ master,
+		 * we clear RX_COHERENT. And unlock the pll just to be sure.
+		 */
+		if (ppi->state == PPS_MASTER) {
+			CLR_BITS(ha_active, RXCO);
 			wrp->ops->locking_disable(ppi);
-			wrp->ops->enable_timing_output(ppi, 0);
-			wrp->L1SyncState = L1SYNC_IDLE;
-			wrp->rx_l1_count = 0;
-			wrp->wrModeOn = 0;
-			break;
-
-		case PPS_MASTER:
-			pp_diag(ppi, ext, 1, "PTP master -> L1 signals\n");
-			wrp->ha_conf &= ~HA_RX_COHERENT;
-			break;
-
-		case PPS_SLAVE:
-			pp_diag(ppi, ext, 1, "PTP slave -> L1 signals\n");
-			wrp->ha_conf |= HA_RX_COHERENT;
-			break;
 		}
 	}
 
-	/* If not new state, but on time, send your signaling message */
-	if (!do_xmit && pp_timeout(ppi, HA_TO_TX))
+	/* If TX time expired, transmit */
+	if (pp_timeout(ppi, HA_TO_TX))
 		do_xmit = 1;
 
-	/* If we already received something, but no more, honor the timeout */
-	if (wrp->rx_l1_count && pp_timeout(ppi, HA_TO_RX)) {
-		wrp->rx_l1_count = 0;
+	/* If we stopped receiving go back */
+	if (wrp->ha_link_ok && pp_timeout(ppi, HA_TO_RX)) {
+		wrp->ha_link_ok = 0;
 		wrp->L1SyncState = L1SYNC_IDLE;
-		wrp->ha_active &= ~HA_RX_COHERENT; /* unlock pll? */
-		wrp->ha_active &= ~HA_CONGRUENT; /* unlock pll? */
+		wrp->ha_peer_conf = wrp->ha_peer_active = 0;
+		if (ppi->state == PPS_SLAVE)
+			wrp->ops->locking_disable(ppi);
 		do_xmit = 1;
 	}
+	/* From any state, if now disabled, disable */
+	if (ppi->cfg.ext != PPSI_EXT_HA)
+		wrp->L1SyncState = L1SYNC_DISABLED;
 
-	/* L1 state machine; according to what we know about the peer */
+	/* Always check the pll status, whether or not we turned it on */
+	if (ppi->state == PPS_SLAVE  && HAS_BITS(ha_conf, CONG)) {
+		if (wrp->ops->locking_poll(ppi, 0) == WR_SPLL_READY) {
+			/* we could just set, but detect edge to report it */
+			if (!HAS_BITS(ha_active, RXCO)) {
+				pp_diag(ppi, ext, 1, "PLL is locked\n");
+				do_xmit = 1;
+			}
+			SET_BITS(ha_active, RXCO);
+		} else {
+			CLR_BITS(ha_active, RXCO);
+		}
+	}
+	/* Similarly, always upgrade master's active according to the slave */
+	if (ppi->state == PPS_MASTER && HAS_BITS(ha_conf, CONG)) {
+		if (HAS_BITS(ha_peer_active, RXCO | TXCO)
+		    &&
+		    HAS_BITS(ha_active, TXCO)) {
+			/* peer is both and I am tx -- so I am rx too */
+			SET_BITS(ha_active, RXCO);
+		} else {
+			CLR_BITS(ha_active, RXCO);
+		}
+	}
+
+	/*
+	 * L1 state machine; calculate what trigger state changes
+	 */
+	config_ok = (wrp->ha_conf == wrp->ha_peer_conf); /* conf must match */
+
+	/* For state, if bits in conf are 0, we don't care about bits in act */
+	state_ok = (wrp->ha_conf & wrp->ha_active & wrp->ha_peer_active)
+		== wrp->ha_conf; /* if in conf, it must be in both act */
+
 	switch(wrp->L1SyncState) {
 
-	case L1SYNC_DISABLED: /* Nothing to do */
-		break;
+	case L1SYNC_DISABLED: /* Likely beginning of the world, or new cfg */
+		wrp->wrModeOn = 0;
+		wrp->ha_active = 0;
+		do_xmit = 0;
+		if (ppi->cfg.ext != PPSI_EXT_HA)
+			break;
+
+		wrp->L1SyncState = L1SYNC_IDLE;
+		do_xmit = 1;
+		/* and fall through */
 
 	case L1SYNC_IDLE: /* If verified to be direct and active... */
 		wrp->wrModeOn = 0;
-		if (wrp->rx_l1_count) {
-			wrp->L1SyncState = L1SYNC_LINK_ALIVE;
-			/* and fall through */
-		} else {
+		if (!wrp->ha_link_ok)
 			break;
-		}
+
+		wrp->L1SyncState = L1SYNC_LINK_ALIVE;
+		SET_BITS(ha_active, CONG | TXCO);
+		/* and fall through */
 
 	case L1SYNC_LINK_ALIVE: /* Check cfg: start locking if ok */
-		if ((wrp->ha_conf & HA_RX_COHERENT) &&
-		    !(wrp->ha_peer_conf & HA_RX_COHERENT)) {
-			/* We are slave, with a master on the link. Lock */
-			wrp->L1SyncState = L1SYNC_CONFIG_MATCH;
-                        pp_diag(ppi, ext, 1, "Locking PLL\n");
-                        wrp->ops->locking_enable(ppi);
-			/* FIXME: prepare timeout for PLL locking */
+		if (!config_ok)
+			break;
+		if (ppi->state != PPS_SLAVE && ppi->state != PPS_MASTER)
+			break; /* remain in alive, don't proceed */
+
+		/* configuration matches, so the slave must lock */
+		if (ppi->state == PPS_SLAVE && HAS_BITS(ha_conf, CONG)) {
+			pp_diag(ppi, ext, 1, "Locking PLL\n");
+			wrp->ops->locking_enable(ppi);
 		}
 
-		if (!(wrp->ha_conf & HA_RX_COHERENT) &&
-		    (wrp->ha_peer_conf & HA_RX_COHERENT)) {
-			/* We are a master, we wait for the slave to lock */
-			wrp->L1SyncState = L1SYNC_CONFIG_MATCH;
-		}
-		break;
+		/* master or slave: proceed to match */
+		wrp->L1SyncState = L1SYNC_CONFIG_MATCH;
 
-	case L1SYNC_CONFIG_MATCH: /* If slave, poll, if master, wait peer */
-		if (wrp->ha_conf & HA_RX_COHERENT) {
-			/* Slave -- FIXME: timeout for PLL locking */
-			if (wrp->ops->locking_poll(ppi, 0) == WR_SPLL_READY) {
-				pp_diag(ppi, ext, 1, "PLL is locked\n");
-				wrp->ha_active |= HA_RX_COHERENT;
-				wrp->ha_active |= HA_CONGRUENT;
-				wrp->L1SyncState = L1SYNC_UP;
-				do_xmit = 1;
-			}
+	case L1SYNC_CONFIG_MATCH:
+		if (!config_ok) { /* config_ok set above */
+			wrp->L1SyncState = L1SYNC_LINK_ALIVE;
+			break;
 		}
-		if (wrp->ha_peer_conf & HA_RX_COHERENT) {
-			/* Master -- what about the slave timing out? */
-			if (wrp->ha_peer_active & HA_RX_COHERENT) {
-				wrp->ha_active |= HA_CONGRUENT;
-				wrp->L1SyncState = L1SYNC_UP;
-				do_xmit = 1;
-			}
-		}
+		if (!state_ok) /* state_ok set above, after polling */
+			break;
 
-	case L1SYNC_UP: /* FIXME: manage tacking-lost event */
+		wrp->L1SyncState = L1SYNC_UP;
+		/* and fall through */
+
+	case L1SYNC_UP:
+		/* FIXME: manage tracking-lost event, if so   state_ok := 0 */
+
+		if (!state_ok)
+			/* FIXME: go back to config_match, and pll? */;
+		if (!config_ok)
+			/* FIXME: go back to link_alive, and pll? */;
 		wrp->wrModeOn = 1;
 		break;
 	}
