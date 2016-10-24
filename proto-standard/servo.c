@@ -10,7 +10,7 @@
 
 static void pp_servo_mpd_fltr(struct pp_instance *, struct pp_avg_fltr *,
 			      TimeInternal *);
-static void pp_servo_offset_master(struct pp_instance *, TimeInternal *,
+static int pp_servo_offset_master(struct pp_instance *, TimeInternal *,
 				   TimeInternal *, TimeInternal *);
 static Integer32 pp_servo_pi_controller(struct pp_instance *, TimeInternal *);
 
@@ -91,8 +91,9 @@ void pp_servo_got_psync(struct pp_instance *ppi)
 	pp_diag(ppi, servo, 3, "correction field 1: %s\n",
 		fmt_TI(&ppi->cField));
 
-	/* update 'offsetFromMaster', (End to End mode) */
-	pp_servo_offset_master(ppi, mpd, ofm, m_to_s_dly);
+	/* update 'offsetFromMaster' and possibly jump in time */
+	if (pp_servo_offset_master(ppi, mpd, ofm, m_to_s_dly))
+		return;
 
 	/* PI controller */
 	adj = pp_servo_pi_controller(ppi, ofm);
@@ -187,8 +188,9 @@ void pp_servo_got_resp(struct pp_instance *ppi)
 	/* mean path delay filtering */
 	pp_servo_mpd_fltr(ppi, mpd_fltr, mpd);
 
-	/* update 'offsetFromMaster', (End to End mode) */
-	pp_servo_offset_master(ppi, mpd, ofm, m_to_s_dly);
+	/* update 'offsetFromMaster' and possibly jump in time */
+	if (pp_servo_offset_master(ppi, mpd, ofm, m_to_s_dly))
+		return;
 
 	/* PI controller */
 	adj = pp_servo_pi_controller(ppi, ofm);
@@ -302,7 +304,7 @@ void pp_servo_mpd_fltr(struct pp_instance *ppi, struct pp_avg_fltr *mpd_fltr,
 }
 
 static
-void pp_servo_offset_master(struct pp_instance *ppi, TimeInternal * mpd,
+int pp_servo_offset_master(struct pp_instance *ppi, TimeInternal * mpd,
 			    TimeInternal * ofm, TimeInternal * m_to_s_dly)
 {
 	Integer32 adj;
@@ -314,19 +316,21 @@ void pp_servo_offset_master(struct pp_instance *ppi, TimeInternal * mpd,
 		if (ofm->seconds) {
 			pp_diag(ppi, servo, 1, "servo aborted, offset greater "
 				"than 1 second\n");
-			return; /* not good */
+			return 1; /* not good but done */
 		}
 
 		if (ofm->nanoseconds > OPTS(ppi)->max_rst) {
 			pp_diag(ppi, servo, 1, "servo aborted, offset greater "
 				"than configured maximum %d\n",
 				OPTS(ppi)->max_rst);
-			return; /* not good */
+			return 1; /* not good but done */
 		}
 	}
 
 	if (ofm->seconds) {
 		TimeInternal time_tmp;
+
+		SRV(ppi)->obs_drift = 0; /* too long a jump; reset PI value */
 
 		/* if secs, reset clock or set freq adjustment to max */
 		if (pp_can_adjust(ppi)) {
@@ -347,8 +351,9 @@ void pp_servo_offset_master(struct pp_instance *ppi, TimeInternal * mpd,
 					ppi->t_ops->adjust_offset(ppi, -adj);
 			}
 		}
-		return; /* ok */
+		return 1; /* done */
 	}
+	return 0; /* not done: proceed with filtering */
 }
 
 static
