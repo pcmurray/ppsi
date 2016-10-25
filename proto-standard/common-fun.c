@@ -410,14 +410,14 @@ int __send_and_log(struct pp_instance *ppi, int msglen,
 			     &ppi->last_snt_time, chtype,
 			     pdelay_addr) < msglen) {
 		pp_diag(ppi, frames, 1, "%s(%d) Message can't be sent\n",
-			pp_msg_names[msgtype], msgtype);
+			pp_msgtype_info[msgtype].name, msgtype);
 		return PP_SEND_ERROR;
 	}
 	/* FIXME: diagnosticst should be looped back in the send method */
 	pp_diag(ppi, frames, 1, "SENT %02d bytes at %d.%09d (%s)\n", msglen,
 		(int)(ppi->last_snt_time.seconds),
 		(int)(ppi->last_snt_time.nanoseconds),
-		pp_msg_names[msgtype]);
+		pp_msgtype_info[msgtype].name);
 	if (chtype == PP_NP_EVT && ppi->last_snt_time.correct == 0)
 		return PP_SEND_NO_STAMP;
 

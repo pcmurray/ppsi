@@ -45,6 +45,20 @@ struct pp_vlanhdr {
 	uint16_t h_proto;
 };
 
+/* Factorize some random information in this table */
+struct pp_msgtype_info {
+	char *name;			/* For diagnostics */
+	uint16_t msglen;
+	unsigned char chtype;
+	unsigned char is_pdelay;
+	unsigned char controlField;		/* Table 23 */
+	unsigned char logMessageInterval;	/* Table 24, see defines */
+	    #define PP_LOG_ANNOUNCE 0
+	    #define PP_LOG_SYNC 1
+	    #define PP_LOG_REQUEST 2
+};
+extern struct pp_msgtype_info pp_msgtype_info[16];
+
 /* Helpers for the fsm (fsm-lib.c) */
 extern int pp_lib_may_issue_sync(struct pp_instance *ppi);
 extern int pp_lib_may_issue_announce(struct pp_instance *ppi);

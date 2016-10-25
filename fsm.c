@@ -171,13 +171,16 @@ int pp_state_machine(struct pp_instance *ppi, uint8_t *packet, int plen)
 {
 	struct pp_state_table_item *ip;
 	int state, err = 0;
+	int msgtype;
 
-	if (plen)
+	if (plen) {
+		msgtype = packet[0] & 0xf;
 		pp_diag(ppi, frames, 1,
 			"RECV %02d bytes at %d.%09d (type %x, %s)\n", plen,
-			   (int)ppi->last_rcv_time.seconds,
-			   (int)ppi->last_rcv_time.nanoseconds,
-			   packet[0] & 0xf, pp_msg_names[packet[0] & 0xf]);
+			(int)ppi->last_rcv_time.seconds,
+			(int)ppi->last_rcv_time.nanoseconds, msgtype,
+			pp_msgtype_info[msgtype].name);
+	}
 
 	/*
 	 * Discard too short packets

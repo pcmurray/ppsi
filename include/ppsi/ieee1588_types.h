@@ -310,8 +310,6 @@ enum pp_std_messages {
 	PPM_NOTHING_TO_DO	= 0x100, /* for hooks.master_msg() */
 };
 
-extern const char const * pp_msg_names[];
-
 /* Enumeration Domain Number (table 2, page 41) */
 enum ENDomainNumber {
 	DFLT_DOMAIN_NUMBER	= 0,
