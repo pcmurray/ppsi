@@ -69,8 +69,7 @@ void msg_pack_header(struct pp_instance *ppi, void *buf)
 	       PP_CLOCK_IDENTITY_LENGTH);
 	*(UInteger16 *) (buf + 28) =
 				htons(DSPOR(ppi)->portIdentity.portNumber);
-	*(UInteger8 *) (buf + 33) = 0x7F;
-	/* Default value(spec Table 24) */
+	*(UInteger8 *) (buf + 33) = 0x7F; /* Default value(spec Table 24) */
 }
 
 /* Pack Sync message into out buffer of ppi */
@@ -93,10 +92,8 @@ static void msg_pack_sync(struct pp_instance *ppi, Timestamp *orig_tstamp)
 	/* We're a two step clock, set relevant flag in sync (see Table 20) */
 	flags[0] = PP_TWO_STEP_FLAG;
 	*(UInteger16 *) (buf + 30) = htons(ppi->sent_seq[PPM_SYNC]);
-	*(UInteger8 *) (buf + 32) = 0x00;
-
-	/* Table 23 */
-	*(Integer8 *) (buf + 33) = DSPOR(ppi)->logSyncInterval;
+	*(UInteger8 *) (buf + 32) = 0x00; /* Table 23 */
+	*(Integer8 *) (buf + 33) = DSPOR(ppi)->logSyncInterval; /* Table 24 */
 	memset((buf + 8), 0, 8);
 
 	/* Sync message */
@@ -168,9 +165,8 @@ static int msg_pack_announce(struct pp_instance *ppi)
 	/* Table 21, set cf to zero */
 	memset(buf + 8, 0, 8);
 	*(UInteger16 *) (buf + 30) = htons(ppi->sent_seq[PPM_ANNOUNCE]);
-	*(UInteger8 *) (buf + 32) = 0x05;
-	/* Table 23 */
-	*(Integer8 *) (buf + 33) = DSPOR(ppi)->logAnnounceInterval;
+	*(UInteger8 *)(buf + 32) = 0x05; /* Table 23 */
+	*(Integer8 *)(buf + 33) = DSPOR(ppi)->logAnnounceInterval; /* Tab 24 */
 
 	/* Announce message */
 	memset((buf + 34), 0, 10);
@@ -235,10 +231,8 @@ static void msg_pack_follow_up(struct pp_instance *ppi, Timestamp *prec_orig_tst
 	*(UInteger16 *) (buf + 30) = htons(ppi->sent_seq[PPM_SYNC]);
 
 	/* sentSyncSequenceId has already been incremented in msg_issue_sync */
-	*(UInteger8 *) (buf + 32) = 0x02;
-
-	/* Table 23 */
-	*(Integer8 *) (buf + 33) = DSPOR(ppi)->logSyncInterval;
+	*(UInteger8 *) (buf + 32) = 0x02; /* Table 23 */
+	*(Integer8 *) (buf + 33) = DSPOR(ppi)->logSyncInterval; /* Table 24 */
 
 	/* Follow Up message */
 	*(UInteger16 *) (buf + 34) =
@@ -326,12 +320,9 @@ static void msg_pack_delay_req(struct pp_instance *ppi, Timestamp *orig_tstamp)
 	*(UInteger16 *) (buf + 2) = htons(PP_DELAY_REQ_LENGTH);
 	ppi->sent_seq[PPM_DELAY_REQ]++;
 	*(UInteger16 *) (buf + 30) = htons(ppi->sent_seq[PPM_DELAY_REQ]);
-	*(UInteger8 *) (buf + 32) = 0x01;
+	*(UInteger8 *) (buf + 32) = 0x01; /* Table 23 */
+	*(Integer8 *) (buf + 33) = 0x7F; /* Table 24 */
 
-	/* Table 23 */
-	*(Integer8 *) (buf + 33) = 0x7F;
-
-	/* Table 24 */
 	memset((buf + 8), 0, 8);
 
 	/* Delay_req message */
@@ -366,10 +357,8 @@ static void msg_pack_pdelay_req(struct pp_instance *ppi,
 
 	memset((buf + 8), 0, 8);
 	*(UInteger16 *) (buf + 30) = htons(ppi->sent_seq[PPM_PDELAY_REQ]);
-	*(UInteger8 *) (buf + 32) = 0x05;
-
-	/* Table 23 */
-	*(Integer8 *) (buf + 33) = 0x7F;
+	*(UInteger8 *) (buf + 32) = 0x05; /* Table 23 */
+	*(Integer8 *) (buf + 33) = 0x7F; /* Table 24 */
 
 	/* PDelay_req message */
 	*(UInteger16 *) (buf + 34) = htons(orig_tstamp->secondsField.msb);
@@ -443,12 +432,8 @@ static void msg_pack_delay_resp(struct pp_instance *ppi,
 
 	*(UInteger16 *) (buf + 30) = htons(hdr->sequenceId);
 
-	*(UInteger8 *) (buf + 32) = 0x03;
-
-	/* Table 23 */
-	*(Integer8 *) (buf + 33) = DSPOR(ppi)->logMinDelayReqInterval;
-
-	/* Table 24 */
+	*(UInteger8 *) (buf + 32) = 0x03; /* Table 23 */
+	*(Integer8 *)(buf + 33) = DSPOR(ppi)->logMinDelayReqInterval; /* T 24 */
 
 	/* Delay_resp message */
 	*(UInteger16 *) (buf + 34) =
