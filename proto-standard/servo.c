@@ -111,22 +111,6 @@ void pp_servo_got_psync(struct pp_instance *ppi)
 		(int)SRV(ppi)->obs_drift >> 10);
 }
 
-/*
- * This function makes the necessary checks to discard a set of t1..t4.
- * It relies on mpd to be already calculated.
- */
-static int pp_servo_bad_event(struct pp_instance *ppi)
-{
-	TimeInternal *m_to_s_dly = &SRV(ppi)->m_to_s_dly;
-	TimeInternal *s_to_m_dly = &SRV(ppi)->s_to_m_dly;
-	TimeInternal *mpd = &DSCUR(ppi)->meanPathDelay;
-
-	/* Discard meanPathDelays that overflow a second (makes no sense) */
-	if (mpd->seconds)
-		return 1;
-	return 0;
-}
-
 /* called by slave states when delay_resp is received (all t1..t4 are valid) */
 void pp_servo_got_resp(struct pp_instance *ppi)
 {
@@ -164,8 +148,7 @@ void pp_servo_got_resp(struct pp_instance *ppi)
 	div2_TimeInternal(mpd);
 	pp_diag(ppi, servo, 1, "meanPathDelay: %s\n", fmt_TI(mpd));
 
-	/* if this succeeds mpd->seconds == 0 is true */
-	if (pp_servo_bad_event(ppi))
+	if (mpd->seconds) /* Hmm.... we called this "bad event" */
 		return;
 
 	/* mean path delay filtering */
@@ -222,8 +205,7 @@ void pp_servo_got_presp(struct pp_instance *ppi)
 	div2_TimeInternal(mpd);
 	pp_diag(ppi, servo, 1, "meanPathDelay: %s\n", fmt_TI(mpd));
 
-	/* if this succeeds mpd->seconds == 0 is true */
-	if (pp_servo_bad_event(ppi))
+	if (mpd->seconds) /* Hmm.... we called this "bad event" */
 		return;
 
 	pp_servo_mpd_fltr(ppi, mpd_fltr, mpd);
