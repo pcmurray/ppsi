@@ -27,7 +27,6 @@ static struct cmd_line_opt cmd_line_list[] = {
 	{"-f FILE", "read configuration file"},
 	{"-d STRING", "diagnostic level (see diag-macros.h)"},
 	CMD_LINE_SEPARATOR,
-	{"-x", "do not reset the clock if off by more than one second"},
 	{"-t", "do not adjust the system clock"},
 	{"-w NUMBER", "specify meanPathDelay filter stiffness"},
 	CMD_LINE_SEPARATOR,
@@ -83,9 +82,6 @@ int pp_parse_cmdline(struct pp_globals *ppg, int argc, char **argv)
 		case 'f':
 			if (pp_config_file(ppg, 1, argv[++i]) != 0)
 				return -1;
-			break;
-		case 'x':
-			GOPTS(ppg)->flags |= PP_FLAG_NO_RESET;
 			break;
 		case 't':
 			GOPTS(ppg)->flags |= PP_FLAG_NO_ADJUST;

@@ -284,22 +284,12 @@ int pp_servo_offset_master(struct pp_instance *ppi, TimeInternal * mpd,
 
 		/* if secs, reset clock or set freq adjustment to max */
 		if (pp_can_adjust(ppi)) {
-			if (pp_can_reset_clock(ppi)) {
-				/* Can't use adjust, limited to +/- 2s */
-				time_tmp = ppi->t4;
-				add_TimeInternal(&time_tmp, &time_tmp,
-						 &DSCUR(ppi)->meanPathDelay);
-				ppi->t_ops->set(ppi, &time_tmp);
-				pp_servo_init(ppi);
-			} else {
-				adj = ofm->nanoseconds > 0
-					? PP_ADJ_FREQ_MAX : -PP_ADJ_FREQ_MAX;
-
-				if (ppi->t_ops->adjust_freq)
-					ppi->t_ops->adjust_freq(ppi, -adj);
-				else
-					ppi->t_ops->adjust_offset(ppi, -adj);
-			}
+			/* Can't use adjust, limited to +/- 2s */
+			time_tmp = ppi->t4;
+			add_TimeInternal(&time_tmp, &time_tmp,
+					 &DSCUR(ppi)->meanPathDelay);
+			ppi->t_ops->set(ppi, &time_tmp);
+			pp_servo_init(ppi);
 		}
 		return 1; /* done */
 	}

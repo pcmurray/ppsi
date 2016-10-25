@@ -32,10 +32,8 @@ struct pp_runtime_opts {
  * Flags for the above structure
  */
 #define PP_FLAG_NO_ADJUST  0x01
-#define PP_FLAG_NO_RESET   0x02
 /* I'd love to use inlines, but we still miss some structure at this point*/
 #define pp_can_adjust(ppi)      (!(OPTS(ppi)->flags & PP_FLAG_NO_ADJUST))
-#define pp_can_reset_clock(ppi) (!(OPTS(ppi)->flags & PP_FLAG_NO_RESET))
 
 /* slave_only:1, -- moved to ppi, no more global */
 /* master_only:1, -- moved to ppi, no more global */
