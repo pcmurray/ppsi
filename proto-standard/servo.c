@@ -312,21 +312,6 @@ int pp_servo_offset_master(struct pp_instance *ppi, TimeInternal * mpd,
 	sub_TimeInternal(ofm, m_to_s_dly, mpd);
 	pp_diag(ppi, servo, 1, "Offset from master:     %s\n", fmt_TI(ofm));
 
-	if (OPTS(ppi)->max_rst) { /* If max_rst is 0 then it's OFF */
-		if (ofm->seconds) {
-			pp_diag(ppi, servo, 1, "servo aborted, offset greater "
-				"than 1 second\n");
-			return 1; /* not good but done */
-		}
-
-		if (ofm->nanoseconds > OPTS(ppi)->max_rst) {
-			pp_diag(ppi, servo, 1, "servo aborted, offset greater "
-				"than configured maximum %d\n",
-				OPTS(ppi)->max_rst);
-			return 1; /* not good but done */
-		}
-	}
-
 	if (ofm->seconds) {
 		TimeInternal time_tmp;
 
