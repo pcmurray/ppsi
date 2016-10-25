@@ -53,48 +53,35 @@ int msg_unpack_header(struct pp_instance *ppi, void *buf, int plen)
 	return 0;
 }
 
-/* Pack header message into out buffer of ppi */
+/* Pack header into output buffer -- only called by state-initializing */
 void msg_pack_header(struct pp_instance *ppi, void *buf)
 {
-	/* (spec annex D and F) */
-	*(UInteger8 *) (buf + 0) = 0; /* message type changed later */
-	*(UInteger4 *) (buf + 1) = DSPOR(ppi)->versionNumber;
-	*(UInteger8 *) (buf + 4) = DSDEF(ppi)->domainNumber;
+	memset(buf, 0, 34);
+	*(char *)(buf + 1) = DSPOR(ppi)->versionNumber;
+	*(char *)(buf + 4) = DSDEF(ppi)->domainNumber;
 
-	/* Zero out flags, we set them when needed */
-	*(UInteger8 *) (buf + 6) = 0;
-
-	memset((buf + 8), 0, 8);
 	memcpy((buf + 20), &DSPOR(ppi)->portIdentity.clockIdentity,
 	       PP_CLOCK_IDENTITY_LENGTH);
-	*(UInteger16 *) (buf + 28) =
+	*(UInteger16 *)(buf + 28) =
 				htons(DSPOR(ppi)->portIdentity.portNumber);
-	*(UInteger8 *) (buf + 33) = 0x7F; /* Default value(spec Table 24) */
 }
 
 /* Pack Sync message into out buffer of ppi */
 static void msg_pack_sync(struct pp_instance *ppi, Timestamp *orig_tstamp)
 {
-	void *buf;
-	UInteger8 *flags;
+	void *buf = ppi->tx_ptp;
+	UInteger8 *flags8 = buf + 6;;
 
-	buf = ppi->tx_ptp;
-	flags = buf + 6;
-
-	/* changes in header */
-	*(char *)(buf + 0) = *(char *)(buf + 0) & 0xF0;
-	/* RAZ messageType */
-	*(char *)(buf + 0) = *(char *)(buf + 0) | 0x00;
-
-	/* Table 19 */
-	*(UInteger16 *) (buf + 2) = htons(PP_SYNC_LENGTH);
 	ppi->sent_seq[PPM_SYNC]++;
-	/* We're a two step clock, set relevant flag in sync (see Table 20) */
-	flags[0] = PP_TWO_STEP_FLAG;
+	/* Header */
+	*(char *)(buf + 0) = PPM_SYNC;
+	*(UInteger16 *) (buf + 2) = htons(PP_SYNC_LENGTH);
+	flags8[0] = PP_TWO_STEP_FLAG; /* Table 20) */
+	flags8[1] = 0;
+	memset((buf + 8), 0, 8); /* Table 21: correction field */
 	*(UInteger16 *) (buf + 30) = htons(ppi->sent_seq[PPM_SYNC]);
 	*(UInteger8 *) (buf + 32) = 0x00; /* Table 23 */
 	*(Integer8 *) (buf + 33) = DSPOR(ppi)->logSyncInterval; /* Table 24 */
-	memset((buf + 8), 0, 8);
 
 	/* Sync message */
 	*(UInteger16 *) (buf + 34) = htons(orig_tstamp->secondsField.msb);
@@ -144,26 +131,15 @@ static void msg_set_announce_flags(UInteger8 *flags, struct pp_instance *ppi)
 /* Pack Announce message into out buffer of ppi */
 static int msg_pack_announce(struct pp_instance *ppi)
 {
-	void *buf;
-	UInteger8 *flags;
+	void *buf = ppi->tx_ptp;
+	UInteger8 *flags8 = buf + 6;;
 
-	buf = ppi->tx_ptp;
-	flags = buf + 6;
-	/* changes in header */
-	*(char *)(buf + 0) = *(char *)(buf + 0) & 0xF0;
-	/* RAZ messageType */
-	*(char *)(buf + 0) = *(char *)(buf + 0) | 0x0B;
-	/* Table 19 */
-	*(UInteger16 *) (buf + 2) = htons(PP_ANNOUNCE_LENGTH);
 	ppi->sent_seq[PPM_ANNOUNCE]++;
-	/*
-         * set byte 1 of flags taking it from timepropertiesDS' flags field,
-         * see 13.3.2.6, Table 20
-         */
-	msg_set_announce_flags(flags, ppi);
-
-	/* Table 21, set cf to zero */
-	memset(buf + 8, 0, 8);
+	/* Header */
+	*(char *)(buf + 0) = PPM_ANNOUNCE;
+	*(UInteger16 *) (buf + 2) = htons(PP_ANNOUNCE_LENGTH);
+	msg_set_announce_flags(flags8, ppi);
+	memset((buf + 8), 0, 8); /* Table 21: correction field */
 	*(UInteger16 *) (buf + 30) = htons(ppi->sent_seq[PPM_ANNOUNCE]);
 	*(UInteger8 *)(buf + 32) = 0x05; /* Table 23 */
 	*(Integer8 *)(buf + 33) = DSPOR(ppi)->logAnnounceInterval; /* Tab 24 */
@@ -217,20 +193,15 @@ void msg_unpack_announce(void *buf, MsgAnnounce *ann)
 /* Pack Follow Up message into out buffer of ppi*/
 static void msg_pack_follow_up(struct pp_instance *ppi, Timestamp *prec_orig_tstamp)
 {
-	void *buf;
+	void *buf = ppi->tx_ptp;
+	UInteger16 *flags16 = buf + 6;
 
-	buf = ppi->tx_ptp;
-
-	/* changes in header */
-	*(char *)(buf + 0) = *(char *)(buf + 0) & 0xF0;
-	/* RAZ messageType */
-	*(char *)(buf + 0) = *(char *)(buf + 0) | 0x08;
-
-	/* Table 19 */
+	/* Header */
+	*(char *)(buf + 0) = PPM_FOLLOW_UP;
 	*(UInteger16 *) (buf + 2) = htons(PP_FOLLOW_UP_LENGTH);
+	*flags16 = 0; /* may have aternateMasterFlag alone */
+	memset((buf + 8), 0, 8); /* FIXME: correction field */
 	*(UInteger16 *) (buf + 30) = htons(ppi->sent_seq[PPM_SYNC]);
-
-	/* sentSyncSequenceId has already been incremented in msg_issue_sync */
 	*(UInteger8 *) (buf + 32) = 0x02; /* Table 23 */
 	*(Integer8 *) (buf + 33) = DSPOR(ppi)->logSyncInterval; /* Table 24 */
 
@@ -248,23 +219,20 @@ void msg_pack_pdelay_resp_follow_up(struct pp_instance *ppi,
 				    MsgHeader * hdr,
 				    Timestamp * prec_orig_tstamp)
 {
-	void *buf;
+	void *buf = ppi->tx_ptp;
+	UInteger16 *flags16 = buf + 6;
 
-	buf = ppi->tx_ptp;
-
-	/* header */
-	*(char *)(buf + 0) = *(char *)(buf + 0) & 0xF0;
-	/* RAZ messageType */
-	*(char *)(buf + 0) = *(char *)(buf + 0) | 0x0A;
-
-	*(UInteger16 *) (buf + 2) = htons(PP_PDELAY_RESP_LENGTH);
+	/* Header */
+	*(char *)(buf + 0) = PPM_PDELAY_R_FUP;
+	*(UInteger16 *) (buf + 2) = htons(PP_PDELAY_R_FUP_LENGTH);
 	*(UInteger8 *) (buf + 4) = hdr->domainNumber;
+	*flags16 = 0;
 	/* copy the correction field, 11.4.3 c.3) */
 	*(Integer32 *) (buf + 8) = htonl(hdr->correctionfield.msb);
 	*(Integer32 *) (buf + 12) = htonl(hdr->correctionfield.lsb);
-
 	*(UInteger16 *) (buf + 30) = htons(hdr->sequenceId);
-	*(UInteger8 *) (buf + 32) = 0x05;	/* controlField */
+	*(UInteger8 *) (buf + 32) = 0x05; /* Table 23 */
+	*(Integer8 *) (buf + 33) = 0x7f; /* Table 24 */
 
 	/* requestReceiptTimestamp */
 	*(UInteger16 *) (buf + 34) = htons(prec_orig_tstamp->secondsField.msb);
@@ -307,23 +275,18 @@ void msg_unpack_pdelay_resp_follow_up(void *buf,
 /* pack DelayReq message into out buffer of ppi */
 static void msg_pack_delay_req(struct pp_instance *ppi, Timestamp *orig_tstamp)
 {
-	void *buf;
+	void *buf = ppi->tx_ptp;
+	UInteger16 *flags16 = buf + 6;
 
-	buf = ppi->tx_ptp;
-
-	/* changes in header */
-	*(char *)(buf + 0) = *(char *)(buf + 0) & 0xF0;
-	/* RAZ messageType */
-	*(char *)(buf + 0) = *(char *)(buf + 0) | 0x01;
-
-	/* Table 19 */
-	*(UInteger16 *) (buf + 2) = htons(PP_DELAY_REQ_LENGTH);
 	ppi->sent_seq[PPM_DELAY_REQ]++;
+	/* Header */
+	*(char *)(buf + 0) = PPM_DELAY_REQ;
+	*(UInteger16 *) (buf + 2) = htons(PP_DELAY_REQ_LENGTH);
+	*flags16 = 0;
+	memset((buf + 8), 0, 8); /* FIXME: correctionField */
 	*(UInteger16 *) (buf + 30) = htons(ppi->sent_seq[PPM_DELAY_REQ]);
 	*(UInteger8 *) (buf + 32) = 0x01; /* Table 23 */
 	*(Integer8 *) (buf + 33) = 0x7F; /* Table 24 */
-
-	memset((buf + 8), 0, 8);
 
 	/* Delay_req message */
 	*(UInteger16 *) (buf + 34) = htons(orig_tstamp->secondsField.msb);
@@ -335,27 +298,15 @@ static void msg_pack_delay_req(struct pp_instance *ppi, Timestamp *orig_tstamp)
 static void msg_pack_pdelay_req(struct pp_instance *ppi,
 				Timestamp * orig_tstamp)
 {
-	void *buf;
-	UInteger8 *flags;
+	void *buf = ppi->tx_ptp;
+	UInteger16 *flags16 = buf + 6;
 
-	buf = ppi->tx_ptp;
-	flags = buf + 6;
-
-	/* changes in header 11.4.3 */
-	*(char *)(buf + 0) = *(char *)(buf + 0) & 0xF0;
-	/* RAZ messageType */
-	*(char *)(buf + 0) = *(char *)(buf + 0) | 0x02;
-
-	*(UInteger16 *) (buf + 2) = htons(PP_PDELAY_REQ_LENGTH);
 	ppi->sent_seq[PPM_PDELAY_REQ]++;
-
-	/* Reset all flags (see Table 20) */
-	flags[0] = flags[1] = 0;
-
-	/* TO DO, 11.4.3 a.1) if synthed peer-to-peer TC */
-	/* *(char *)(buf + 4) = 0 .- not sythonized / X synt domain */
-
-	memset((buf + 8), 0, 8);
+	/* Header */
+	*(char *)(buf + 0) = PPM_PDELAY_REQ;
+	*(UInteger16 *) (buf + 2) = htons(PP_PDELAY_REQ_LENGTH);
+	*flags16 = 0;
+	memset((buf + 8), 0, 8); /* FIXME: correctionField */
 	*(UInteger16 *) (buf + 30) = htons(ppi->sent_seq[PPM_PDELAY_REQ]);
 	*(UInteger8 *) (buf + 32) = 0x05; /* Table 23 */
 	*(Integer8 *) (buf + 33) = 0x7F; /* Table 24 */
@@ -364,34 +315,25 @@ static void msg_pack_pdelay_req(struct pp_instance *ppi,
 	*(UInteger16 *) (buf + 34) = htons(orig_tstamp->secondsField.msb);
 	*(UInteger32 *) (buf + 36) = htonl(orig_tstamp->secondsField.lsb);
 	*(UInteger32 *) (buf + 40) = htonl(orig_tstamp->nanosecondsField);
+	memset(buf + 44, 0, 10); /* reserved to match pdelay_resp length */
 }
 
 /* pack PDelayResp message into OUT buffer of ppi */
 void msg_pack_pdelay_resp(struct pp_instance *ppi,
 			  MsgHeader * hdr, Timestamp * rcv_tstamp)
 {
-	void *buf;
-	UInteger8 *flags;
+	void *buf = ppi->tx_ptp;
+	UInteger8 *flags8 = buf + 6;;
 
-	buf = ppi->tx_ptp;
-	flags = buf + 6;
-
-	/* header */
-	*(char *)(buf + 0) = *(char *)(buf + 0) & 0xF0;
-	/* RAZ messageType */
-	*(char *)(buf + 0) = *(char *)(buf + 0) | 0x03;
-
+	/* Header */
+	*(char *)(buf + 0) = PPM_PDELAY_RESP;
 	*(UInteger16 *) (buf + 2) = htons(PP_PDELAY_RESP_LENGTH);
-	*(UInteger8 *) (buf + 4) = hdr->domainNumber;
-	/* We're a two step clock, set relevant flag (see Table 20) */
-	flags[0] = PP_TWO_STEP_FLAG;
-	/* Flags in byte 1 are all zero for pdelay response */
-	flags[1] = 0;
-	/* set 0 the correction field, 11.4.3 c.3) */
-	memset((buf + 8), 0, 8);
-
+	flags8[0] = PP_TWO_STEP_FLAG; /* Table 20) */
+	flags8[1] = 0;
+	memset((buf + 8), 0, 8); /* FIXME: correctionField */
 	*(UInteger16 *) (buf + 30) = htons(hdr->sequenceId);
-	*(UInteger8 *) (buf + 32) = 0x05;	/* controlField */
+	*(UInteger8 *) (buf + 32) = 0x05; /* Table 23 */
+	*(Integer8 *) (buf + 33) = 0x7F; /* Table 24 */
 
 	/* requestReceiptTimestamp */
 	*(UInteger16 *) (buf + 34) = htons(rcv_tstamp->secondsField.msb);
@@ -408,30 +350,17 @@ void msg_pack_pdelay_resp(struct pp_instance *ppi,
 static void msg_pack_delay_resp(struct pp_instance *ppi,
 			 MsgHeader *hdr, Timestamp *rcv_tstamp)
 {
-	void *buf;
-	UInteger8 *flags;
+	void *buf = ppi->tx_ptp;
+	UInteger16 *flags16 = buf + 6;;
 
-	buf = ppi->tx_ptp;
-	flags = buf + 6;
-
-	/* changes in header */
-	*(char *)(buf + 0) = *(char *)(buf + 0) & 0xF0;
-	/* RAZ messageType */
-	*(char *)(buf + 0) = *(char *)(buf + 0) | 0x09;
-
-	/* Table 19 */
+	/* Header */
+	*(char *)(buf + 0) = PPM_DELAY_RESP;
 	*(UInteger16 *) (buf + 2) = htons(PP_DELAY_RESP_LENGTH);
-	*(UInteger8 *) (buf + 4) = hdr->domainNumber;
-	/* Flags are all zero for delay resp, see Table 20 */
-	flags[0] = flags[1] = 0;
-	memset((buf + 8), 0, 8);
-
+	*flags16 = 0;
 	/* Copy correctionField of delayReqMessage */
 	*(Integer32 *) (buf + 8) = htonl(hdr->correctionfield.msb);
 	*(Integer32 *) (buf + 12) = htonl(hdr->correctionfield.lsb);
-
 	*(UInteger16 *) (buf + 30) = htons(hdr->sequenceId);
-
 	*(UInteger8 *) (buf + 32) = 0x03; /* Table 23 */
 	*(Integer8 *)(buf + 33) = DSPOR(ppi)->logMinDelayReqInterval; /* T 24 */
 
