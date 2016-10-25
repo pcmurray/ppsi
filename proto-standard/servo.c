@@ -272,28 +272,22 @@ static
 int pp_servo_offset_master(struct pp_instance *ppi, TimeInternal * mpd,
 			    TimeInternal * ofm, TimeInternal * m_to_s_dly)
 {
-	Integer32 adj;
+	TimeInternal time_tmp;
 
 	sub_TimeInternal(ofm, m_to_s_dly, mpd);
 	pp_diag(ppi, servo, 1, "Offset from master:     %s\n", fmt_TI(ofm));
 
-	if (ofm->seconds) {
-		TimeInternal time_tmp;
+	if (!ofm->seconds)
+		return 0; /* proceeed with adjust */
 
-		SRV(ppi)->obs_drift = 0; /* too long a jump; reset PI value */
+	if (!pp_can_adjust(ppi))
+		return 0; /* e.g., a loopback test run... "-t" on cmdline */
 
-		/* if secs, reset clock or set freq adjustment to max */
-		if (pp_can_adjust(ppi)) {
-			/* Can't use adjust, limited to +/- 2s */
-			time_tmp = ppi->t4;
-			add_TimeInternal(&time_tmp, &time_tmp,
-					 &DSCUR(ppi)->meanPathDelay);
-			ppi->t_ops->set(ppi, &time_tmp);
-			pp_servo_init(ppi);
-		}
-		return 1; /* done */
-	}
-	return 0; /* not done: proceed with filtering */
+	ppi->t_ops->get(ppi, &time_tmp);
+	sub_TimeInternal(&time_tmp, &time_tmp, ofm);
+	ppi->t_ops->set(ppi, &time_tmp);
+	pp_servo_init(ppi);
+	return 1; /* done */
 }
 
 static
