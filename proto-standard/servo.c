@@ -124,23 +124,6 @@ static int pp_servo_bad_event(struct pp_instance *ppi)
 	/* Discard meanPathDelays that overflow a second (makes no sense) */
 	if (mpd->seconds)
 		return 1;
-
-	if (OPTS(ppi)->max_dly) { /* If maxDelay is 0 then it's OFF */
-		if (m_to_s_dly->seconds || s_to_m_dly->seconds) {
-			pp_diag(ppi, servo, 1,"servo aborted, delay greater "
-				"than 1 second\n");
-			return 1;
-		}
-		if (m_to_s_dly->nanoseconds > OPTS(ppi)->max_dly ||
-			s_to_m_dly->nanoseconds > OPTS(ppi)->max_dly) {
-			pp_diag(ppi, servo, 1, "servo aborted, delay %d or %d "
-				"greater than configured maximum %d\n",
-			     (int)m_to_s_dly->nanoseconds,
-			     (int)s_to_m_dly->nanoseconds,
-			     (int)OPTS(ppi)->max_dly);
-			return 1;
-		}
-	}
 	return 0;
 }
 
