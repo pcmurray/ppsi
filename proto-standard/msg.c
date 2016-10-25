@@ -54,7 +54,7 @@ int msg_unpack_header(struct pp_instance *ppi, void *buf, int plen)
 }
 
 /* Pack header into output buffer -- only called by state-initializing */
-void msg_pack_header(struct pp_instance *ppi, void *buf)
+void msg_init_header(struct pp_instance *ppi, void *buf)
 {
 	memset(buf, 0, 34);
 	*(char *)(buf + 1) = DSPOR(ppi)->versionNumber;
