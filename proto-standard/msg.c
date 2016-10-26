@@ -430,7 +430,7 @@ int msg_issue_announce(struct pp_instance *ppi)
 {
 	int len = msg_pack_announce(ppi);
 
-	return __send_and_log(ppi, len, PPM_ANNOUNCE, PP_NP_GEN);
+	return __send_and_log(ppi, len);
 }
 
 /* Pack and send on event multicast ip adress a Sync message */
@@ -444,14 +444,14 @@ int msg_issue_sync_followup(struct pp_instance *ppi)
 	ppi->t_ops->get(ppi, &now);
 	from_TimeInternal(&now, &tstamp);
 	len = msg_pack_sync(ppi, &tstamp);
-	e = __send_and_log(ppi, len, PPM_SYNC, PP_NP_EVT);
+	e = __send_and_log(ppi, len);
 	if (e) return e;
 
 	/* Send followup on general channel with sent-stamp of sync */
 	time_snt = &ppi->last_snt_time;
 	from_TimeInternal(time_snt, &tstamp);
 	len = msg_pack_follow_up(ppi, &tstamp);
-	return __send_and_log(ppi, len, PPM_FOLLOW_UP, PP_NP_GEN);
+	return __send_and_log(ppi, len);
 }
 
 /* Pack and send on general multicast ip address a FollowUp message */
@@ -465,7 +465,7 @@ int msg_issue_pdelay_resp_followup(struct pp_instance *ppi, TimeInternal * time)
 	len = msg_pack_pdelay_resp_follow_up(ppi, &ppi->received_ptp_header,
 					     &prec_orig_tstamp);
 
-	return __send_and_log(ppi, len, PPM_PDELAY_R_FUP, PP_NP_GEN);
+	return __send_and_log(ppi, len);
 }
 
 /* Pack and send on event multicast ip adress a DelayReq message */
@@ -480,7 +480,7 @@ static int msg_issue_delay_req(struct pp_instance *ppi)
 
 	len = msg_pack_delay_req(ppi, &orig_tstamp);
 
-	return __send_and_log(ppi, len, PPM_DELAY_REQ, PP_NP_EVT);
+	return __send_and_log(ppi, len);
 }
 
 /* Pack and send on event multicast ip adress a PDelayReq message */
@@ -495,7 +495,7 @@ static int msg_issue_pdelay_req(struct pp_instance *ppi)
 
 	len = msg_pack_pdelay_req(ppi, &orig_tstamp);
 
-	return __send_and_log(ppi, len, PPM_PDELAY_REQ, PP_NP_EVT);
+	return __send_and_log(ppi, len);
 }
 
 int msg_issue_request(struct pp_instance *ppi)
@@ -515,7 +515,7 @@ int msg_issue_delay_resp(struct pp_instance *ppi, TimeInternal *time)
 
 	len = msg_pack_delay_resp(ppi, &ppi->received_ptp_header, &rcv_tstamp);
 
-	return __send_and_log(ppi, len, PPM_DELAY_RESP, PP_NP_GEN);
+	return __send_and_log(ppi, len);
 }
 
 /* Pack and send on event multicast ip adress a DelayResp message */
@@ -528,5 +528,5 @@ int msg_issue_pdelay_resp(struct pp_instance *ppi, TimeInternal * time)
 
 	len = msg_pack_pdelay_resp(ppi, &ppi->received_ptp_header, &rcv_tstamp);
 
-	return __send_and_log(ppi, len, PPM_PDELAY_RESP, PP_NP_EVT);
+	return __send_and_log(ppi, len);
 }

@@ -392,9 +392,10 @@ int st_com_master_handle_sync(struct pp_instance *ppi, unsigned char *buf,
 	return 0;
 }
 
-int __send_and_log(struct pp_instance *ppi, int msglen,
-				 int msgtype, int chtype)
+int __send_and_log(struct pp_instance *ppi, int msglen)
 {
+	int msgtype = ((char *)ppi->tx_ptp)[0] & 0xf;
+
 	if (ppi->n_ops->send(ppi, ppi->tx_frame, msglen + ppi->tx_offset,
 			     msgtype) < msglen) {
 		pp_diag(ppi, frames, 1, "%s(%d) Message can't be sent\n",
@@ -406,7 +407,7 @@ int __send_and_log(struct pp_instance *ppi, int msglen,
 		(int)(ppi->last_snt_time.seconds),
 		(int)(ppi->last_snt_time.nanoseconds),
 		pp_msgtype_info[msgtype].name);
-	if (chtype == PP_NP_EVT && ppi->last_snt_time.correct == 0)
+	if (ppi->last_snt_time.correct == 0)
 		return PP_SEND_NO_STAMP;
 
 	/* count sent packets */
