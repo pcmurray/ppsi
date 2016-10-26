@@ -461,7 +461,6 @@ static int wrs_net_send(struct pp_instance *ppi, void *pkt, int len,
 		[PP_NP_GEN] = PP_GEN_PORT,
 		[PP_NP_EVT] = PP_EVT_PORT,
 	};
-	/* FIXME: udp address for sendto */
 	static const uint8_t macaddr[2][ETH_ALEN] = {
 		[PP_E2E_MECH] = PP_MCAST_MACADDRESS,
 		[PP_P2P_MECH] = PP_PDELAY_MACADDRESS,
@@ -549,7 +548,7 @@ static int wrs_net_send(struct pp_instance *ppi, void *pkt, int len,
 		fd = ppi->ch[chtype].fd;
 		addr.sin_family = AF_INET;
 		addr.sin_port = htons(udpport[chtype]);
-		addr.sin_addr.s_addr = ppi->mcast_addr;
+		addr.sin_addr.s_addr = ppi->mcast_addr[is_pdelay];
 		if (drop)
 			addr.sin_port = 3200;
 		ret = sendto(fd, pkt, len, 0, (struct sockaddr *)&addr,

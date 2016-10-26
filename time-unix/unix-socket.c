@@ -190,7 +190,6 @@ static int unix_net_send(struct pp_instance *ppi, void *pkt, int len,
 		[PP_NP_GEN] = PP_GEN_PORT,
 		[PP_NP_EVT] = PP_EVT_PORT,
 	};
-	/* FIXME: udp address for sendto */
 	static const uint8_t macaddr[2][ETH_ALEN] = {
 		[PP_E2E_MECH] = PP_MCAST_MACADDRESS,
 		[PP_P2P_MECH] = PP_PDELAY_MACADDRESS,
@@ -252,9 +251,7 @@ static int unix_net_send(struct pp_instance *ppi, void *pkt, int len,
 	case PPSI_PROTO_UDP:
 		addr.sin_family = AF_INET;
 		addr.sin_port = htons(udpport[chtype]);
-		addr.sin_addr.s_addr = ppi->mcast_addr;
-
-		/* FIXME: differentiate pldeay mac address */
+		addr.sin_addr.s_addr = ppi->mcast_addr[is_pdelay];
 
 		if (t)
 			ppi->t_ops->get(ppi, t);
@@ -418,7 +415,7 @@ static int unix_open_ch_udp(struct pp_instance *ppi, char *ifname, int chtype)
 	context = addr_str; errno = EINVAL;
 	if (!inet_aton(addr_str, &net_addr))
 		goto err_out;
-	ppi->mcast_addr = net_addr.s_addr;
+	ppi->mcast_addr[PP_E2E_MECH] = net_addr.s_addr;
 
 	/* multicast sends only on specified interface */
 	imr.imr_multiaddr.s_addr = net_addr.s_addr;
@@ -435,8 +432,6 @@ static int unix_open_ch_udp(struct pp_instance *ppi, char *ifname, int chtype)
 		       &imr, sizeof(struct ip_mreq)) < 0)
 		goto err_out;
 
-#if 0 /* FIXME: UDP pdelay is not working due to address inflation */
-
 	/* Init Peer multicast IP address */
 	memcpy(addr_str, PP_PDELAY_DOMAIN_ADDRESS, INET_ADDRSTRLEN);
 
@@ -444,7 +439,7 @@ static int unix_open_ch_udp(struct pp_instance *ppi, char *ifname, int chtype)
 	errno = EINVAL;
 	if (!inet_aton(addr_str, &net_addr))
 		goto err_out;
-	ppi->mcast_addr = net_addr.s_addr;
+	ppi->mcast_addr[PP_P2P_MECH] = net_addr.s_addr;
 	imr.imr_multiaddr.s_addr = net_addr.s_addr;
 
 	/* join multicast group (for receiving) on specified interface */
@@ -452,7 +447,6 @@ static int unix_open_ch_udp(struct pp_instance *ppi, char *ifname, int chtype)
 	if (setsockopt(sock, IPPROTO_IP, IP_ADD_MEMBERSHIP,
 		       &imr, sizeof(struct ip_mreq)) < 0)
 		goto err_out;
-#endif
 
 	/* End of General multicast Ip address init */
 
@@ -566,16 +560,18 @@ static int unix_net_exit(struct pp_instance *ppi)
 				continue;
 
 			/* Close General Multicast */
-			imr.imr_multiaddr.s_addr = ppi->mcast_addr;
 			imr.imr_interface.s_addr = htonl(INADDR_ANY);
-
+			imr.imr_multiaddr.s_addr = ppi->mcast_addr[0];
+			setsockopt(fd, IPPROTO_IP, IP_DROP_MEMBERSHIP,
+				   &imr, sizeof(struct ip_mreq));
+			imr.imr_multiaddr.s_addr = ppi->mcast_addr[1];
 			setsockopt(fd, IPPROTO_IP, IP_DROP_MEMBERSHIP,
 				   &imr, sizeof(struct ip_mreq));
 			close(fd);
 
 			ppi->ch[i].fd = -1;
 		}
-		ppi->mcast_addr = 0;
+		ppi->mcast_addr[0] = ppi->mcast_addr[1] = 0;
 		return 0;
 
 	default:

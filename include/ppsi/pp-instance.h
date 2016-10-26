@@ -143,7 +143,7 @@ struct pp_instance {
 
 	/* The net_path used to be allocated separately, but there's no need */
 	struct pp_channel ch[__NR_PP_NP];	/* general and event ch */
-	Integer32 mcast_addr;			/* only ipv4/udp */
+	Integer32 mcast_addr[2];		/* only ipv4/udp */
 	int tx_offset, rx_offset;		/* ptp payload vs send/recv */
 	unsigned char peer[6];	/* Our peer's MAC address */
 	uint16_t peer_vid;	/* Our peer's VID (for PROTO_VLAN) */

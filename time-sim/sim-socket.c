@@ -183,7 +183,7 @@ static int sim_net_send(struct pp_instance *ppi, void *pkt, int len,
 					PP_SLAVE_GEN_PORT :
 					PP_SLAVE_EVT_PORT);
 
-	addr.sin_addr.s_addr = ppi->mcast_addr;
+	addr.sin_addr.s_addr = ppi->mcast_addr[0];
 
 	if (t)
 		ppi->t_ops->get(ppi, t);
