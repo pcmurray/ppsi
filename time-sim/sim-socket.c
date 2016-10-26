@@ -162,8 +162,10 @@ static int sim_net_recv(struct pp_instance *ppi, void *pkt, int len,
 }
 
 static int sim_net_send(struct pp_instance *ppi, void *pkt, int len,
-			  TimeInternal *t, int chtype, int use_pdelay_addr)
+			int msgtype)
 {
+	int chtype = pp_msgtype_info[msgtype].chtype;
+	TimeInternal *t = &ppi->last_snt_time;
 	struct sim_ppi_arch_data *data = SIM_PPI_ARCH(ppi);
 	struct sockaddr_in addr;
 	struct sim_pending_pkt pending;

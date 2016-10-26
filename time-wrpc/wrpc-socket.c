@@ -81,16 +81,23 @@ static int wrpc_net_recv(struct pp_instance *ppi, void *pkt, int len,
 }
 
 static int wrpc_net_send(struct pp_instance *ppi, void *pkt, int len,
-			 TimeInternal *t, int chtype, int use_pdelay_addr)
+			 int msgtype)
 {
 	int snt;
 	struct wrpc_socket *sock;
 	struct wr_timestamp wr_ts;
 	struct wr_sockaddr addr;
+	TimeInternal *t = &ppi->last_snt_time;
+	int is_pdelay = pp_msgtype_info[msgtype].is_pdelay;
+	static const uint8_t macaddr[2][ETH_ALEN] = {
+		[PP_E2E_MECH] = PP_MCAST_MACADDRESS,
+		[PP_P2P_MECH] = PP_PDELAY_MACADDRESS,
+	};
+
 	sock = ppi->ch[PP_NP_EVT].custom;
 
 	addr.ethertype = ETH_P_1588;
-	memcpy(&addr.mac, PP_MCAST_MACADDRESS, sizeof(mac_addr_t));
+	memcpy(&addr.mac, macaddr[is_pdelay], sizeof(mac_addr_t));
 
 	snt = ptpd_netif_sendto(sock, &addr, pkt, len, &wr_ts);
 

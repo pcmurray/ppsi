@@ -448,15 +448,23 @@ static void poll_tx_timestamp(struct pp_instance *ppi, void *pkt, int len,
 }
 
 static int wrs_net_send(struct pp_instance *ppi, void *pkt, int len,
-			  TimeInternal *t, int chtype, int use_pdelay_addr)
+			int msgtype)
 {
+	int chtype = pp_msgtype_info[msgtype].chtype;
 	struct sockaddr_in addr;
 	struct ethhdr *hdr = pkt;
 	struct pp_vlanhdr *vhdr = pkt;
 	struct pp_channel *ch = ppi->ch + chtype;
+	TimeInternal *t = &ppi->last_snt_time;
+	int is_pdelay = pp_msgtype_info[msgtype].is_pdelay;
 	static uint16_t udpport[] = {
 		[PP_NP_GEN] = PP_GEN_PORT,
 		[PP_NP_EVT] = PP_EVT_PORT,
+	};
+	/* FIXME: udp address for sendto */
+	static const uint8_t macaddr[2][ETH_ALEN] = {
+		[PP_E2E_MECH] = PP_MCAST_MACADDRESS,
+		[PP_P2P_MECH] = PP_PDELAY_MACADDRESS,
 	};
 	struct wrs_socket *s;
 	int ret, fd, drop;
@@ -478,10 +486,7 @@ static int wrs_net_send(struct pp_instance *ppi, void *pkt, int len,
 		if (drop)
 			hdr->h_proto++;
 
-		if (use_pdelay_addr)
-			memcpy(hdr->h_dest, PP_PDELAY_MACADDRESS, ETH_ALEN);
-		else
-			memcpy(hdr->h_dest, PP_MCAST_MACADDRESS, ETH_ALEN);
+		memcpy(hdr->h_dest, macaddr[is_pdelay], ETH_ALEN);
 		memcpy(hdr->h_source, ch->addr, ETH_ALEN);
 
 		if (t)
@@ -514,11 +519,7 @@ static int wrs_net_send(struct pp_instance *ppi, void *pkt, int len,
 		if (drop)
 			hdr->h_proto++;
 
-		if (use_pdelay_addr)
-			memcpy(vhdr->h_dest, PP_PDELAY_MACADDRESS, ETH_ALEN);
-		else
-			memcpy(vhdr->h_dest, PP_MCAST_MACADDRESS, ETH_ALEN);
-
+		memcpy(hdr->h_dest, macaddr[is_pdelay], ETH_ALEN);
 		memcpy(vhdr->h_source, ch->addr, ETH_ALEN);
 
 		if (t)

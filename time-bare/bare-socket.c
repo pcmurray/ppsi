@@ -25,17 +25,20 @@ static int bare_net_recv(struct pp_instance *ppi, void *pkt, int len,
 }
 
 static int bare_net_send(struct pp_instance *ppi, void *pkt, int len,
-			    TimeInternal *t, int chtype, int use_pdelay_addr)
+			 int msgtype)
 {
 	struct bare_ethhdr *hdr = pkt;
+	TimeInternal *t = &ppi->last_snt_time;
+	static const uint8_t macaddr[2][ETH_ALEN] = {
+		[PP_E2E_MECH] = PP_MCAST_MACADDRESS,
+		[PP_P2P_MECH] = PP_PDELAY_MACADDRESS,
+	};
+	int is_pdelay = pp_msgtype_info[msgtype].is_pdelay;
 	int ret;
 
 	hdr->h_proto = htons(ETH_P_1588);
 
-	if (use_pdelay_addr)
-		memcpy(hdr->h_dest, PP_PDELAY_MACADDRESS, 6);
-	else
-		memcpy(hdr->h_dest, PP_MCAST_MACADDRESS, 6);
+	memcpy(hdr->h_dest, macaddr[is_pdelay], ETH_ALEN);
 
 	/* raw socket implementation always uses gen socket */
 	memcpy(hdr->h_source, ppi->ch[PP_NP_GEN].addr, 6);
@@ -43,7 +46,7 @@ static int bare_net_send(struct pp_instance *ppi, void *pkt, int len,
 	if (t)
 		ppi->t_ops->get(ppi, t);
 
-	ret = sys_send(ppi->ch[chtype].fd, pkt, len, 0);
+	ret = sys_send(ppi->ch[PP_NP_GEN].fd, pkt, len, 0);
 	if (ret > 0 && pp_diag_allow(ppi, frames, 2))
 		dump_1588pkt("send: ", pkt, len, t);
 	return ret;

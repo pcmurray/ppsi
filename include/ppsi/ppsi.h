@@ -172,9 +172,7 @@ struct pp_network_operations {
 	int (*exit)(struct pp_instance *ppi);
 	int (*recv)(struct pp_instance *ppi, void *pkt, int len,
 		    TimeInternal *t);
-	/* chtype here is PP_NP_GEN or PP_NP_EVT -- use_pdelay must be 0 */
-	int (*send)(struct pp_instance *ppi, void *pkt, int len,
-		    TimeInternal *t, int chtype, int use_pdelay_addr);
+	int (*send)(struct pp_instance *ppi, void *pkt, int len, int msgtype);
 	int (*check_packet)(struct pp_globals *ppg, int delay_ms);
 };
 
