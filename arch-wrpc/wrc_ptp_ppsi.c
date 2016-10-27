@@ -241,6 +241,18 @@ int wrc_ptp_stop()
 	return 0;
 }
 
+int wrc_ptp_run(int start_stop_query)
+{
+	switch(start_stop_query) {
+	case 0:
+		return wrc_ptp_stop();
+	case 1:
+		return wrc_ptp_start();
+	default:
+		return ptp_enabled;
+	}
+}
+
 /* this returns whether or not the function did any work */
 int wrc_ptp_update()
 {

@@ -28,6 +28,7 @@ void wrc_ptp_set_sync_mech(int mech);
 int wrc_ptp_get_sync_mech(void);
 int wrc_ptp_start(void);
 int wrc_ptp_stop(void);
+int wrc_ptp_run(int start_stop_qry);
 int wrc_ptp_update(void);
 /* End of wrc-ptp.h */
 
