@@ -189,18 +189,22 @@ int wrc_ptp_get_mode()
 	return ptp_mode;
 }
 
-void wrc_ptp_set_sync_mech(int mech)
+int wrc_ptp_sync_mech(int e2e_p2p_qry)
 {
 	struct pp_instance *ppi = &ppi_static;
+	int running;
 
-	wrc_ptp_stop();
-	ppi->mech = mech;
-}
-
-int wrc_ptp_get_sync_mech()
-{
-	struct pp_instance *ppi = &ppi_static;
-	return ppi->mech;
+	switch(e2e_p2p_qry) {
+	case PP_E2E_MECH:
+	case PP_P2P_MECH:
+		running = wrc_ptp_run(-1);
+		wrc_ptp_run(0);
+		ppi->mech = e2e_p2p_qry;
+		wrc_ptp_run(running);
+		return 0;
+	default:
+		return ppi->mech;
+	}
 }
 
 int wrc_ptp_start()
