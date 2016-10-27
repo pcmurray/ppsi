@@ -65,20 +65,19 @@ static void pp_diag_fsm(struct pp_instance *ppi, char *name, int sequence,
 static struct pp_state_table_item *
 get_current_state_table_item(struct pp_instance *ppi)
 {
-	struct pp_state_table_item *ip;
-	struct pp_state_table_item *out = NULL;
+	struct pp_state_table_item *ip = ppi->current_state_item;;
 
 	/* Avoid searching if we already know where we are */
-	if (ppi->current_state_item)
-		return ppi->current_state_item;
+	if (ip && ip->state == ppi->state)
+		return ip;
 
 	/* a linear search is affordable up to a few dozen items */
-	for (ip = pp_state_table; ip->state != PPS_END_OF_TABLE && !out; ip++)
+	for (ip = pp_state_table; ip->state != PPS_END_OF_TABLE; ip++)
 		if (ip->state == ppi->state) {
-			out = ip;
 			ppi->current_state_item = ip;
+			return ip;
 		}
-	return out;
+	return NULL;
 }
 
 /*
@@ -91,7 +90,6 @@ static int leave_current_state(struct pp_instance *ppi)
 	pp_timeout_setall(ppi);
 	ppi->flags &= ~PPI_FLAGS_WAITING;
 	pp_diag_fsm(ppi, ppi->current_state_item->name, STATE_LEAVE, 0);
-	ppi->current_state_item = NULL;
 	/* next_delay unused: go to new state now */
 	return 0;
 }
