@@ -291,6 +291,7 @@ int wr_p2p_delay(struct pp_instance *ppi, struct wr_servo_state *s)
 		dump_timestamp(ppi, "->mdelay", s->mu);
 	}
 
+	s->picos_mu = ts_to_picos(s->mu);
 	big_delta_fix = s->delta_tx_m + s->delta_tx_s
 	    + s->delta_rx_m + s->delta_rx_s;
 
