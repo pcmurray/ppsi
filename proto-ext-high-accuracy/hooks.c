@@ -232,7 +232,7 @@ static int ha_calc_timeout(struct pp_instance *ppi)
 		pp_diag(ppi, ext, 1, "Sending signaling msg\n");
 		len = ha_pack_signal(ppi);
 		/* FIXME: check the destination MAC address */
-		__send_and_log(ppi, len, PPM_SIGNALING, PP_NP_GEN);
+		__send_and_log(ppi, len, PP_NP_GEN);
 
 		__pp_timeout_set(ppi, HA_TO_TX, to_tx); /* loop ever since */
 	}
