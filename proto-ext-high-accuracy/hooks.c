@@ -98,6 +98,7 @@ static int ha_calc_timeout(struct pp_instance *ppi)
 	struct wr_dsport *wrp = WR_DSPOR(ppi);
 	int to_tx, do_xmit = 0;
 	int config_ok, state_ok;
+	uint32_t delta;
 
 	pp_diag(ppi, ext, 2, "hook: %s (%i:%s)\n", __func__,
 		ppi->state, ha_l1name[wrp->L1SyncState]);
@@ -222,7 +223,11 @@ static int ha_calc_timeout(struct pp_instance *ppi)
 			/* FIXME: go back to config_match, and pll? */;
 		if (!config_ok)
 			/* FIXME: go back to link_alive, and pll? */;
-		wrp->wrModeOn = 1;
+
+		// Do what was done in WR LINK ON: 
+		wrp->wrModeOn = TRUE;
+		wrp->parentWrModeOn = TRUE; 
+		wrp->ops->enable_ptracker(ppi);
 		break;
 	}
 
