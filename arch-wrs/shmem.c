@@ -210,27 +210,23 @@ void wrs_shm_write_caller(void *headptr, int flags, const char *caller)
 {
 	struct wrs_shm_head *head = headptr;
 
-	head->sequence += 2;
-	pr_debug("caller of a function %s is %s\n", __func__, caller);
-
-	if (flags == WRS_SHM_WRITE_BEGIN) {
-		if (head->sequence & WRS_SHM_LOCK_MASK)
-			pr_error("Trying to lock already locked shmem on the "
-				 "write end! Sequence number is %d. The caller"
-				 " of wrs_shm_write is %s\n",
-				 head->sequence, caller);
-		head->sequence |= WRS_SHM_LOCK_MASK;
-	}
+	head->sequence++;
+	pr_debug("caller: %s\n", caller);
 
 	if (flags == WRS_SHM_WRITE_END) {
 		/* At end-of-writing update the timestamp too */
 		head->stamp = get_monotonic_sec();
-		if (!(head->sequence & WRS_SHM_LOCK_MASK))
-			pr_error("Trying to unlock already unlocked shmem on "
-				 "the write begin! Sequence number is %d. The "
-				 "caller of wrs_shm_write is %s\n",
-				  head->sequence, caller);
-		head->sequence &= ~WRS_SHM_LOCK_MASK;
+		if (head->sequence & 1)
+			pr_error("On the shmem write end the sequence number "
+				 "(%d) is even (should be odd). The caller of"
+				 " wrs_shm_write is %s\n",
+				 head->sequence, caller);
+	} else {
+		if (!(head->sequence & 1))
+			pr_error("On the shmem write begin the sequence number"
+				 " (%d) is odd (should be even). The caller of"
+				 " wrs_shm_write is %s\n",
+				 head->sequence, caller);
 	}
 
 	return;
@@ -248,7 +244,7 @@ int wrs_shm_seqretry(void *headptr, unsigned start)
 {
 	struct wrs_shm_head *head = headptr;
 
-	if (start & WRS_SHM_LOCK_MASK)
+	if (start & 1)
 		return 1; /* it was odd: retry */
 
 	return head->sequence != start;
