@@ -47,9 +47,9 @@ typedef struct UInteger64 {
 	uint32_t		msb;
 } UInteger64;
 
-struct TimeInterval { /* page 12 (32) -- never used */
-	Integer64	scaledNanoseconds;
-};
+typedef struct TimeInterval { /* page 12 (32) -- never used */
+	int64_t		scaledNanoseconds;
+} TimeInterval ;
 
 /* White Rabbit extension */
 typedef struct FixedDelta {
@@ -80,6 +80,16 @@ typedef struct TimeInternal {
 	/* White Rabbit extension end */
 } TimeInternal;
 
+/** ******************* IEEE1588-2018 **************************************/
+#define REL_DIFF_FRACBITS 62
+typedef struct RelativeDiff { /*draft P1588_v_29: page 17*/
+/* The scaledRelativeDifference member is the relative difference expressed
+ * as a dimensionless fraction and multiplied by 2+^62, with any remaining
+ * fractional part truncated. */
+	  int64_t scaledRelativeDifference;
+} RelativeDiff;
+
+/** ************************************************************************/
 static inline void clear_TimeInternal(struct TimeInternal *t)
 {
 	memset(t, 0, sizeof(*t));
@@ -223,6 +233,14 @@ typedef struct DSDefault {		/* page 65 */
 	UInteger8	priority2;
 	UInteger8	domainNumber;
 	Boolean		slaveOnly;
+	/** Optional (IEEE1588-2018) */
+	Timestamp	currentTime;               /*draft P1588_v_29: page 85*/
+	Boolean		instanceEnable;            /*draft P1588_v_29: page 86*/
+	Enumeration8	externalPortConfiguration; /*draft P1588_v_29: page 86*/
+	Enumeration8	maxStepsRemoved;           /*draft P1588_v_29: page 86 (bug)*/
+	Enumeration8	SdoId;                     /*draft P1588_v_29: page 86 (bug)*/
+	Enumeration8	instanceType;              /*draft P1588_v_29: page 86 */
+	/** *********************** */
 } DSDefault;
 
 /* Current Data Set */
@@ -240,13 +258,16 @@ typedef struct DSCurrent {		/* page 67 */
 typedef struct DSParent {		/* page 68 */
 	/* Dynamic */
 	PortIdentity	parentPortIdentity;
-	/* Boolean		parentStats; -- not used */
+	/* Boolean		parentStats; -- not used (ML-FIXME: this is not good) */
 	UInteger16	observedParentOffsetScaledLogVariance;
 	Integer32	observedParentClockPhaseChangeRate;
 	ClockIdentity	grandmasterIdentity;
 	ClockQuality	grandmasterClockQuality;
 	UInteger8	grandmasterPriority1;
 	UInteger8	grandmasterPriority2;
+	/** (IEEE1588-2018) */
+	PortAdress	protocolAddress;           /*draft P1588_v_29: page 89 */
+	/** *********************** */
 } DSParent;
 
 /* Port Data set */
@@ -254,17 +275,24 @@ typedef struct DSPort {			/* page 72 */
 	/* Static */
 	PortIdentity	portIdentity;
 	/* Dynamic */
-	/* Enumeration8	portState; -- not used */
+	/* Enumeration8	portState; -- not used (ML-FIXME: this is not good) */
 	Integer8	logMinDelayReqInterval; /* -- same as pdelay one */
-	/* TimeInternal	peerMeanPathDelay; -- not used */
+// 	/* TimeInternal	peerMeanPathDelay; -- not used (ML-FIXME: this is not good) */
 	/* Configurable */
 	Integer8	logAnnounceInterval;
 	UInteger8	announceReceiptTimeout;
 	Integer8	logSyncInterval;
-	/* Enumeration8	delayMechanism; -- not used */
+	/* Enumeration8	delayMechanism; -- not used (ML-FIXME: this is not good)*/
 	UInteger4	versionNumber;
 
 	void		*ext_dsport;
+	/** (IEEE1588-2018) */
+	Integer8	logMinPdelayReqInterval;      /*draft P1588_v_29: page 98 */
+	UInteger4	minorVersionNumber;           /*draft P1588_v_29: page 98 */
+	/** Optional: */
+	Boolean		portEnable;                   /*draft P1588_v_29: page 98 */
+	Boolean		masterOnly;                   /*draft P1588_v_29: page 98 */
+	/** *********************** */
 } DSPort;
 
 /* Time Properties Data Set */
@@ -280,6 +308,83 @@ typedef struct DSTimeProperties {	/* page 70 */
 	Enumeration8	timeSource;
 } DSTimeProperties;
 
+/** ******************* IEEE1588-2018 **************************************
+ * Adding new optional data sets (DS) defined in clause, only these relevant
+ * for HA
+ */
+typedef struct DSDescription { /*draft P1588_v_29: page 92 */
+	Octet		manufacturerIdentity[3];
+	struct PTPText	productDescription;
+	struct PTPText	productRevision;
+	struct PTPText	userDescription;
+} DSDescription;
+/* Optional, not implemented, Instance DS:
+ * faultLogDS:                       draft P1588_v_29: page 93
+ * nonvolatileStorageDS              draft P1588_v_29: page 94
+ * pathTraceDS                       draft P1588_v_29: page 95
+ * alternateTimescaleOffsetsDS       draft P1588_v_29: page 95
+ * holdoverUpgradeDS                 draft P1588_v_29: page 95
+ * grandmasterClusterDS              draft P1588_v_29: page 95
+ * acceptableMasterTableDS           draft P1588_v_29: page 95
+ * clockPerformanceMonitoringDS      draft P1588_v_29: page 95
+ *
+ * Optional, not implemented, port DS
+ * descriptionPortDS                 draft P1588_v_29: page 99
+ * unicastNegotiationDS              draft P1588_v_29: page 100
+ * alternateMasterDS                 draft P1588_v_29: page 100
+ * unicastDiscoveryDS                draft P1588_v_29: page 100
+ * acceptableMasterPortDS            draft P1588_v_29: page 100
+ * performanceMonitoringPortDS       draft P1588_v_29: page 101
+ *
+ * For Transparent Clocks, not implemented
+ * transparentClockDefaultDS		draft P1588_v_29: page 102
+ * transparentClockPortDS		draft P1588_v_29: page 103
+ */
+typedef struct DSTimestampCorrection { /*draft P1588_v_29: page 99*/
+	TimeInterval	egressLatency;
+	TimeInterval	ingressLatency;
+	TimeInterval	messageTimestampPointLatency;
+} DSTimestampCorrection;
+typedef struct DSAsymmetryCorrection { /*draft P1588_v_29: page 99*/
+	TimeInterval	delayAsymmetry;
+	RelativeDiff	delayCoefficient;
+} DSAsymmetryCorrection;
+typedef struct DSL1SyncBasic { /*draft P1588_v_29: page 100 and 333-335 */
+	/* configurable members */
+	Boolean		L1SyncEnabled;
+	Boolean		txCoherentConfigured;
+	Boolean		rxCoherentConfigured;
+	Boolean		congruentConfigured;
+	Boolean		optParamsEnabled;
+	Integer8	logL1SyncInterval;
+	Integer8	L1SyncReceiptTimeout;
+	/* dynamic members */
+	Boolean		L1SyncLinkAlive;
+	Boolean		txCoherentActive;
+	Boolean		rxCoherentActive;
+	Boolean		congruentActive;
+	Enumeration8	L1SyncState;
+	Boolean		peerTxCoherentConfigured;
+	Boolean		peerRxCoherentConfigured;
+	Boolean		peerCongruentConfigured;
+	Boolean		peerTxCoherentActive;
+	Boolean		peerRxCoherentActive;
+	Boolean		peerCongruentActive;
+} DSL1SyncBasic;
+
+typedef struct DSL1SyncOptParams { /*draft P1588_v_29: page 101 and 340-341  */
+	/* configurable members */
+	Boolean		timestampsCorrectedTx;
+	/* dynamic members */
+	Boolean		phaseOffsetTxValid;
+	Boolean		frequencyOffsetTxValid;
+	TimeInterval	phaseOffsetTx;
+	Timestamp	phaseOffsetTxTimesatmp;
+	TimeInterval	frequencyOffsetTx;
+	Timestamp	frequencyOffsetTxTimesatmp;
+} DSL1SyncOptParams;
+
+/** ************************************************************************/
 /* Enumeration States (table 8, page 73) */
 enum pp_std_states {
 	PPS_END_OF_TABLE	= 0,
