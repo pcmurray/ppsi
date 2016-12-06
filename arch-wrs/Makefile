@@ -11,7 +11,6 @@ OBJ-y += $A/wrs-startup.o \
 	$A/wrs-calibration.o \
 	$A/wrs-ipcserver.o \
 	$A/shmem.o \
-	$A/util.o \
 	arch-unix/unix-conf.o \
 	lib/cmdline.o \
 	lib/conf.o \

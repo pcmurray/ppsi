@@ -11,38 +11,14 @@
 #include <sys/mman.h>
 
 #include <libwr/shmem.h>
-#include <libwr/util.h>
-
-#define SHM_LOCK_TIMEOUT_MS 50 /* in ms */
-
-static char wrs_shm_path[50] = WRS_SHM_DEFAULT_PATH;
-static int wrs_shm_locked = WRS_SHM_LOCKED;
-
-/* Set custom path for shmem */
-void wrs_shm_set_path(char *new_path)
-{
-	strncpy(wrs_shm_path, new_path, 50);
-}
-
-/* Allow to ignore the flag WRS_SHM_LOCKED
- * If this flag is not ignored then function wrs_shm_get_and_check is not able
- * to open shmem successfully due to lack of process running with the given pid
- */
-void wrs_shm_ignore_flag_locked(int ignore_flag)
-{
-	if (ignore_flag)
-		wrs_shm_locked = 0;
-	else
-		wrs_shm_locked = WRS_SHM_LOCKED;
-}
-
+#define SHM_LOCK_TIMEOUT 2
 /* Get wrs shared memory */
 /* return NULL and set errno on error */
 void *wrs_shm_get(enum wrs_shm_name name_id, char *name, unsigned long flags)
 {
 	struct wrs_shm_head *head;
 	struct stat stbuf;
-	uint64_t tv1, tv2;
+	struct timespec tv1, tv2;
 	void *map;
 	char fname[64];
 	int write_access = flags & WRS_SHM_WRITE;
@@ -53,7 +29,7 @@ void *wrs_shm_get(enum wrs_shm_name name_id, char *name, unsigned long flags)
 		return NULL;
 	}
 
-	sprintf(fname, "%.50s/"WRS_SHM_FILE, wrs_shm_path, name_id);
+	sprintf(fname, WRS_SHM_FILE, name_id);
 	fd = open(fname, O_RDWR | O_CREAT | O_SYNC, 0644);
 	if (fd < 0)
 		return NULL; /* keep errno */
@@ -75,10 +51,10 @@ void *wrs_shm_get(enum wrs_shm_name name_id, char *name, unsigned long flags)
 
 	if (!write_access) {
 		/* This is a reader: if locked, wait for a writer */
-		if (!(flags & wrs_shm_locked))
+		if (!(flags & WRS_SHM_LOCKED))
 			return map;
 
-		tv1 = get_monotonic_tics();
+		clock_gettime(CLOCK_MONOTONIC, &tv1);
 		while (1) {
 			/* Releasing does not mean initial data is in place! */
 			/* Read data with wrs_shm_seqbegin and
@@ -87,8 +63,8 @@ void *wrs_shm_get(enum wrs_shm_name name_id, char *name, unsigned long flags)
 				return map;
 
 			usleep(10 * 1000);
-			tv2 = get_monotonic_tics();
-			if (((tv2 - tv1) / 1000) < SHM_LOCK_TIMEOUT_MS)
+			clock_gettime(CLOCK_MONOTONIC, &tv2);
+			if (tv2.tv_sec - tv1.tv_sec < SHM_LOCK_TIMEOUT)
 				continue;
 
 			errno = ETIMEDOUT;
@@ -110,7 +86,7 @@ void *wrs_shm_get(enum wrs_shm_name name_id, char *name, unsigned long flags)
 	head->stamp = 0;
 	head->data_off = sizeof(*head);
 	head->data_size = 0;
-	if (flags & wrs_shm_locked)
+	if (flags & WRS_SHM_LOCKED)
 		head->sequence = 1; /* a sort of lock */
 	else
 		head->sequence = 0;
@@ -134,34 +110,6 @@ int wrs_shm_put(void *headptr)
 	}
 	if ((err = munmap(headptr, WRS_SHM_MAX_SIZE)) < 0)
 		return err;
-	return 0;
-}
-
-/* Open shmem and check if data is available
- * return 0 when ok, otherwise error
- * 1 when openning shmem failed
- * 2 when version is 0 */
-int wrs_shm_get_and_check(enum wrs_shm_name shm_name,
-				 struct wrs_shm_head **head)
-{
-	int ii;
-	int version;
-
-	/* try to open shmem */
-	if (!(*head) && !(*head = wrs_shm_get(shm_name, "",
-					WRS_SHM_READ | WRS_SHM_LOCKED))) {
-		return 1;
-	}
-
-	ii = wrs_shm_seqbegin(*head);
-	/* read head version */
-	version = (*head)->version;
-	if (wrs_shm_seqretry(*head, ii) || !version) {
-		/* data in shmem available and version not zero */
-		return 2;
-	}
-
-	/* all ok */
 	return 0;
 }
 
@@ -200,10 +148,12 @@ void *wrs_shm_follow(void *headptr, void *ptr)
 void wrs_shm_write(void *headptr, int flags)
 {
 	struct wrs_shm_head *head = headptr;
+	struct timespec tv;
 
 	if (flags == WRS_SHM_WRITE_END) {
 		/* At end-of-writing update the timestamp too */
-		head->stamp = get_monotonic_sec();
+		clock_gettime(CLOCK_MONOTONIC, &tv);
+		head->stamp = tv.tv_sec;
 	}
 	head->sequence++;
 	return;
@@ -231,8 +181,10 @@ int wrs_shm_seqretry(void *headptr, unsigned start)
 int wrs_shm_age(void *headptr)
 {
 	struct wrs_shm_head *head = headptr;
+	struct timespec tv;
 
-	return get_monotonic_sec() - head->stamp;
+	clock_gettime(CLOCK_MONOTONIC, &tv);
+	return tv.tv_sec - head->stamp;
 }
 
 /* A reader can get the information pointer, for a specific version, or NULL */

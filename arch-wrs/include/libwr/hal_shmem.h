@@ -45,7 +45,7 @@ typedef struct hal_port_calibration {
 	int tx_calibrated;
 
 	struct shw_sfp_caldata sfp;
-	struct shw_sfp_header sfp_header_raw;
+
 } hal_port_calibration_t;
 
 /* Internal port state structure */
@@ -110,7 +110,7 @@ struct hal_temp_sensors {
 };
 
 /* This is the overall structure stored in shared memory */
-#define HAL_SHMEM_VERSION 9 /* Version 9 because of adding sfp_header_raw */
+#define HAL_SHMEM_VERSION 8 /* Version 8 because of adding HAL mode */
 
 struct hal_shmem_header {
 	int nports;

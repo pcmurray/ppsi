@@ -5,12 +5,10 @@
 #ifndef __WRS_SHM_H__
 #define __WRS_SHM_H__
 #include <stdint.h>
-#include <stdio.h>
 
-#define WRS_SHM_DEFAULT_PATH  "/dev/shm"
-#define WRS_SHM_FILE  "wrs-shmem-%i"
+#define WRS_SHM_FILE  "/dev/shm/wrs-shmem-%i"
 #define WRS_SHM_MIN_SIZE    (4*1024)
-#define WRS_SHM_MAX_SIZE  (512*1024)
+#define WRS_SHM_MAX_SIZE  (256*1024)
 
 /* Each process "name" (i.e. id) is added to the filename above */
 enum wrs_shm_name {
@@ -42,23 +40,9 @@ struct wrs_shm_head {
 #define WRS_SHM_WRITE  0x0001
 #define WRS_SHM_LOCKED 0x0002 /* at init time: writers locks, readers wait  */
 
-/* Set custom path for shmem */
-void wrs_shm_set_path(char *new_path);
-
-/* Allow to ignore the flag WRS_SHM_LOCKED
- * If this flag is not ignored then function wrs_shm_get_and_check is not able
- * to open shmem successfully due to lack of process running with the given pid
- */
-void wrs_shm_ignore_flag_locked(int ignore_flag);
-
 /* get vs. put, like in the kernel. Errors are in errno (see source) */
 void *wrs_shm_get(enum wrs_shm_name name_id, char *name, unsigned long flags);
 int wrs_shm_put(void *headptr);
-
-/* A reader may wait for the writer (polling on version field) */
-void wrs_shm_wait(void *headptr, int msec_step, int retries, FILE *msg);
-int wrs_shm_get_and_check(enum wrs_shm_name shm_name,
-				 struct wrs_shm_head **head);
 
 /* The writer can allocate structures that live in the area itself */
 void *wrs_shm_alloc(void *headptr, size_t size);

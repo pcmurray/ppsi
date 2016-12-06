@@ -1,15 +1,16 @@
 #ifndef __LIBWR_SHW_SFPLIB_H
 #define __LIBWR_SHW_SFPLIB_H
 
-/* note each led contains green and orange part */
-#define SFP_LED_WRMODE_SLAVE	(1) /* green */ 
-#define SFP_LED_WRMODE_NON_WR	(2) /* orange */
-#define SFP_LED_WRMODE_MASTER	(3) /* yellow */
-#define SFP_LED_WRMODE_OFF	(3) /* to off entire WRMODE LED */
-#define SFP_LED_WRMODE1	(1 << 0)
-#define SFP_LED_WRMODE2	(1 << 1)
+#define SFP_LED_LINK	(1 << 0)
+#define SFP_LED_WRMODE	(1 << 1)
 #define SFP_LED_SYNCED	(1 << 2)
 #define SFP_TX_DISABLE	(1 << 3)
+
+#define shw_sfp_set_led_link(num, status)	\
+	shw_sfp_set_generic(num, status, SFP_LED_LINK)
+
+#define shw_sfp_set_led_wrmode(num, status)	\
+	shw_sfp_set_generic(num, status, SFP_LED_WRMODE)
 
 #define shw_sfp_set_led_synced(num, status)	\
 	shw_sfp_set_generic(num, status, SFP_LED_SYNCED)
@@ -19,16 +20,6 @@
 
 #define SFP_FLAG_CLASS_DATA	(1 << 0)
 #define SFP_FLAG_DEVICE_DATA	(1 << 1)
-#define SFP_FLAG_1GbE		(1 << 2) /* SFP is 1GbE */
-#define SFP_FLAG_IN_DB		(1 << 3) /* SFP is present in data base */
-
-#define SFP_SPEED_1Gb		0x0D /* Speed of SFP in 100MB/s. According to
-				      * SFF-8472.PDF: By convention 1.25 Gb/s
-				      * should be rounded up to 0Dh (13 in
-				      * units of 100 MBd) for Ethernet
-				      * 1000BASE-X. */
-#define SFP_SPEED_1Gb_10   0x0A /* Unfortunatelly the above is not always true,
-              * e.g. Cisco copper SFP (MGBT1) says simply 10 and not 13.*/
 
 struct shw_sfp_caldata {
 	uint32_t flags;
@@ -70,8 +61,7 @@ struct shw_sfp_header {
 	uint8_t vendor_oui[3];
 	uint8_t vendor_pn[16];
 	uint8_t vendor_rev[4];
-	uint8_t tx_wavelength[2];
-	uint8_t reserved4;
+	uint8_t reserved4[3];
 	uint8_t cc_base;
 
 	/* extended ID fields start here */
@@ -116,5 +106,8 @@ int shw_sfp_read_verify_header(int num, struct shw_sfp_header *head);
 /* return NULL if no data found */
 struct shw_sfp_caldata *shw_sfp_get_cal_data(int num,
 					     struct shw_sfp_header *head);
+
+/* Read and verify the header all at once. returns -1 on failure */
+int shw_sfp_read_verify_header(int num, struct shw_sfp_header *head);
 
 #endif /* __LIBWR_SHW_SFPLIB_H */
