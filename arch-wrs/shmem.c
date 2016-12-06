@@ -208,18 +208,9 @@ void *wrs_shm_follow(struct wrs_shm_head *head, void *ptr)
 void wrs_shm_write_caller(struct wrs_shm_head *head, int flags,
 			  const char *caller)
 {
-	char *msg = "Wrong parameter";
-
-	if (flags == WRS_SHM_WRITE_BEGIN) {
-		msg = "write begin";
-	}
-	if (flags == WRS_SHM_WRITE_END) {
-		msg = "write end";
-	}
-	pr_debug("caller of a function wrs_shm_write is %s, called for \"%s\" "
-		 "with the flag \"%s\"\n", caller, head->name, msg);
-
 	head->sequence += 2;
+	pr_debug("caller of a function %s is %s\n", __func__, caller);
+
 	if (flags == WRS_SHM_WRITE_BEGIN) {
 		if (head->sequence & WRS_SHM_LOCK_MASK)
 			pr_error("Trying to lock already locked shmem on the "
