@@ -163,6 +163,11 @@ struct pp_instance {
 
 	DSPort *portDS;				/* page 72 */
 
+	/** (IEEE1588-2018) */
+	DSAsymmetryCorrection *asymCorrDS; /*draft P1588_v_29: page 99*/
+	DSTimestampCorrection *tstampCorrDS; /*draft P1588_v_29: page 99*/
+	/** *********************** */
+
 	unsigned long timeouts[__PP_TO_ARRAY_SIZE];
 	UInteger16 recv_sync_sequence_id;
 
