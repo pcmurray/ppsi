@@ -216,10 +216,6 @@ void wrs_shm_write_caller(struct wrs_shm_head *head, int flags,
 	if (flags == WRS_SHM_WRITE_END) {
 		msg = "write end";
 	}
-
-	 /* if pr_debug() is empty, we'd have "unused variable" */
-	(void) *msg;
-
 	pr_debug("caller of a function wrs_shm_write is %s, called for \"%s\" "
 		 "with the flag \"%s\"\n", caller, head->name, msg);
 
