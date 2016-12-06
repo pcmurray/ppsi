@@ -12,7 +12,6 @@
 
 #include <libwr/shmem.h>
 #include <libwr/util.h>
-#include <libwr/wrs-msg.h>
 
 #define SHM_LOCK_TIMEOUT_MS 50 /* in ms */
 
@@ -198,29 +197,15 @@ void *wrs_shm_follow(void *headptr, void *ptr)
 }
 
 /* Before and after writing a chunk of data, act on sequence and stamp */
-void wrs_shm_write_caller(void *headptr, int flags, const char *caller)
+void wrs_shm_write(void *headptr, int flags)
 {
 	struct wrs_shm_head *head = headptr;
-
-	head->sequence++;
-	pr_debug("caller: %s\n", caller);
 
 	if (flags == WRS_SHM_WRITE_END) {
 		/* At end-of-writing update the timestamp too */
 		head->stamp = get_monotonic_sec();
-		if (head->sequence & 1)
-			pr_error("On the shmem write end the sequence number "
-				 "(%d) is even (should be odd). The caller of"
-				 " wrs_shm_write is %s\n",
-				 head->sequence, caller);
-	} else {
-		if (!(head->sequence & 1))
-			pr_error("On the shmem write begin the sequence number"
-				 " (%d) is odd (should be even). The caller of"
-				 " wrs_shm_write is %s\n",
-				 head->sequence, caller);
 	}
-
+	head->sequence++;
 	return;
 }
 

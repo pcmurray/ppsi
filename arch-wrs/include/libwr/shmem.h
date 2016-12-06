@@ -69,11 +69,7 @@ void *wrs_shm_follow(void *headptr, void *ptr);
 /* Before and after writing a chunk of data, act on sequence and stamp */
 #define WRS_SHM_WRITE_BEGIN	1
 #define WRS_SHM_WRITE_END	0
-
-/* A helper to pass the name of caller function */
-#define wrs_shm_write(headptr, flags) wrs_shm_write_caller(headptr, flags, \
-							   __func__)
-extern void wrs_shm_write_caller(void *headptr, int flags, const char *caller);
+extern void wrs_shm_write(void *headptr, int flags);
 
 /* A reader can rely on the sequence number (in the <linux/seqlock.h> way) */
 extern unsigned wrs_shm_seqbegin(void *headptr);
