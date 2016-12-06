@@ -4,6 +4,5 @@ D := proto-ext-high-accuracy
 W := proto-ext-whiterabbit
 
 OBJ-y += $D/hooks.o \
-	$D/ha-msg.o
-
-OBJ-y += $W/wr-servo.o
+	$D/ha-msg.o \
+	$D/ha-servo.o
