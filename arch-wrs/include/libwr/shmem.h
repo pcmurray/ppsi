@@ -45,12 +45,6 @@ struct wrs_shm_head {
 
 #define WRS_SHM_LOCK_MASK 0x0001
 
-/* return values of wrs_shm_get_and_check */
-#define WRS_SHM_OPEN_OK           0x0001
-#define WRS_SHM_OPEN_FAILED       0x0001
-#define WRS_SHM_WRONG_VERSION     0x0002
-#define WRS_SHM_INCONSISTENT_DATA 0x0003
-
 /* Set custom path for shmem */
 void wrs_shm_set_path(char *new_path);
 
