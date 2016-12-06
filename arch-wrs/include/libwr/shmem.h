@@ -61,21 +61,19 @@ void wrs_shm_set_path(char *new_path);
 void wrs_shm_ignore_flag_locked(int ignore_flag);
 
 /* get vs. put, like in the kernel. Errors are in errno (see source) */
-struct wrs_shm_head *wrs_shm_get(enum wrs_shm_name name_id, char *name,
-				 unsigned long flags);
-int wrs_shm_put(struct wrs_shm_head *head);
+void *wrs_shm_get(enum wrs_shm_name name_id, char *name, unsigned long flags);
+int wrs_shm_put(void *headptr);
 
 /* A reader may wait for the writer (polling on version field) */
-void wrs_shm_wait(struct wrs_shm_head *head, int msec_step, int retries,
-		  FILE *msg);
+void wrs_shm_wait(void *headptr, int msec_step, int retries, FILE *msg);
 int wrs_shm_get_and_check(enum wrs_shm_name shm_name,
 				 struct wrs_shm_head **head);
 
 /* The writer can allocate structures that live in the area itself */
-void *wrs_shm_alloc(struct wrs_shm_head *head, size_t size);
+void *wrs_shm_alloc(void *headptr, size_t size);
 
 /* The reader can track writer's pointers, if they are in the area */
-void *wrs_shm_follow(struct wrs_shm_head *head, void *ptr);
+void *wrs_shm_follow(void *headptr, void *ptr);
 
 /* Before and after writing a chunk of data, act on sequence and stamp */
 #define WRS_SHM_WRITE_BEGIN	1
@@ -84,17 +82,16 @@ void *wrs_shm_follow(struct wrs_shm_head *head, void *ptr);
 /* A helper to pass the name of caller function */
 #define wrs_shm_write(headptr, flags) wrs_shm_write_caller(headptr, flags, \
 							   __func__)
-extern void wrs_shm_write_caller(struct wrs_shm_head *head, int flags,
-				 const char *caller);
+extern void wrs_shm_write_caller(void *headptr, int flags, const char *caller);
 
 /* A reader can rely on the sequence number (in the <linux/seqlock.h> way) */
-extern unsigned wrs_shm_seqbegin(struct wrs_shm_head *head);
-extern int wrs_shm_seqretry(struct wrs_shm_head *head, unsigned start);
+extern unsigned wrs_shm_seqbegin(void *headptr);
+extern int wrs_shm_seqretry(void *headptr, unsigned start);
 
 /* A reader can check wether information is current enough */
-extern int wrs_shm_age(struct wrs_shm_head *head);
+extern int wrs_shm_age(void *headptr);
 
 /* A reader can get the information pointer, for a specific version, or NULL */
-extern void *wrs_shm_data(struct wrs_shm_head *head, unsigned version);
+extern void *wrs_shm_data(void *headptr, unsigned version);
 
 #endif /* __WRS_SHM_H__ */

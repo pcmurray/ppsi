@@ -39,8 +39,7 @@ void wrs_shm_ignore_flag_locked(int ignore_flag)
 
 /* Get wrs shared memory */
 /* return NULL and set errno on error */
-struct wrs_shm_head *wrs_shm_get(enum wrs_shm_name name_id, char *name,
-				 unsigned long flags)
+void *wrs_shm_get(enum wrs_shm_name name_id, char *name, unsigned long flags)
 {
 	struct wrs_shm_head *head;
 	struct stat stbuf;
@@ -121,19 +120,20 @@ struct wrs_shm_head *wrs_shm_get(enum wrs_shm_name name_id, char *name,
 	head->pidsequence++;
 	/* version and size are up to the user (or to allocation) */
 
-	return (struct wrs_shm_head *) map;
+	return map;
 }
 
 /* Put wrs shared memory */
 /* return 0 on success, !0 on error */
-int wrs_shm_put(struct wrs_shm_head *head)
+int wrs_shm_put(void *headptr)
 {
+	struct wrs_shm_head *head = headptr;
 	int err;
 	if (head->pid == getpid()) {
 		head->pid = 0; /* mark that we are not writers any more */
 		close(head->fd);
 	}
-	if ((err = munmap(head, WRS_SHM_MAX_SIZE)) < 0)
+	if ((err = munmap(headptr, WRS_SHM_MAX_SIZE)) < 0)
 		return err;
 	return 0;
 }
@@ -175,9 +175,9 @@ int wrs_shm_get_and_check(enum wrs_shm_name shm_name,
 }
 
 /* The writer can allocate structures that live in the area itself */
-void *wrs_shm_alloc(struct wrs_shm_head *head, size_t size)
+void *wrs_shm_alloc(void *headptr, size_t size)
 {
-	void *headptr = (void *) head;
+	struct wrs_shm_head *head = headptr;
 	void *nextptr;
 
 	if (head->pid != getpid())
@@ -196,18 +196,20 @@ void *wrs_shm_alloc(struct wrs_shm_head *head, size_t size)
 }
 
 /* The reader can track writer's pointers, if they are in the area */
-void *wrs_shm_follow(struct wrs_shm_head *head, void *ptr)
+void *wrs_shm_follow(void *headptr, void *ptr)
 {
-	void *headptr = (void *) head;
+	struct wrs_shm_head *head = headptr;
+
 	if (ptr < head->mapbase || ptr > head->mapbase + WRS_SHM_MAX_SIZE)
 		return NULL; /* not in the area */
 	return headptr + (ptr - head->mapbase);
 }
 
 /* Before and after writing a chunk of data, act on sequence and stamp */
-void wrs_shm_write_caller(struct wrs_shm_head *head, int flags,
-			  const char *caller)
+void wrs_shm_write_caller(void *headptr, int flags, const char *caller)
 {
+	struct wrs_shm_head *head = headptr;
+
 	head->sequence += 2;
 	pr_debug("caller of a function %s is %s\n", __func__, caller);
 
@@ -235,13 +237,17 @@ void wrs_shm_write_caller(struct wrs_shm_head *head, int flags,
 }
 
 /* A reader can rely on the sequence number (in the <linux/seqlock.h> way) */
-unsigned wrs_shm_seqbegin(struct wrs_shm_head *head)
+unsigned wrs_shm_seqbegin(void *headptr)
 {
+	struct wrs_shm_head *head = headptr;
+
 	return head->sequence;
 }
 
-int wrs_shm_seqretry(struct wrs_shm_head *head, unsigned start)
+int wrs_shm_seqretry(void *headptr, unsigned start)
 {
+	struct wrs_shm_head *head = headptr;
+
 	if (start & WRS_SHM_LOCK_MASK)
 		return 1; /* it was odd: retry */
 
@@ -249,15 +255,18 @@ int wrs_shm_seqretry(struct wrs_shm_head *head, unsigned start)
 }
 
 /* A reader can check wether information is current enough */
-int wrs_shm_age(struct wrs_shm_head *head)
+int wrs_shm_age(void *headptr)
 {
+	struct wrs_shm_head *head = headptr;
+
 	return get_monotonic_sec() - head->stamp;
 }
 
 /* A reader can get the information pointer, for a specific version, or NULL */
-void *wrs_shm_data(struct wrs_shm_head *head, unsigned version)
+void *wrs_shm_data(void *headptr, unsigned version)
 {
-	void *headptr = (void *) head;
+	struct wrs_shm_head *head = headptr;
+
 	if (head->version != version)
 		return NULL;
 
