@@ -226,7 +226,7 @@ static int ha_calc_timeout(struct pp_instance *ppi)
 
 		// Do what was done in WR LINK ON: 
 		wrp->wrModeOn = TRUE;
-		wrp->parentWrModeOn = TRUE; 
+		wrp->parentWrModeOn = TRUE;
 		wrp->ops->enable_ptracker(ppi);
 		break;
 	}
@@ -258,7 +258,7 @@ static int wr_handle_preq(struct pp_instance *ppi)
 	return 0;
 }
 
-static int wr_master_msg(struct pp_instance *ppi, unsigned char *pkt, int plen,
+static int ha_master_msg(struct pp_instance *ppi, unsigned char *pkt, int plen,
 			 int msgtype)
 {
 	MsgHeader *hdr = &ppi->received_ptp_header;
@@ -288,14 +288,14 @@ static int wr_master_msg(struct pp_instance *ppi, unsigned char *pkt, int plen,
 	return msgtype;
 }
 
-static int wr_new_slave(struct pp_instance *ppi, unsigned char *pkt, int plen)
+static int ha_new_slave(struct pp_instance *ppi, unsigned char *pkt, int plen)
 {
 	pp_diag(ppi, ext, 2, "hook: %s\n", __func__);
 	wr_servo_init(ppi);
 	return 0;
 }
 
-static int wr_handle_resp(struct pp_instance *ppi)
+static int ha_handle_resp(struct pp_instance *ppi)
 {
 	MsgHeader *hdr = &ppi->received_ptp_header;
 	TimeInternal correction_field;
@@ -334,7 +334,7 @@ static int wr_handle_resp(struct pp_instance *ppi)
 }
 
 /* Hmm... "execute_slave" should look for errors; but it's off in WR too */
-static int wr_handle_followup(struct pp_instance *ppi,
+static int ha_handle_followup(struct pp_instance *ppi,
 			      TimeInternal *precise_orig_timestamp,
 			      TimeInternal *correction_field)
 {
@@ -354,7 +354,7 @@ static int wr_handle_followup(struct pp_instance *ppi,
 	return 1; /* the caller returns too */
 }
 
-static int wr_handle_presp(struct pp_instance *ppi)
+static int ha_handle_presp(struct pp_instance *ppi)
 {
 	MsgHeader *hdr = &ppi->received_ptp_header;
 	TimeInternal correction_field;
@@ -393,6 +393,13 @@ static int wr_handle_presp(struct pp_instance *ppi)
 	return 0;
 }
 
+static int ha_handle_preq(struct pp_instance *ppi)
+{
+	ppi->received_ptp_header.correctionfield.msb = 0;
+	ppi->received_ptp_header.correctionfield.lsb =
+		phase_to_cf_units(ppi->last_rcv_time.phase);
+	return 0;
+}
 
 /* The global structure used by ppsi */
 struct pp_ext_hooks pp_hooks = {
@@ -404,12 +411,10 @@ struct pp_ext_hooks pp_hooks = {
 	/*
 	 * All the rest is wr-derived, to run the WR servo
 	 */
-	.master_msg = wr_master_msg,
-	.new_slave = wr_new_slave,
-	.handle_resp = wr_handle_resp,
-	.handle_followup = wr_handle_followup,
-	.handle_preq = wr_handle_preq,
-	.handle_presp = wr_handle_presp,
-
-
+	.master_msg = ha_master_msg,
+	.new_slave = ha_new_slave,
+	.handle_resp = ha_handle_resp,
+	.handle_followup = ha_handle_followup,
+	.handle_preq = ha_handle_preq,
+	.handle_presp = ha_handle_presp,
 };
