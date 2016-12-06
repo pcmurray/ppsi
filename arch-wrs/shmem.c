@@ -80,7 +80,7 @@ struct wrs_shm_head *wrs_shm_get(enum wrs_shm_name name_id, char *name,
 		if (!(flags & wrs_shm_locked))
 			return map;
 
-		tv1 = get_monotonic_us();
+		tv1 = get_monotonic_tics();
 		while (1) {
 			/* Releasing does not mean initial data is in place! */
 			/* Read data with wrs_shm_seqbegin and
@@ -89,7 +89,7 @@ struct wrs_shm_head *wrs_shm_get(enum wrs_shm_name name_id, char *name,
 				return map;
 
 			usleep(10 * 1000);
-			tv2 = get_monotonic_us();
+			tv2 = get_monotonic_tics();
 			if (((tv2 - tv1) / 1000) < SHM_LOCK_TIMEOUT_MS)
 				continue;
 

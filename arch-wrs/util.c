@@ -13,36 +13,11 @@ void shw_udelay_init(void)
 	volatile int i;
 	int j, cur, min = 0;
 	uint64_t tv1, tv2;
-
-	/*
-	 * The kernel's scheduler is triggered 1000 times a second, to avoid
-	 * a problem with a context switching, one iteration of loop with "j"
-	 * should be shorter that a half of a scheduler's period.
-	 * Based on the previous calculations that one iteration is about
-	 * 5 CPU instructions (comment at the end of this function, our loop
-	 * shall be shorter than:
-	 * 197000000 / (5 * 1000 * 2) = 19 700
-	 * Before it was 100*1000.
-	 *
-	 * However, at the system call triggered by get_monotonic_us() there
-	 * is a context switch. If there are more processes waiting for the CPU
-	 * (like during the boot, when few daemons are spawned at the same
-	 * time) computations in this function can be underestimated by a
-	 * factor 2-3 (experimental value).
-	 */
-
-	loops_per_msec = 39400;
-	return;
-
-	/*
-	 * If we change the CPU this code can be used to estimate
-	 * loops_per_msec, but should not be run avery time.
-	 */
 	for (j = 0; j < 10; j++) {
-		tv1 = get_monotonic_us();
+		tv1 = get_monotonic_tics();
 		for (i = 0; i < 100*1000; i++)
 			;
-		tv2 = get_monotonic_us();
+		tv2 = get_monotonic_tics();
 		cur = tv2 - tv1;
 		/* keep minimum time, assuming we were scheduled-off less */
 		if (!min || cur < min)
@@ -52,7 +27,6 @@ void shw_udelay_init(void)
 
 	if (0)
 		printf("loops per msec %i\n", loops_per_msec);
-
 	/*
 	 * I get 39400 more or less; it makes sense at 197 bogomips.
 	 * The loop is 6 instructions with 3 (cached) memory accesses
@@ -79,7 +53,7 @@ void shw_udelay(uint32_t microseconds)
 }
 
 /* get monotonic number of useconds */
-uint64_t get_monotonic_us(void)
+uint64_t get_monotonic_tics(void)
 {
 	struct timespec tv;
 	clock_gettime(CLOCK_MONOTONIC, &tv);

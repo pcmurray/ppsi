@@ -3,9 +3,9 @@
 
 /* note each led contains green and orange part */
 #define SFP_LED_WRMODE_SLAVE	(1) /* green */ 
-#define SFP_LED_WRMODE_OTHER	(2) /* orange */
+#define SFP_LED_WRMODE_NON_WR	(2) /* orange */
 #define SFP_LED_WRMODE_MASTER	(3) /* yellow */
-#define SFP_LED_WRMODE_OFF	(4) /* to off entire WRMODE LED */
+#define SFP_LED_WRMODE_OFF	(3) /* to off entire WRMODE LED */
 #define SFP_LED_WRMODE1	(1 << 0)
 #define SFP_LED_WRMODE2	(1 << 1)
 #define SFP_LED_SYNCED	(1 << 2)
