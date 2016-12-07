@@ -18,6 +18,61 @@ char *ha_l1name[] = {
 #define TXCO HA_TX_COHERENT
 #define RXCO HA_RX_COHERENT
 
+static void ha_print_correction_values(struct pp_instance *ppi)
+{
+	
+	int64_t delayCoefficient;
+	delayCoefficient = ppi->asymCorrDS->delayCoefficient.scaledRelativeDifference;
+	
+	pp_diag(ppi, ext, 2, "ML-correction values in DS (upated):"
+		"eL=%d [ps], iL=%d [ps], tpL=%d [ps], dA=%d [ps], aC=%d [alpha<<40] "
+		"aC= %lld [alpha<<62]\n",
+		scaledNs_to_ps(ppi->tstampCorrDS->egressLatency),
+		scaledNs_to_ps(ppi->tstampCorrDS->ingressLatency),
+		scaledNs_to_ps(ppi->tstampCorrDS->messageTimestampPointLatency),
+		scaledNs_to_ps(ppi->asymCorrDS->delayAsymmetry),
+		relativeDiff_to_alpha(ppi->asymCorrDS->delayCoefficient),
+		(long long)delayCoefficient);
+	
+}
+
+/* update DS values of latencies and delay coefficient
+ * - these values are provided by HW (i.e. HAL) depending on SFPs, wavelenghts, etc
+ * - these values are stored in configurable data sets
+ * - the values from data sets are used in calculations
+ */
+static int ha_update_correction_values(struct pp_instance *ppi)
+{
+	struct wr_dsport *wrp = WR_DSPOR(ppi);
+	uint32_t delta_tx=0;
+	uint32_t delta_rx=0;
+	int32_t  fix_alpha=0;
+	
+	pp_diag(ppi, ext, 2, "hook: %s -- ext %i\n", __func__, ppi->cfg.ext);
+
+	/* read the interesting values from HW (i.e. HAL)*/
+	if (wrp->ops->read_calib_data(ppi, &delta_tx, &delta_rx,
+		&fix_alpha, 0 ) != WR_HW_CALIB_OK){
+		pp_diag(ppi, ext, 2, "hook: %s -- cannot read calib values\n",
+			__func__);
+		return -1;
+	}
+
+	ppi->tstampCorrDS->egressLatency  = ps_to_scaledNs((int32_t)delta_tx);
+	ppi->tstampCorrDS->ingressLatency  = ps_to_scaledNs((int32_t)delta_rx);
+	ppi->tstampCorrDS->messageTimestampPointLatency.scaledNanoseconds = 0; //FIXME: from config
+	
+	ppi->asymCorrDS->delayAsymmetry.scaledNanoseconds  = 0; //FIXME: from config
+	ppi->asymCorrDS->delayCoefficient= alpha_to_relativeDiff(fix_alpha);
+
+	pp_diag(ppi, ext, 2, "ML-correction values read from HAL :"
+		"eL=%d [ps], iL=%d [ps], tpL=%d [ps], dA=%d [ps], aC=%d [alpha<<40]\n",
+		delta_tx, delta_rx, 0, 0, fix_alpha);
+
+	ha_print_correction_values(ppi);
+	return 0;
+}
+
 
 /* open is global; called from "pp_init_globals" */
 static int ha_open(struct pp_globals *ppg, struct pp_runtime_opts *rt_opts)
@@ -98,7 +153,6 @@ static int ha_calc_timeout(struct pp_instance *ppi)
 	struct wr_dsport *wrp = WR_DSPOR(ppi);
 	int to_tx, do_xmit = 0;
 	int config_ok, state_ok;
-	uint32_t delta;
 
 	pp_diag(ppi, ext, 2, "hook: %s (%i:%s)\n", __func__,
 		ppi->state, ha_l1name[wrp->L1SyncState]);
@@ -228,6 +282,7 @@ static int ha_calc_timeout(struct pp_instance *ppi)
 		wrp->wrModeOn = TRUE;
 		wrp->parentWrModeOn = TRUE;
 		wrp->ops->enable_ptracker(ppi);
+		ha_update_correction_values(ppi);
 		break;
 	}
 
