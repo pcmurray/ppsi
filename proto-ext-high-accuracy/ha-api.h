@@ -21,6 +21,8 @@
 
 #define  TLV_TYPE_L1_SYNC		0x8001
 
+#define FIX_ALPHA_FRACBITS 40
+
 /*
  * We don't have ha_dsport, but rather rely on wr_dsport with our fields added.
  *
@@ -32,8 +34,8 @@
 #define HA_RX_COHERENT	0x02
 #define HA_CONGRUENT	0x04
 
-enum l1_sync_states { /* O.5.3.5 */
-	__L1SYNC_MISSING = 0, /* my addition... */
+enum l1_sync_states { /*draft P1588_v_29: page 334 */
+	__L1SYNC_MISSING = 0, /* my addition... */ //TODO: std-error->report in ballout
 	L1SYNC_DISABLED = 1,
 	L1SYNC_IDLE,
 	L1SYNC_LINK_ALIVE,
@@ -44,6 +46,48 @@ enum l1_sync_states { /* O.5.3.5 */
 /* Pack/Unkpack HA messages (all of them are signalling messages) */
 int ha_pack_signal(struct pp_instance *ppi);
 int ha_unpack_signal(struct pp_instance *ppi, void *pkt, int plen);
+
+/* convert from ps to scaledNanoseconds, ingress and engress latencies
+ * - are provided by HW in ps
+ * - are stored in scaledNanoseconds, as per standard
+ */
+static inline TimeInterval ps_to_scaledNs(int32_t ps)
+{
+	TimeInterval sps; 
+	sps.scaledNanoseconds = (int64_t)(((((int64_t)ps) << 16))/1000);
+	return sps;
+}
+/**  ************ this functions probably need some other place...**********************/
+/* convert scaledNanoseconds to ps, ingress and engress latencies
+ * - are provided by HW (i.e. HAL) in ps
+ * - are stored in scaledNanoseconds, as per standard
+ */
+static inline int32_t scaledNs_to_ps(TimeInterval d)
+{
+	return (int32_t)((d.scaledNanoseconds*1000) >> 16);
+}
+
+/* convert from alpha to relativeDifference, the delayCoefficient:
+ * - is provided by HW (i.e. HAL) as fractional value with 40 fractional bits
+ * - is stored per standard as fractional value with 62 fractional bits
+ */
+static inline RelativeDiff alpha_to_relativeDiff(int32_t alpha)
+{
+	RelativeDiff rd; 
+	rd.scaledRelativeDifference = 
+		((((int64_t)alpha) << (REL_DIFF_FRACBITS-FIX_ALPHA_FRACBITS)));
+	return rd;
+}
+
+/* convert from relativeDifference to alpha, the delayCoefficient:
+ * - is provided by HW (i.e. HAL) as fractional value with 40 fractional bits
+ * - is stored per standard as fractional value with 62 fractional bits
+ */
+static inline int32_t relativeDiff_to_alpha(RelativeDiff rd)
+{
+	return (int32_t)(rd.scaledRelativeDifference >> (REL_DIFF_FRACBITS-FIX_ALPHA_FRACBITS));
+}
+/**  **************************************************************************************/
 
 #ifdef CONFIG_USE_HA
 /*
