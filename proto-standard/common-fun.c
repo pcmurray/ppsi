@@ -410,8 +410,43 @@ int __send_and_log(struct pp_instance *ppi, int msglen, int chtype)
 	if (chtype == PP_NP_EVT && ppi->last_snt_time.correct == 0)
 		return PP_SEND_NO_STAMP;
 
+	// correct last tx timestamp
+	correct_tx_timestamp(ppi, &ppi->last_snt_time);
+
 	/* count sent packets */
 	ppi->ptp_tx_count++;
 
 	return 0;
+}
+void correct_tx_timestamp(struct pp_instance *ppi, TimeInternal *t)
+{
+       TimeInternal egL, tpL; // latency in internal representation
+
+	egL = picos_to_ts(scaledNs_to_ps(ppi->tstampCorrDS->egressLatency));
+	tpL = picos_to_ts(scaledNs_to_ps(ppi->tstampCorrDS->messageTimestampPointLatency));
+	
+	// as specified in draft P1588_v_29: page 56:
+	// <egressTimestamp> = <egressCapturedTimestamp> + <egressLatency> +
+	// <messageTimestampPointLatency>
+	dump_timestamp(ppi, "tx correction - before", *t);
+	*t = ts_add(*t,ts_add(egL,tpL));
+	dump_timestamp(ppi, "tx correction -  after", *t);
+	pp_diag(ppi, ext, 2,"tx correction -  value = %lld [ps]\n",
+		(long long)ts_to_picos(ts_add(egL,tpL)));
+}
+void correct_rx_timestamp(struct pp_instance *ppi, TimeInternal *t)
+{
+       TimeInternal igL, tpL; // latency in internal representation
+
+	igL = picos_to_ts(scaledNs_to_ps(ppi->tstampCorrDS->ingressLatency));
+	tpL = picos_to_ts(scaledNs_to_ps(ppi->tstampCorrDS->messageTimestampPointLatency));
+	
+	// as specified in draft P1588_v_29: page 56:
+	// <ingressTimestamp> = <ingressCapturedTimestamp> - <ingressLatency> -
+	// <messageTimestampPointLatency>
+	dump_timestamp(ppi, "rx correction - before", *t);
+	*t = ts_sub(ts_sub(*t,igL),tpL);
+	dump_timestamp(ppi, "rx correction -  after", *t);
+	pp_diag(ppi, ext, 2,"rx correction -  value = %lld [ps]\n",
+		(long long)ts_to_picos(ts_add(igL,tpL)));
 }

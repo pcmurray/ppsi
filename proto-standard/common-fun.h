@@ -46,6 +46,8 @@ int st_com_peer_handle_pres_followup(struct pp_instance *ppi,
 
 int __send_and_log(struct pp_instance *ppi, int msglen, int chtype);
 
+void correct_rx_timestamp(struct pp_instance *ppi, TimeInternal *t);
+void correct_tx_timestamp(struct pp_instance *ppi, TimeInternal *t);
 /* Count successfully received PTP packets */
 static inline int __recv_and_count(struct pp_instance *ppi, void *pkt, int len,
 		   TimeInternal *t)
@@ -54,6 +56,7 @@ static inline int __recv_and_count(struct pp_instance *ppi, void *pkt, int len,
 	ret = ppi->n_ops->recv(ppi, pkt, len, t);
 	if (ret > 0)
 		ppi->ptp_rx_count++;
+	correct_rx_timestamp(ppi, t);
 	return ret;
 }
 
