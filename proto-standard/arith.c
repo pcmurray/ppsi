@@ -114,3 +114,68 @@ void div2_TimeInternal(TimeInternal *r)
 
 	normalize_TimeInternal(r);
 }
+/** this stuff can be used in any impl why to keep it only to WR??*/
+int64_t ts_to_picos(TimeInternal ts)
+{
+	return ts.seconds * 1000000000000LL
+		+ ts.nanoseconds * 1000LL
+		+ ts.phase;
+}
+
+TimeInternal picos_to_ts(int64_t picos)
+{
+	uint64_t nsec, phase;
+	TimeInternal ts;
+
+	nsec = picos;
+	phase = __div64_32(&nsec, 1000);
+
+	ts.nanoseconds = __div64_32(&nsec, PP_NSEC_PER_SEC);
+	ts.seconds = nsec; /* after the division */
+	ts.phase = phase;
+	return ts;
+}
+
+TimeInternal ts_add(TimeInternal a, TimeInternal b)
+{
+	TimeInternal c;
+
+	c.phase = a.phase + b.phase;
+	c.nanoseconds = a.nanoseconds + b.nanoseconds;
+	c.seconds = a.seconds + b.seconds;
+
+	while (c.phase >= 1000) {
+		c.phase -= 1000;
+		c.nanoseconds++;
+	}
+	while (c.nanoseconds >= PP_NSEC_PER_SEC) {
+		c.nanoseconds -= PP_NSEC_PER_SEC;
+		c.seconds++;
+	}
+	return c;
+}
+
+TimeInternal ts_sub(TimeInternal a, TimeInternal b)
+{
+	TimeInternal c;
+
+	c.phase = a.phase - b.phase;
+	c.nanoseconds = a.nanoseconds - b.nanoseconds;
+	c.seconds = a.seconds - b.seconds;
+
+	while(c.phase < 0) {
+		c.phase += 1000;
+		c.nanoseconds--;
+	}
+	while(c.nanoseconds < 0) {
+		c.nanoseconds += PP_NSEC_PER_SEC;
+		c.seconds--;
+	}
+	return c;
+}
+
+void dump_timestamp(struct pp_instance *ppi, char *what, TimeInternal ts)
+{
+	pp_diag(ppi, servo, 2, "%s = %d:%d:%d\n", what, (int32_t)ts.seconds,
+		  ts.nanoseconds, ts.phase);
+}

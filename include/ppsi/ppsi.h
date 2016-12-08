@@ -397,6 +397,11 @@ extern void add_TimeInternal(TimeInternal *r, TimeInternal *x, TimeInternal *y);
 extern void sub_TimeInternal(TimeInternal *r, TimeInternal *x, TimeInternal *y);
 extern void div2_TimeInternal(TimeInternal *r);
 
+int64_t ts_to_picos(TimeInternal ts);
+TimeInternal picos_to_ts(int64_t picos);
+TimeInternal ts_add(TimeInternal a, TimeInternal b);
+TimeInternal ts_sub(TimeInternal a, TimeInternal b);
+void dump_timestamp(struct pp_instance *ppi, char *what, TimeInternal ts);
 /*
  * The state machine itself is an array of these structures.
  */
