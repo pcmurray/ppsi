@@ -40,6 +40,7 @@ static struct wr_operations wrs_wr_operations = {
 	.adjust_counters = wrs_adjust_counters,
 	.adjust_phase = wrs_adjust_phase,
 
+	.read_delayCoeff = wrs_read_delayCoeff,
 	.read_calib_data = wrs_read_calibration_data,
 	.calib_disable = wrs_calibrating_disable,
 	.calib_enable = wrs_calibrating_enable,

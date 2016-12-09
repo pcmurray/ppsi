@@ -123,6 +123,7 @@ struct wr_operations {
 	int (*adjust_counters)(int64_t adjust_sec, int32_t adjust_nsec);
 	int (*adjust_phase)(int32_t phase_ps);
 
+	int (*read_delayCoeff)(struct pp_instance *ppi, int64_t *delayCoeff);
 	int (*read_calib_data)(struct pp_instance *ppi,
 			      uint32_t *deltaTx, uint32_t *deltaRx,
 			      int32_t *fix_alpha, int32_t *clock_period);

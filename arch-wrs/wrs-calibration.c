@@ -21,7 +21,7 @@ int wrs_read_calibration_data(struct pp_instance *ppi,
 	/* The following fields come from struct hexp_port_state */
 	uint32_t port_delta_tx, port_delta_rx;
 	int32_t port_fix_alpha;
-
+	
 	p = pp_wrs_lookup_port(ppi->iface_name);
 	if (!p)
 		return WR_HW_CALIB_NOT_FOUND;
@@ -54,6 +54,17 @@ int wrs_read_calibration_data(struct pp_instance *ppi,
 		*fix_alpha = port_fix_alpha;
 	if(clock_period)
 		*clock_period =  16000; /* REF_CLOCK_PERIOD_PS */
+	return WR_HW_CALIB_OK;
+}
+
+int wrs_read_delayCoeff(struct pp_instance *ppi, int64_t *delayCoeff)
+{
+	struct hal_port_state *p;
+	int64_t port_delayCoeff;
+	p = pp_wrs_lookup_port(ppi->iface_name);
+	if (!p)
+		return WR_HW_CALIB_NOT_FOUND;
+	*delayCoeff = (double)pow(2.0, 62.0) * p->calib.sfp.alpha;
 	return WR_HW_CALIB_OK;
 }
 
