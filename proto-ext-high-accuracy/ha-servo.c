@@ -1,4 +1,5 @@
 #include <ppsi/ppsi.h>
+#include "ha-api.h"
 #include "wr-api.h"
 #include <libwr/shmem.h>
 
@@ -134,11 +135,6 @@ int wr_servo_init(struct pp_instance *ppi)
 	s->missed_iters = 0;
 	s->state = WR_SYNC_TAI;
 
-	s->delta_tx_m = delta_to_ps(wrp->otherNodeDeltaTx);
-	s->delta_rx_m = delta_to_ps(wrp->otherNodeDeltaRx);
-	s->delta_tx_s = delta_to_ps(wrp->deltaTx);
-	s->delta_rx_s = delta_to_ps(wrp->deltaRx);
-
 	strcpy(s->servo_state_name, "Uninitialized");
 
 	s->flags |= WR_FLAG_VALID;
@@ -267,13 +263,79 @@ int wr_p2p_offset(struct pp_instance *ppi,
 	return 1;
 }
 
+int wr_delay_ms_cal(struct pp_instance *ppi, struct wr_servo_state *s,
+			TimeInternal *ts_offset_hw, int64_t*ts_offset_ps,
+			int64_t *delay_ms_fix, int64_t *fiber_fix_alpha)
+{
+	int64_t big_delta_fix, fiber_fix_alpha_wr, delay_ms_fix_wr, ts_offset_ps_wr;
+	TimeInternal ts_offset_wr, ts_offset_hw_wr;
+
+	big_delta_fix =  s->delta_tx_m + s->delta_tx_s
+		       + s->delta_rx_m + s->delta_rx_s;
+
+	fiber_fix_alpha_wr = (int64_t)s->fiber_fix_alpha;
+	delay_ms_fix_wr = (((int64_t)(s->picos_mu - big_delta_fix) * fiber_fix_alpha_wr) >> FIX_ALPHA_FRACBITS)
+		+ ((s->picos_mu - big_delta_fix) >> 1)
+		+ s->delta_tx_m + s->delta_rx_s;
+
+	ts_offset_wr     = ts_add(ts_sub(s->t1, s->t2), picos_to_ts(delay_ms_fix_wr));
+	ts_offset_hw_wr  = ts_hardwarize(ts_offset_wr, s->clock_period_ps);
+	ts_offset_ps_wr  = ts_to_picos(ts_offset_wr);
+
+	if(ts_offset_hw)
+		*ts_offset_hw = ts_offset_hw_wr;
+	if(ts_offset_ps)
+		*ts_offset_ps=ts_offset_ps_wr;
+	if(delay_ms_fix)
+		*delay_ms_fix= delay_ms_fix_wr;
+	if(fiber_fix_alpha)
+		*fiber_fix_alpha=fiber_fix_alpha_wr;
+	return 1;
+}
+
+int ha_delay_ms_cal(struct pp_instance *ppi, struct wr_servo_state *s,
+			TimeInternal *ts_offset_hw, int64_t*ts_offset_ps,
+			int64_t *delay_ms_fix, int64_t *fiber_fix_alpha)
+{
+	int64_t delayCoeff, fiber_fix_alpha_ha, delay_ms_fix_ha, ts_offset_ps_ha;
+	TimeInternal ts_offset_ha, ts_offset_hw_ha;
+		// for clarity and convenience
+	#define RD_FR REL_DIFF_FRACBITS   /* = 62*/
+	#define FA_FR FIX_ALPHA_FRACBITS  /* = 40*/
+	delayCoeff = ppi->asymCorrDS->delayCoefficient.scaledRelativeDifference;
+	/** computation of fiber_fixed_alpha directly from delayCoefficient in fix aritmethics:
+	 * fix_alpha = [2^62 + delayCoeff]\[2*2^22 + delayCoeff *2-22] - 2^39 */
+	fiber_fix_alpha_ha = ((((int64_t)1<<62) + delayCoeff)/(((int64_t)1<<23) + (delayCoeff>>40)) - ((int64_t)1<<39));
+	
+	delay_ms_fix_ha = (((int64_t)s->picos_mu * fiber_fix_alpha_ha) >> FIX_ALPHA_FRACBITS) + (s->picos_mu >> 1);
+
+	ts_offset_ha = ts_add(ts_sub(s->t1, s->t2), picos_to_ts(delay_ms_fix_ha));
+	ts_offset_hw_ha = ts_hardwarize(ts_offset_ha, s->clock_period_ps);
+	ts_offset_ps_ha = ts_to_picos(ts_offset_ha);
+	
+	pp_diag(ppi, servo, 2, "ML: delayCoeff         = %lld\n",(long long)delayCoeff);
+
+	if(delay_ms_fix)
+		*delay_ms_fix= delay_ms_fix_ha;
+	if(ts_offset_hw)
+		*ts_offset_hw = ts_offset_hw_ha;
+	if(ts_offset_ps)
+		*ts_offset_ps=ts_offset_ps_ha;
+	if(fiber_fix_alpha)
+		*fiber_fix_alpha=fiber_fix_alpha_ha;
+	return 1;
+}
+
 int wr_e2e_offset(struct pp_instance *ppi,
 		  struct wr_servo_state *s, TimeInternal *ts_offset_hw)
 {
 	struct wr_dsport *wrp = WR_DSPOR(ppi);
-	uint64_t big_delta_fix;
-	uint64_t delay_ms_fix;
-	TimeInternal ts_offset;
+	
+	int64_t fiber_fix_alpha_ha, fiber_fix_alpha_wr;
+	int64_t delay_ms_fix_wr, delay_ms_fix_ha;
+	int64_t ts_offset_ps_ha, ts_offset_ps_wr;
+	TimeInternal ts_offset_hw_ha, ts_offset_hw_wr;
+
 	static int errcount;
 
 	if(!s->t1.correct || !s->t2.correct ||
@@ -307,29 +369,35 @@ int wr_e2e_offset(struct pp_instance *ppi,
 	}
 
 	s->picos_mu = ts_to_picos(s->mu);
-	big_delta_fix =  s->delta_tx_m + s->delta_tx_s
-		       + s->delta_rx_m + s->delta_rx_s;
 
-	if (s->picos_mu < (int64_t)big_delta_fix) {
-		/* avoid negatives in calculations */
-		s->picos_mu = big_delta_fix;
-	}
+	/** do WR and HA calculations */
+	wr_delay_ms_cal(ppi,s,&ts_offset_hw_wr, &ts_offset_ps_wr, &delay_ms_fix_wr, &fiber_fix_alpha_wr);
+	ha_delay_ms_cal(ppi,s,&ts_offset_hw_ha, &ts_offset_ps_ha, &delay_ms_fix_ha, &fiber_fix_alpha_ha);
 
-	delay_ms_fix = (((int64_t)(s->picos_mu - big_delta_fix) * (int64_t) s->fiber_fix_alpha) >> FIX_ALPHA_FRACBITS)
-		+ ((s->picos_mu - big_delta_fix) >> 1)
-		+ s->delta_tx_m + s->delta_rx_s;
+	/** compare WR and HA calculations */
+	pp_diag(ppi, servo, 2, "ML: fiber_fix_alpha_wr = %lld\n",(long long)fiber_fix_alpha_wr);
+	pp_diag(ppi, servo, 2, "ML: fiber_fix_alpha_ha = %lld\n",(long long)fiber_fix_alpha_ha);
+	
+	pp_diag(ppi, servo, 2, "ML: delay_ms_fix_wr = %lld \n", (long long)delay_ms_fix_wr);
+	pp_diag(ppi, servo, 2, "ML: delay_ms_fix_ha = %lld \n", (long long)delay_ms_fix_ha);
 
-	ts_offset = ts_add(ts_sub(s->t1, s->t2), picos_to_ts(delay_ms_fix));
-	*ts_offset_hw = ts_hardwarize(ts_offset, s->clock_period_ps);
+	pp_diag(ppi, servo, 2, "ML: ts_offset_wr    = %lld [ps] \n", (long long)ts_offset_ps_wr);
+	pp_diag(ppi, servo, 2, "ML: ts_offset_ha    = %lld [ps] \n", (long long)ts_offset_ps_ha);
+	
+	dump_timestamp(ppi,    "ML: ts_offset_hw_wr",ts_offset_hw_wr);
+	dump_timestamp(ppi,    "ML: ts_offset_hw_ha",ts_offset_hw_ha);
 
-	/* is it possible to calculate it in client,
-	 * but then t1 and t2 require shmem locks */
-	s->offset = ts_to_picos(ts_offset);
-
+	/** use either WR or HA */
+// 	*ts_offset_hw = ts_offset_hw_wr;
+// 	s->offset     = ts_offset_ps_wr;
+// 	s->delta_ms   = delay_ms_fix_wr;
+	
+	*ts_offset_hw = ts_offset_hw_ha;
+	s->offset     = ts_offset_ps_ha;
+	s->delta_ms   = delay_ms_fix_ha;
+	
 	s->tracking_enabled =  tracking_enabled;
-
-	s->delta_ms = delay_ms_fix;
-
+	
 	return 1;
 }
 

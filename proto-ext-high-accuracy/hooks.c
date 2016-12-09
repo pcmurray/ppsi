@@ -1,6 +1,7 @@
 #include <ppsi/ppsi.h>
 #include <common-fun.h>
 #include "ha-api.h"
+#include <math.h>
 
 char *ha_l1name[] = {
 	[L1SYNC_DISABLED]	= "L1SYNC_DISABLED",
@@ -46,29 +47,47 @@ static int ha_update_correction_values(struct pp_instance *ppi)
 	struct wr_dsport *wrp = WR_DSPOR(ppi);
 	uint32_t delta_tx=0;
 	uint32_t delta_rx=0;
-	int32_t  fix_alpha=0;
+	int32_t fix_alpha=0;
+	int64_t delayCoeff_by_hand, delay_Coeff_from_alpha;
 	
 	pp_diag(ppi, ext, 2, "hook: %s -- ext %i\n", __func__, ppi->cfg.ext);
 
 	/* read the interesting values from HW (i.e. HAL)*/
 	if (wrp->ops->read_calib_data(ppi, &delta_tx, &delta_rx,
-		&fix_alpha, 0 ) != WR_HW_CALIB_OK){
+		&fix_alpha, 0) != WR_HW_CALIB_OK){
 		pp_diag(ppi, ext, 2, "hook: %s -- cannot read calib values\n",
 			__func__);
 		return -1;
 	}
-
+	if (wrp->ops->read_delayCoeff(ppi, &delay_Coeff_from_alpha) != WR_HW_CALIB_OK){
+		pp_diag(ppi, ext, 2, "hook: %s -- cannot read calib values\n",
+			__func__);
+		return -1;
+	}
+	
 	ppi->tstampCorrDS->egressLatency  = ps_to_scaledNs((int32_t)delta_tx);
 	ppi->tstampCorrDS->ingressLatency  = ps_to_scaledNs((int32_t)delta_rx);
 	ppi->tstampCorrDS->messageTimestampPointLatency.scaledNanoseconds = 0; //FIXME: from config
 	
 	ppi->asymCorrDS->delayAsymmetry.scaledNanoseconds  = 0; //FIXME: from config
-	ppi->asymCorrDS->delayCoefficient= alpha_to_relativeDiff(fix_alpha);
+
+	// temporarily fed "by hand"
+	// (http://www.ohwr.org/projects/white-rabbit/wiki/Calibration)
+	// alpha = 2.6787e-04 = 0.00026787
+	// delayCoefficient = alpha * 2^62 = 1.235332334*10^15 = 1235332334000000
+	// alpha oposite: alpha_oposite = [1/(1+alpha)]-1
+	delayCoeff_by_hand = -1235001514000000;
 
 	pp_diag(ppi, ext, 2, "ML-correction values read from HAL :"
-		"eL=%d [ps], iL=%d [ps], tpL=%d [ps], dA=%d [ps], aC=%d [alpha<<40]\n",
-		delta_tx, delta_rx, 0, 0, fix_alpha);
-
+		"eL=%d [ps], iL=%d [ps], tpL=%d [ps], dA=%d [ps]\n",
+		delta_tx, delta_rx, 0, 0);
+	pp_diag(ppi, ext, 2, "ML-delayCoeff calculated   b y hand: = %lld]\n",
+		(long long)delayCoeff_by_hand);
+	pp_diag(ppi, ext, 2, "ML-delayCoeff calculated from alpha: = %lld]\n",
+		(long long)delay_Coeff_from_alpha);
+	
+	ppi->asymCorrDS->delayCoefficient.scaledRelativeDifference = delay_Coeff_from_alpha;
+	
 	ha_print_correction_values(ppi);
 	return 0;
 }
