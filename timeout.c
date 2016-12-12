@@ -25,7 +25,11 @@ static struct timeout_config to_configs[__PP_TO_ARRAY_SIZE] = {
 	[PP_TO_ANN_RECEIPT] =	{"ANN_RECEIPT",	RAND_NONE,},
 	[PP_TO_ANN_SEND] =	{"ANN_SEND",	RAND_70_130,},
 	[PP_TO_FAULTY] =	{"FAULTY",	RAND_NONE, 4000},
-	[PP_TO_QUALIFICATION] = {"QUAL",	RAND_NONE,}
+	[PP_TO_QUALIFICATION] = {"QUAL",	RAND_NONE,},
+	/*new stuff*/
+	[PP_TO_EXT_0] = {"Ext0 (HA_TX)",	RAND_70_130,},
+	[PP_TO_EXT_1] = {"Ext1 (HA_RX)",	RAND_NONE,},
+	[PP_TO_EXT_2] = {"Ext2 (?)",	RAND_NONE,}
 	/* extension timeouts are explicitly set to a value */
 };
 
