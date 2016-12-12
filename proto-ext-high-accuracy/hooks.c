@@ -291,6 +291,10 @@ static int ha_calc_timeout(struct pp_instance *ppi)
 
 		wrp->L1SyncState = L1SYNC_UP;
 		ha_update_correction_values(ppi);
+		// Do what was done in WR LINK ON: 
+		wrp->wrModeOn = TRUE;
+		wrp->parentWrModeOn = TRUE;
+		wrp->ops->enable_ptracker(ppi);
 		/* and fall through */
 
 	case L1SYNC_UP:
@@ -301,10 +305,6 @@ static int ha_calc_timeout(struct pp_instance *ppi)
 		if (!config_ok)
 			/* FIXME: go back to link_alive, and pll? */;
 
-		// Do what was done in WR LINK ON: 
-		wrp->wrModeOn = TRUE;
-		wrp->parentWrModeOn = TRUE;
-		wrp->ops->enable_ptracker(ppi);
 		
 		break;
 	}
