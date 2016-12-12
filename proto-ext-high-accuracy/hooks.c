@@ -290,6 +290,7 @@ static int ha_calc_timeout(struct pp_instance *ppi)
 			break;
 
 		wrp->L1SyncState = L1SYNC_UP;
+		ha_update_correction_values(ppi);
 		/* and fall through */
 
 	case L1SYNC_UP:
@@ -304,7 +305,7 @@ static int ha_calc_timeout(struct pp_instance *ppi)
 		wrp->wrModeOn = TRUE;
 		wrp->parentWrModeOn = TRUE;
 		wrp->ops->enable_ptracker(ppi);
-		ha_update_correction_values(ppi);
+		
 		break;
 	}
 
