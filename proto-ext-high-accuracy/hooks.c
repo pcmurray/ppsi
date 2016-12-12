@@ -48,7 +48,7 @@ static int ha_update_correction_values(struct pp_instance *ppi)
 	uint32_t delta_tx=0;
 	uint32_t delta_rx=0;
 	int32_t fix_alpha=0;
-	int64_t delayCoeff_by_hand, delay_Coeff_from_alpha;
+	int64_t delayCoeff_by_hand_pos, delayCoeff_by_hand_neg, delay_Coeff_from_alpha;
 	
 	pp_diag(ppi, ext, 2, "hook: %s -- ext %i\n", __func__, ppi->cfg.ext);
 
@@ -76,14 +76,17 @@ static int ha_update_correction_values(struct pp_instance *ppi)
 	// alpha = 2.6787e-04 = 0.00026787
 	// delayCoefficient = alpha * 2^62 = 1.235332334*10^15 = 1235332334000000
 	// alpha oposite: alpha_oposite = [1/(1+alpha)]-1
-	delayCoeff_by_hand = -1235001514000000;
+	delayCoeff_by_hand_neg = -1235001513901056;
+	delayCoeff_by_hand_pos =  1235332333756144;
 
 	pp_diag(ppi, ext, 2, "ML-correction values read from HAL :"
 		"eL=%d [ps], iL=%d [ps], tpL=%d [ps], dA=%d [ps]\n",
 		delta_tx, delta_rx, 0, 0);
-	pp_diag(ppi, ext, 2, "ML-delayCoeff calculated   b y hand: = %lld]\n",
-		(long long)delayCoeff_by_hand);
-	pp_diag(ppi, ext, 2, "ML-delayCoeff calculated from alpha: = %lld]\n",
+	pp_diag(ppi, ext, 2, "ML-delayCoeff calculated by hand (pos): = %lld\n",
+		(long long)delayCoeff_by_hand_pos);
+	pp_diag(ppi, ext, 2, "ML-delayCoeff calculated by hand (neg): = %lld\n",
+		(long long)delayCoeff_by_hand_neg);
+	pp_diag(ppi, ext, 2, "ML-delayCoeff calculated from alpha   : = %lld\n",
 		(long long)delay_Coeff_from_alpha);
 	
 	ppi->asymCorrDS->delayCoefficient.scaledRelativeDifference = delay_Coeff_from_alpha;
