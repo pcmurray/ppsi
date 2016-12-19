@@ -122,9 +122,11 @@ static inline int32_t relativeDiff_to_alpha(RelativeDiff rd)
 
 int wr_delay_ms_cal(struct pp_instance *ppi, struct wr_servo_state *s,
 			TimeInternal *ts_offset_hw, int64_t*ts_offset_ps,
-			int64_t *delay_ms_fix,  int64_t *fiber_fix_alpha);
+			int64_t *delay_ms_fix,  int64_t *fiber_fix_alpha,
+			int64_t or_picos_mu, int64_t or_fiber_fix_alpha);
 int ha_delay_ms_cal(struct pp_instance *ppi, struct wr_servo_state *s,
 			TimeInternal *ts_offset_hw, int64_t*ts_offset_ps,
-			int64_t *delay_ms_fix, int64_t *fiber_fix_alpha);
+			int64_t *delay_ms_fix, int64_t *fiber_fix_alpha,
+			int64_t or_picos_mu, int64_t or_delayCoeff);
 
 #endif /* __HAEXT_HA_API_H__ */

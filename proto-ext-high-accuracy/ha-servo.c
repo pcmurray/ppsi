@@ -2,6 +2,7 @@
 #include "ha-api.h"
 #include "wr-api.h"
 #include <libwr/shmem.h>
+#include <math.h>
 
 #ifdef CONFIG_ARCH_WRS
 #define ARCH_IS_WRS 1
@@ -265,23 +266,43 @@ int wr_p2p_offset(struct pp_instance *ppi,
 
 int wr_delay_ms_cal(struct pp_instance *ppi, struct wr_servo_state *s,
 			TimeInternal *ts_offset_hw, int64_t*ts_offset_ps,
-			int64_t *delay_ms_fix, int64_t *fiber_fix_alpha)
+			int64_t *delay_ms_fix, int64_t *fiber_fix_alpha, 
+			int64_t or_picos_mu, int64_t or_fiber_fix_alpha)
 {
-	int64_t big_delta_fix, fiber_fix_alpha_wr, delay_ms_fix_wr, ts_offset_ps_wr;
+	int64_t big_delta_fix, fiber_fix_alpha_wr, delay_ms_fix_wr, ts_offset_ps_wr, picos_mu;
 	TimeInternal ts_offset_wr, ts_offset_hw_wr;
 
+	if(or_picos_mu)
+		picos_mu = or_picos_mu;
+	else
+		picos_mu = s->picos_mu;
+	
+	if(or_fiber_fix_alpha)
+		fiber_fix_alpha_wr = or_fiber_fix_alpha;
+	else
+		fiber_fix_alpha_wr = (int64_t)s->fiber_fix_alpha;
+	
 	big_delta_fix =  s->delta_tx_m + s->delta_tx_s
 		       + s->delta_rx_m + s->delta_rx_s;
 
-	fiber_fix_alpha_wr = (int64_t)s->fiber_fix_alpha;
-	delay_ms_fix_wr = (((int64_t)(s->picos_mu - big_delta_fix) * fiber_fix_alpha_wr) >> FIX_ALPHA_FRACBITS)
-		+ ((s->picos_mu - big_delta_fix) >> 1)
+	
+	delay_ms_fix_wr = (((int64_t)(picos_mu - big_delta_fix) * fiber_fix_alpha_wr) >> FIX_ALPHA_FRACBITS)
+		+ ((picos_mu - big_delta_fix) >> 1)
 		+ s->delta_tx_m + s->delta_rx_s;
 
 	ts_offset_wr     = ts_add(ts_sub(s->t1, s->t2), picos_to_ts(delay_ms_fix_wr));
 	ts_offset_hw_wr  = ts_hardwarize(ts_offset_wr, s->clock_period_ps);
 	ts_offset_ps_wr  = ts_to_picos(ts_offset_wr);
-
+	
+	pp_diag(ppi, servo, 2, "ML: ===================== WR calculations ========================\n");
+	pp_diag(ppi, servo, 2, "ML: inputs:\n");
+	pp_diag(ppi, servo, 2, "ML:        s->fiber_fix_alpha          (int32_t) = %lld\n",(long long)fiber_fix_alpha_wr);
+	pp_diag(ppi, servo, 2, "ML:        big_delta_fix               (int32_t) = %lld\n",(long long)big_delta_fix);
+	pp_diag(ppi, servo, 2, "ML:        s->delta_tx_m+s->delta_rx_s (int32_t) = %lld\n",(long long)(s->delta_tx_m+s->delta_rx_s));
+	pp_diag(ppi, servo, 2, "ML:        delayMM                     (int64_t) = %lld\n",(long long)(picos_mu));
+	pp_diag(ppi, servo, 2, "ML: result:\n");
+	pp_diag(ppi, servo, 2, "ML:        delayMS                     (int64_t) = %lld\n",(long long)(delay_ms_fix_wr));
+	
 	if(ts_offset_hw)
 		*ts_offset_hw = ts_offset_hw_wr;
 	if(ts_offset_ps)
@@ -295,25 +316,51 @@ int wr_delay_ms_cal(struct pp_instance *ppi, struct wr_servo_state *s,
 
 int ha_delay_ms_cal(struct pp_instance *ppi, struct wr_servo_state *s,
 			TimeInternal *ts_offset_hw, int64_t*ts_offset_ps,
-			int64_t *delay_ms_fix, int64_t *fiber_fix_alpha)
+			int64_t *delay_ms_fix, int64_t *fiber_fix_alpha, 
+			int64_t or_picos_mu, int64_t or_delayCoeff)
 {
-	int64_t delayCoeff, fiber_fix_alpha_ha, delay_ms_fix_ha, ts_offset_ps_ha;
+	int64_t delayCoeff, fiber_fix_alpha_ha, delay_ms_fix_ha, ts_offset_ps_ha, picos_mu,fiber_fix_alpha_ha_double, port_fix_alpha;
 	TimeInternal ts_offset_ha, ts_offset_hw_ha;
+	double alpha;
+	
+	if(or_picos_mu)
+		picos_mu = or_picos_mu;
+	else
+		picos_mu = s->picos_mu;
+	
+	if(or_delayCoeff)
+		delayCoeff = or_delayCoeff;
+	else
+		delayCoeff = ppi->asymCorrDS->delayCoefficient.scaledRelativeDifference;
+	
 		// for clarity and convenience
 	#define RD_FR REL_DIFF_FRACBITS   /* = 62*/
 	#define FA_FR FIX_ALPHA_FRACBITS  /* = 40*/
-	delayCoeff = ppi->asymCorrDS->delayCoefficient.scaledRelativeDifference;
+	
 	/** computation of fiber_fixed_alpha directly from delayCoefficient in fix aritmethics:
 	 * fix_alpha = [2^62 + delayCoeff]\[2*2^22 + delayCoeff *2-22] - 2^39 */
-	fiber_fix_alpha_ha = ((((int64_t)1<<62) + delayCoeff)/(((int64_t)1<<23) + (delayCoeff>>40)) - ((int64_t)1<<39));
+	fiber_fix_alpha_ha        = ((((int64_t)1<<62) + delayCoeff)/(((int64_t)1<<23) + (delayCoeff>>40)) - ((int64_t)1<<39));
+	fiber_fix_alpha_ha_double = ((double)pow(2.0, 62.0) + (double)delayCoeff)/((double)pow(2.0, 23.0) + (double)(delayCoeff>>40)) - (double)pow(2.0, 39.0);
+	alpha                     = ((double)delayCoeff)/(double)pow(2.0, 62.0);
+	port_fix_alpha            =  (double)pow(2.0, 40.0) * ((alpha + 1.0) / (alpha + 2.0) - 0.5);
 	
-	delay_ms_fix_ha = (((int64_t)s->picos_mu * fiber_fix_alpha_ha) >> FIX_ALPHA_FRACBITS) + (s->picos_mu >> 1);
+	delay_ms_fix_ha = (((int64_t)picos_mu * fiber_fix_alpha_ha) >> FIX_ALPHA_FRACBITS) + (picos_mu >> 1);
 
 	ts_offset_ha = ts_add(ts_sub(s->t1, s->t2), picos_to_ts(delay_ms_fix_ha));
 	ts_offset_hw_ha = ts_hardwarize(ts_offset_ha, s->clock_period_ps);
 	ts_offset_ps_ha = ts_to_picos(ts_offset_ha);
-	
-	pp_diag(ppi, servo, 2, "ML: delayCoeff         = %lld\n",(long long)delayCoeff);
+
+	pp_diag(ppi, servo, 2, "ML: ===================== HA calculations ========================\n");
+	pp_diag(ppi, servo, 2, "ML: inputs:\n");
+	pp_diag(ppi, servo, 2, "ML:        delayCoeff                  (int64_t) = %lld\n",(long long)delayCoeff);
+	pp_diag(ppi, servo, 2, "ML:        fiber_fix_alpha_ha          (int64_t) = %lld\n",(long long)fiber_fix_alpha_ha);
+	pp_diag(ppi, servo, 2, "ML:        fiber_fix_alpha_ha_double   (int64_t) = %lld\n",(long long)fiber_fix_alpha_ha_double);
+	pp_diag(ppi, servo, 1, "ML:        alpha                                 = %lld * e-10\n", (long long)(alpha*(int64_t)10000000000));
+	pp_diag(ppi, servo, 2, "ML:        fiber_fix_alpha             (int64_t) = %lld\n",(long long)port_fix_alpha);
+	pp_diag(ppi, servo, 2, "ML:        delayMM                     (int64_t) = %lld\n",(long long)(picos_mu));
+	pp_diag(ppi, servo, 2, "ML: result:\n");
+	pp_diag(ppi, servo, 2, "ML:        delayMS                     (int64_t) = %lld\n",(long long)(delay_ms_fix_ha));
+
 
 	if(delay_ms_fix)
 		*delay_ms_fix= delay_ms_fix_ha;
@@ -331,9 +378,10 @@ int wr_e2e_offset(struct pp_instance *ppi,
 {
 	struct wr_dsport *wrp = WR_DSPOR(ppi);
 	
-	int64_t fiber_fix_alpha_ha, fiber_fix_alpha_wr;
-	int64_t delay_ms_fix_wr, delay_ms_fix_ha;
+	int64_t fiber_fix_alpha_ha, fiber_fix_alpha_wr, port_fix_alpha_ha;
+	int64_t delay_ms_fix_wr, delay_ms_fix_ha, delayCoeff_pos, delayCoeff_neg;
 	int64_t ts_offset_ps_ha, ts_offset_ps_wr;
+	double alpha_ha;
 	TimeInternal ts_offset_hw_ha, ts_offset_hw_wr;
 
 	static int errcount;
@@ -371,21 +419,100 @@ int wr_e2e_offset(struct pp_instance *ppi,
 	s->picos_mu = ts_to_picos(s->mu);
 
 	/** do WR and HA calculations */
-	wr_delay_ms_cal(ppi,s,&ts_offset_hw_wr, &ts_offset_ps_wr, &delay_ms_fix_wr, &fiber_fix_alpha_wr);
-	ha_delay_ms_cal(ppi,s,&ts_offset_hw_ha, &ts_offset_ps_ha, &delay_ms_fix_ha, &fiber_fix_alpha_ha);
+	wr_delay_ms_cal(ppi,s,&ts_offset_hw_wr, &ts_offset_ps_wr, &delay_ms_fix_wr, &fiber_fix_alpha_wr, 0,0);
+	ha_delay_ms_cal(ppi,s,&ts_offset_hw_ha, &ts_offset_ps_ha, &delay_ms_fix_ha, &fiber_fix_alpha_ha, 0,0);
 
+	/** my fake calculations for WR */
+	wr_delay_ms_cal(ppi,s, 0, 0, 0, 0, 10000        /*1m*/      , 73621684 /*switch (+) alpha*/);
+	wr_delay_ms_cal(ppi,s, 0, 0, 0, 0, 10000000     /*1 km*/    , 73621684 /*switch (+) alpha*/);
+	wr_delay_ms_cal(ppi,s, 0, 0, 0, 0, 100000000    /*10km*/    , 73621684 /*switch (+) alpha*/);
+	wr_delay_ms_cal(ppi,s, 0, 0, 0, 0, 10000000000  /*1 000km*/ , 73621684 /*switch (+) alpha*/);
+	wr_delay_ms_cal(ppi,s, 0, 0, 0, 0, 100000000000 /*10 000km*/, 73621684 /*switch (+) alpha*/);
+
+	wr_delay_ms_cal(ppi,s, 0, 0, 0, 0, 10000        /*1m*/      ,-73621684 /*switch (-) alpha*/);
+	wr_delay_ms_cal(ppi,s, 0, 0, 0, 0, 10000000     /*1 km*/    ,-73621684 /*switch (-) alpha*/);
+	wr_delay_ms_cal(ppi,s, 0, 0, 0, 0, 100000000    /*10km*/    ,-73621684 /*switch (-) alpha*/);
+	wr_delay_ms_cal(ppi,s, 0, 0, 0, 0, 10000000000  /*1 000km*/ ,-73621684 /*switch (-) alpha*/);
+	wr_delay_ms_cal(ppi,s, 0, 0, 0, 0, 100000000000 /*10 000km*/,-73621684 /*switch (-) alpha*/);
+
+	wr_delay_ms_cal(ppi,s, 0, 0, 0, 0, 10000        /*1m*/      , 72169888 /*wrpc   (+) alpha*/);
+	wr_delay_ms_cal(ppi,s, 0, 0, 0, 0, 10000000     /*1 km*/    , 72169888 /*wrpc   (+) alpha*/);
+	wr_delay_ms_cal(ppi,s, 0, 0, 0, 0, 100000000    /*10km*/    , 72169888 /*wrpc   (+) alpha*/);
+	wr_delay_ms_cal(ppi,s, 0, 0, 0, 0, 10000000000  /*1 000km*/ , 72169888 /*wrpc   (+) alpha*/);
+	wr_delay_ms_cal(ppi,s, 0, 0, 0, 0, 100000000000 /*10 000km*/, 72169888 /*wrpc   (+) alpha*/);
+
+	wr_delay_ms_cal(ppi,s, 0, 0, 0, 0, 10000        /*1m*/      ,-73685416 /*wrpc   (-) alpha*/);
+	wr_delay_ms_cal(ppi,s, 0, 0, 0, 0, 10000000     /*1 km*/    ,-73685416 /*wrpc   (-) alpha*/);
+	wr_delay_ms_cal(ppi,s, 0, 0, 0, 0, 100000000    /*10km*/    ,-73685416 /*wrpc   (-) alpha*/);
+	wr_delay_ms_cal(ppi,s, 0, 0, 0, 0, 10000000000  /*1 000km*/ ,-73685416 /*wrpc   (-) alpha*/);
+	wr_delay_ms_cal(ppi,s, 0, 0, 0, 0, 100000000000 /*10 000km*/,-73685416 /*wrpc   (-) alpha*/);
+
+	
+	/** my fake calculations for HA */
+	// negative
+	delayCoeff_pos = 1235332333756144;
+	delayCoeff_neg = (delayCoeff_pos/(((int64_t)1<<62) +delayCoeff_pos))<<62;
+	
+	ha_delay_ms_cal(ppi,s, 0, 0, 0, 0, 10000        /*1m*/      , 1235332333756144 /*switch (+) delayCoeff*/);
+	ha_delay_ms_cal(ppi,s, 0, 0, 0, 0, 10000000     /*1 km*/    , 1235332333756144 /*switch (+) delayCoeff*/);
+	ha_delay_ms_cal(ppi,s, 0, 0, 0, 0, 100000000    /*10km*/    , 1235332333756144 /*switch (+) delayCoeff*/);
+	ha_delay_ms_cal(ppi,s, 0, 0, 0, 0, 10000000000  /*1 000km*/ , 1235332333756144 /*switch (+) delayCoeff*/);
+	ha_delay_ms_cal(ppi,s, 0, 0, 0, 0, 100000000000 /*10 000km*/, 1235332333756144 /*switch (+) delayCoeff*/);
+
+	ha_delay_ms_cal(ppi,s, 0, 0, 0, 0, 10000        /*1m*/      ,-1235001513901056 /*switch (-) delayCoeff*/);
+	ha_delay_ms_cal(ppi,s, 0, 0, 0, 0, 10000000     /*1 km*/    ,-1235001513901056 /*switch (-) delayCoeff*/);
+	ha_delay_ms_cal(ppi,s, 0, 0, 0, 0, 100000000    /*10km*/    ,-1235001513901056 /*switch (-) delayCoeff*/);
+	ha_delay_ms_cal(ppi,s, 0, 0, 0, 0, 10000000000  /*1 000km*/ ,-1235001513901056 /*switch (-) delayCoeff*/);
+	ha_delay_ms_cal(ppi,s, 0, 0, 0, 0, 100000000000 /*10 000km*/,-1235001513901056 /*switch (-) delayCoeff*/);
+
+	ha_delay_ms_cal(ppi,s, 0, 0, 0, 0, 10000        /*1m*/      , delayCoeff_neg   /*switch (-) delayCoeff*/);
+	ha_delay_ms_cal(ppi,s, 0, 0, 0, 0, 10000000     /*1 km*/    , delayCoeff_neg   /*switch (-) delayCoeff*/);
+	ha_delay_ms_cal(ppi,s, 0, 0, 0, 0, 100000000    /*10km*/    , delayCoeff_neg   /*switch (-) delayCoeff*/);
+	ha_delay_ms_cal(ppi,s, 0, 0, 0, 0, 10000000000  /*1 000km*/ , delayCoeff_neg   /*switch (-) delayCoeff*/);
+	ha_delay_ms_cal(ppi,s, 0, 0, 0, 0, 100000000000 /*10 000km*/, delayCoeff_neg   /*switch (-) delayCoeff*/);
+	
+	/** my fake calculations for HA-dirty-impl */
+
+       pp_diag(ppi, servo, 1, "ML\nML\n ML ============= UGLY HA imp (+)  ============= \nML\nML\nML");
+	alpha_ha           =  ((double)delayCoeff_pos)/(double)pow(2.0, 62.0);
+	port_fix_alpha_ha  =  (double)pow(2.0, 40.0) * ((alpha_ha + 1.0) / (alpha_ha + 2.0) - 0.5);
+	pp_diag(ppi, servo, 1, "ML:        alpha = %lld * e-10 from delayCoeff = %lld\n",
+		(long long)(alpha_ha*(int64_t)10000000000), (long long)delayCoeff_pos );
+	
+	wr_delay_ms_cal(ppi,s, 0, 0, 0, 0, 10000        /*1m*/      , port_fix_alpha_ha /*switch (+) alpha*/);
+	wr_delay_ms_cal(ppi,s, 0, 0, 0, 0, 10000000     /*1 km*/    , port_fix_alpha_ha /*switch (+) alpha*/);
+	wr_delay_ms_cal(ppi,s, 0, 0, 0, 0, 100000000    /*10km*/    , port_fix_alpha_ha /*switch (+) alpha*/);
+	wr_delay_ms_cal(ppi,s, 0, 0, 0, 0, 10000000000  /*1 000km*/ , port_fix_alpha_ha /*switch (+) alpha*/);
+	wr_delay_ms_cal(ppi,s, 0, 0, 0, 0, 100000000000 /*10 000km*/, port_fix_alpha_ha /*switch (+) alpha*/);
+
+	pp_diag(ppi, servo, 1, "ML\nML\n ML ============= UGLY HA imp (+)  ============= \nML\nML\nML");
+	delayCoeff_neg     = -1235001513901056;
+	alpha_ha           = ((double)delayCoeff_neg)/(double)pow(2.0, 62.0);
+	port_fix_alpha_ha  =  (double)pow(2.0, 40.0) * ((alpha_ha + 1.0) / (alpha_ha + 2.0) - 0.5);
+	pp_diag(ppi, servo, 1, "ML:        alpha = %lld * e-10 from delayCoeff = %lld\n",
+		(long long)(alpha_ha*(int64_t)10000000000), (long long)delayCoeff_neg );
+	
+	wr_delay_ms_cal(ppi,s, 0, 0, 0, 0, 10000        /*1m*/      ,port_fix_alpha_ha /*switch (-) alpha*/);
+	wr_delay_ms_cal(ppi,s, 0, 0, 0, 0, 10000000     /*1 km*/    ,port_fix_alpha_ha /*switch (-) alpha*/);
+	wr_delay_ms_cal(ppi,s, 0, 0, 0, 0, 100000000    /*10km*/    ,port_fix_alpha_ha /*switch (-) alpha*/);
+	wr_delay_ms_cal(ppi,s, 0, 0, 0, 0, 10000000000  /*1 000km*/ ,port_fix_alpha_ha /*switch (-) alpha*/);
+	wr_delay_ms_cal(ppi,s, 0, 0, 0, 0, 100000000000 /*10 000km*/,port_fix_alpha_ha /*switch (-) alpha*/);
+
+	
 	/** compare WR and HA calculations */
-	pp_diag(ppi, servo, 2, "ML: fiber_fix_alpha_wr = %lld\n",(long long)fiber_fix_alpha_wr);
-	pp_diag(ppi, servo, 2, "ML: fiber_fix_alpha_ha = %lld\n",(long long)fiber_fix_alpha_ha);
+	pp_diag(ppi, servo, 2, "ML: fiber_fix_alpha_wr (int64_t) = %lld\n",(long long)fiber_fix_alpha_wr);
+	pp_diag(ppi, servo, 2, "ML: fiber_fix_alpha_wr (int32_t) = %d\n",  (int32_t)fiber_fix_alpha_wr);
+	pp_diag(ppi, servo, 2, "ML: fiber_fix_alpha_ha (int64_t) = %lld\n",(long long)fiber_fix_alpha_ha);
+	pp_diag(ppi, servo, 2, "ML: fiber_fix_alpha_ha (int32_t) = %d\n",  (int32_t)fiber_fix_alpha_ha);
 	
-	pp_diag(ppi, servo, 2, "ML: delay_ms_fix_wr = %lld \n", (long long)delay_ms_fix_wr);
-	pp_diag(ppi, servo, 2, "ML: delay_ms_fix_ha = %lld \n", (long long)delay_ms_fix_ha);
+	pp_diag(ppi, servo, 2, "ML: delay_ms_fix_wr    (int64_t) = %lld \n", (long long)delay_ms_fix_wr);
+	pp_diag(ppi, servo, 2, "ML: delay_ms_fix_ha    (int64_t) = %lld \n", (long long)delay_ms_fix_ha);
 
-	pp_diag(ppi, servo, 2, "ML: ts_offset_wr    = %lld [ps] \n", (long long)ts_offset_ps_wr);
-	pp_diag(ppi, servo, 2, "ML: ts_offset_ha    = %lld [ps] \n", (long long)ts_offset_ps_ha);
+	pp_diag(ppi, servo, 2, "ML: ts_offset_wr       (int64_t) = %lld [ps] \n", (long long)ts_offset_ps_wr);
+	pp_diag(ppi, servo, 2, "ML: ts_offset_ha       (int64_t) = %lld [ps] \n", (long long)ts_offset_ps_ha);
 	
-	dump_timestamp(ppi,    "ML: ts_offset_hw_wr",ts_offset_hw_wr);
-	dump_timestamp(ppi,    "ML: ts_offset_hw_ha",ts_offset_hw_ha);
+	dump_timestamp(ppi,    "ML: ts_offset_hw_wr    (int64_t)",ts_offset_hw_wr);
+	dump_timestamp(ppi,    "ML: ts_offset_hw_ha    (int64_t)",ts_offset_hw_ha);
 
 	/** use either WR or HA */
 // 	*ts_offset_hw = ts_offset_hw_wr;

@@ -48,7 +48,7 @@ static int ha_update_correction_values(struct pp_instance *ppi)
 	uint32_t delta_tx=0;
 	uint32_t delta_rx=0;
 	int32_t fix_alpha=0;
-	int64_t delayCoeff_by_hand_pos, delayCoeff_by_hand_neg, delay_Coeff_from_alpha;
+	int64_t delayCoeff_pos, delayCoeff_neg, delay_Coeff_from_alpha;
 	
 	pp_diag(ppi, ext, 2, "hook: %s -- ext %i\n", __func__, ppi->cfg.ext);
 
@@ -76,20 +76,28 @@ static int ha_update_correction_values(struct pp_instance *ppi)
 	// alpha = 2.6787e-04 = 0.00026787
 	// delayCoefficient = alpha * 2^62 = 1.235332334*10^15 = 1235332334000000
 	// alpha oposite: alpha_oposite = [1/(1+alpha)]-1
-	delayCoeff_by_hand_neg = -1235001513901056;
-	delayCoeff_by_hand_pos =  1235332333756144;
-
+	//delayCoeff_by_hand_pos =  1235332333756144;
+	//delayCoeff_by_hand_neg = -1235001214700021;//calculated from negative alpha
+	//                         -1235001513901056;//this is precise value from matlab
+	delayCoeff_pos = 1235332333756144;
+	delayCoeff_neg = -((delayCoeff_pos)/(((int64_t)1<<62)+delayCoeff_pos)) << 62;
+	
 	pp_diag(ppi, ext, 2, "ML-correction values read from HAL :"
 		"eL=%d [ps], iL=%d [ps], tpL=%d [ps], dA=%d [ps]\n",
 		delta_tx, delta_rx, 0, 0);
-	pp_diag(ppi, ext, 2, "ML-delayCoeff calculated by hand (pos): = %lld\n",
-		(long long)delayCoeff_by_hand_pos);
-	pp_diag(ppi, ext, 2, "ML-delayCoeff calculated by hand (neg): = %lld\n",
-		(long long)delayCoeff_by_hand_neg);
+	pp_diag(ppi, ext, 2, "ML-delayCoeff hardcoded                (pos): = %lld\n",
+		(long long)delayCoeff_pos);
+	pp_diag(ppi, ext, 2, "ML-delayCoeff calculated from positive (neg): = %lld\n",
+		(long long)delayCoeff_neg);
 	pp_diag(ppi, ext, 2, "ML-delayCoeff calculated from alpha   : = %lld\n",
 		(long long)delay_Coeff_from_alpha);
-	
-	ppi->asymCorrDS->delayCoefficient.scaledRelativeDifference = delay_Coeff_from_alpha;
+	pp_diag(ppi, ext, 2, "ML-fixed alpha                        : = %d\n",
+		fix_alpha);
+// 	ppi->asymCorrDS->delayCoefficient.scaledRelativeDifference = delay_Coeff_from_alpha;
+	if(fix_alpha < 0)
+		ppi->asymCorrDS->delayCoefficient.scaledRelativeDifference = delayCoeff_pos;
+	else
+		ppi->asymCorrDS->delayCoefficient.scaledRelativeDifference = delayCoeff_pos;
 	
 	ha_print_correction_values(ppi);
 	return 0;

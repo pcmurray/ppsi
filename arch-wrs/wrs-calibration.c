@@ -21,6 +21,7 @@ int wrs_read_calibration_data(struct pp_instance *ppi,
 	/* The following fields come from struct hexp_port_state */
 	uint32_t port_delta_tx, port_delta_rx;
 	int32_t port_fix_alpha;
+	int64_t alpha;
 	
 	p = pp_wrs_lookup_port(ppi->iface_name);
 	if (!p)
@@ -42,9 +43,10 @@ int wrs_read_calibration_data(struct pp_instance *ppi,
 	port_fix_alpha =  (double)pow(2.0, 40.0) *
 		((p->calib.sfp.alpha + 1.0) / (p->calib.sfp.alpha + 2.0)
 		 - 0.5);
-
-	pp_diag(ppi, servo, 1, "deltas: tx=%d, rx=%d\n",
-		port_delta_tx, port_delta_rx);
+	
+	alpha = (int64_t)(p->calib.sfp.alpha*(int64_t)10000000000);
+	pp_diag(ppi, servo, 1, "deltas: tx=%d, rx=%d | alpha=%lld * e-10| %i\n",
+		port_delta_tx, port_delta_rx, (long long)alpha ,p->calib.sfp.alpha);
 
 	if(delta_tx)
 		*delta_tx = port_delta_tx;
