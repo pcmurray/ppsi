@@ -122,9 +122,9 @@ int wr_servo_init(struct pp_instance *ppi)
 			&((struct wr_data *)ppi->ext_data)->servo_state;
 	/* shmem lock */
 	wrs_shm_write(ppsi_head, WRS_SHM_WRITE_BEGIN);
-	/* Determine the alpha coefficient */
-	if (wrp->ops->read_calib_data(ppi, 0, 0,
-		&s->fiber_fix_alpha, &s->clock_period_ps) != WR_HW_CALIB_OK)
+	
+	/* Update correction data in data sets*/
+	if (ha_update_correction_values(ppi) < 0)
 		return -1;
 
 	wrp->ops->enable_timing_output(ppi, 0);
@@ -297,23 +297,15 @@ int ha_delay_ms_cal(struct pp_instance *ppi, struct wr_servo_state *s,
 			TimeInternal *ts_offset_hw, int64_t*ts_offset_ps,
 			int64_t *delay_ms_fix, int64_t *fiber_fix_alpha)
 {
-	int64_t delayCoeff, fiber_fix_alpha_ha, delay_ms_fix_ha, ts_offset_ps_ha;
+	int64_t fix_alpha, delay_ms_fix_ha, ts_offset_ps_ha;
 	TimeInternal ts_offset_ha, ts_offset_hw_ha;
 		// for clarity and convenience
-	#define RD_FR REL_DIFF_FRACBITS   /* = 62*/
-	#define FA_FR FIX_ALPHA_FRACBITS  /* = 40*/
-	delayCoeff = ppi->asymCorrDS->delayCoefficient.scaledRelativeDifference;
-	/** computation of fiber_fixed_alpha directly from delayCoefficient in fix aritmethics:
-	 * fix_alpha = [2^62 + delayCoeff]\[2*2^22 + delayCoeff *2-22] - 2^39 */
-	fiber_fix_alpha_ha = ((((int64_t)1<<62) + delayCoeff)/(((int64_t)1<<23) + (delayCoeff>>40)) - ((int64_t)1<<39));
-	
-	delay_ms_fix_ha = (((int64_t)s->picos_mu * fiber_fix_alpha_ha) >> FIX_ALPHA_FRACBITS) + (s->picos_mu >> 1);
+	fix_alpha       = (int64_t)s->fiber_fix_alpha;
+	delay_ms_fix_ha = (((int64_t)s->picos_mu * fix_alpha) >> FIX_ALPHA_FRACBITS) + (s->picos_mu >> 1);
 
 	ts_offset_ha = ts_add(ts_sub(s->t1, s->t2), picos_to_ts(delay_ms_fix_ha));
 	ts_offset_hw_ha = ts_hardwarize(ts_offset_ha, s->clock_period_ps);
 	ts_offset_ps_ha = ts_to_picos(ts_offset_ha);
-	
-	pp_diag(ppi, servo, 2, "ML: delayCoeff         = %lld\n",(long long)delayCoeff);
 
 	if(delay_ms_fix)
 		*delay_ms_fix= delay_ms_fix_ha;
@@ -322,7 +314,7 @@ int ha_delay_ms_cal(struct pp_instance *ppi, struct wr_servo_state *s,
 	if(ts_offset_ps)
 		*ts_offset_ps=ts_offset_ps_ha;
 	if(fiber_fix_alpha)
-		*fiber_fix_alpha=fiber_fix_alpha_ha;
+		*fiber_fix_alpha=fix_alpha;
 	return 1;
 }
 

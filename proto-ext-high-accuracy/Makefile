@@ -5,4 +5,6 @@ W := proto-ext-whiterabbit
 
 OBJ-y += $D/hooks.o \
 	$D/ha-msg.o \
-	$D/ha-servo.o
+# 	$D/ha-servo.o
+
+OBJ-y += $W/wr-servo.o
