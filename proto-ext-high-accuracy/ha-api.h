@@ -8,7 +8,7 @@
 #define __HAEXT_HA_API_H__
 
 #include <ppsi/lib.h>
-
+#include <math.h>
 /* We are still very dependent on whiterabbit code, so include wr_ops etc */
 #include "../proto-ext-whiterabbit/wr-api.h"
 
@@ -67,25 +67,11 @@ static inline int32_t scaledNs_to_ps(TimeInterval d)
 	return (int32_t)((d.scaledNanoseconds*1000) >> 16);
 }
 
-/* convert from alpha to relativeDifference, the delayCoefficient:
- * - is provided by HW (i.e. HAL) as fractional value with 40 fractional bits
- * - is stored per standard as fractional value with 62 fractional bits
+/* This will need to be removed for WRPC
  */
-static inline RelativeDiff alpha_to_relativeDiff(int32_t alpha)
+static inline double relativeDiff_to_alpha(RelativeDiff rd)
 {
-	RelativeDiff rd; 
-	rd.scaledRelativeDifference = 
-		((((int64_t)alpha) << (REL_DIFF_FRACBITS-FIX_ALPHA_FRACBITS)));
-	return rd;
-}
-
-/* convert from relativeDifference to alpha, the delayCoefficient:
- * - is provided by HW (i.e. HAL) as fractional value with 40 fractional bits
- * - is stored per standard as fractional value with 62 fractional bits
- */
-static inline int32_t relativeDiff_to_alpha(RelativeDiff rd)
-{
-	return (int32_t)(rd.scaledRelativeDifference >> (REL_DIFF_FRACBITS-FIX_ALPHA_FRACBITS));
+	return ((double)rd.scaledRelativeDifference)/(double)pow(2.0, 62.0);
 }
 /**  **************************************************************************************/
 
@@ -126,5 +112,6 @@ int wr_delay_ms_cal(struct pp_instance *ppi, struct wr_servo_state *s,
 int ha_delay_ms_cal(struct pp_instance *ppi, struct wr_servo_state *s,
 			TimeInternal *ts_offset_hw, int64_t*ts_offset_ps,
 			int64_t *delay_ms_fix, int64_t *fiber_fix_alpha);
-
+void ha_print_correction_values(struct pp_instance *ppi);
+int ha_update_correction_values(struct pp_instance *ppi);
 #endif /* __HAEXT_HA_API_H__ */

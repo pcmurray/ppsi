@@ -40,7 +40,7 @@ static struct wr_operations wrs_wr_operations = {
 	.adjust_counters = wrs_adjust_counters,
 	.adjust_phase = wrs_adjust_phase,
 
-	.read_delayCoeff = wrs_read_delayCoeff,
+	.read_corr_data = wrs_read_correction_data,
 	.read_calib_data = wrs_read_calibration_data,
 	.calib_disable = wrs_calibrating_disable,
 	.calib_enable = wrs_calibrating_enable,
@@ -157,7 +157,7 @@ int main(int argc, char **argv)
 
 	ppg->max_links = PP_MAX_LINKS;
 	ppg->global_ext_data = alloc_fn(ppsi_head,
-					sizeof(struct wr_servo_state));
+					sizeof(struct wr_data));
 	/* NOTE: arch_data is not in shmem */
 	ppg->arch_data = malloc( sizeof(struct unix_arch_data));
 	ppg->pp_instances = alloc_fn(ppsi_head,

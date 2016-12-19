@@ -59,7 +59,10 @@ extern void wrs_main_loop(struct pp_globals *ppg);
 extern void wrs_init_ipcserver(struct minipc_ch *ppsi_ch);
 
 /* wrs-calibration.c */
-int wrs_read_delayCoeff(struct pp_instance *ppi, int64_t *delayCoeff);
+int wrs_read_correction_data(struct pp_instance *ppi, int64_t *delayCoeff,
+		int64_t *ingressLatency,   int64_t *egressLatency,
+		int64_t *msgTPointLatency, int64_t *delayAsymmetry,
+		int64_t *fixAlpha,         int32_t *clock_period );
 int wrs_read_calibration_data(struct pp_instance *ppi,
 			      uint32_t *delta_tx, uint32_t *delta_rx,
 			      int32_t *fix_alpha, int32_t *clock_period);
