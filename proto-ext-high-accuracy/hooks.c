@@ -11,14 +11,6 @@ char *ha_l1name[] = {
 	[L1SYNC_UP]		= "L1SYNC_UP",
 };
 
-/* Disgusting helpers to shorten the conditions */
-#define HAS_BITS(what, bits) ((wrp->what & (bits)) == (bits))
-#define SET_BITS(what, bits) (wrp->what |= (bits))
-#define CLR_BITS(what, bits) (wrp->what &= ~(bits))
-#define CONG HA_CONGRUENT
-#define TXCO HA_TX_COHERENT
-#define RXCO HA_RX_COHERENT
-
 void ha_print_correction_values(struct pp_instance *ppi)
 {
 	
@@ -35,6 +27,21 @@ void ha_print_correction_values(struct pp_instance *ppi)
 		(long long)delayCoefficient,
 		(long long)(relativeDiff_to_alpha(ppi->asymCorrDS->delayCoefficient)*(int64_t)10000000000));
 	
+}
+void ha_print_L1Sync_basic_bitmaps(struct pp_instance *ppi, uint8_t configed,
+					uint8_t active, char* text)
+{
+	
+	pp_diag(ppi, ext, 2, "ML: L1Sync %s\n", text);
+	pp_diag(ppi, ext, 2, "ML: \tConfig: TxC=%d RxC=%d Cong=%d Param=%d\n",
+		  ((configed & HA_TX_COHERENT) == HA_TX_COHERENT),
+		  ((configed & HA_RX_COHERENT) == HA_RX_COHERENT),
+		  ((configed & HA_CONGRUENT)   == HA_CONGRUENT),
+		  ((configed & HA_OPT_PARAMS)  == HA_OPT_PARAMS));
+	pp_diag(ppi, ext, 2, "ML: \tActive: TxC=%d RxC=%d Cong=%d\n",
+		  ((active & HA_TX_COHERENT)   == HA_TX_COHERENT),
+		  ((active & HA_RX_COHERENT)   == HA_RX_COHERENT),
+		  ((active & HA_CONGRUENT)     == HA_CONGRUENT));
 }
 /* update DS values of latencies and delay coefficient
  * - these values are provided by HW (i.e. HAL) depending on SFPs, wavelenghts, etc
@@ -80,8 +87,6 @@ static int ha_open(struct pp_globals *ppg, struct pp_runtime_opts *rt_opts)
 /* initialize one specific port */
 static int ha_init(struct pp_instance *ppi, unsigned char *pkt, int plen)
 {
-	struct wr_dsport *wrp = WR_DSPOR(ppi);
-
 	pp_diag(ppi, ext, 2, "hook: %s -- ext %i\n", __func__,
 		ppi->cfg.ext);
 
@@ -96,27 +101,31 @@ static int ha_init(struct pp_instance *ppi, unsigned char *pkt, int plen)
 		ppi->cfg.ext = PPSI_EXT_HA;
 	}
 #endif
+	// init configurable data set members with proper confg values
+	ppi->L1BasicDS->L1SyncEnabled            = 1;
+	ppi->L1BasicDS->txCoherentConfigured     = 1;
+	ppi->L1BasicDS->rxCoherentConfigured     = 1;
+	ppi->L1BasicDS->congruentConfigured      = 1;
+	ppi->L1BasicDS->optParamsEnabled         = 0;
+	ppi->L1BasicDS->logL1SyncInterval        = 0;
+	ppi->L1BasicDS->L1SyncReceiptTimeout     = HA_DEFAULT_L1SYNCRECEIPTTIMEOUT;
+	// init dynamic data set members with zeros/defaults
+	ppi->L1BasicDS->L1SyncLinkAlive          = 0;
+	ppi->L1BasicDS->txCoherentActive         = 0;
+	ppi->L1BasicDS->rxCoherentActive         = 0;
+	ppi->L1BasicDS->congruentActive          = 0;
+	ppi->L1BasicDS->L1SyncState              = L1SYNC_DISABLED;
+	ppi->L1BasicDS->peerTxCoherentConfigured = 0;
+	ppi->L1BasicDS->peerRxCoherentConfigured = 0;
+	ppi->L1BasicDS->peerCongruentConfigured  = 0;
+	ppi->L1BasicDS->peerTxCoherentActive     = 0;
+	ppi->L1BasicDS->peerRxCoherentActive     = 0;
+	ppi->L1BasicDS->peerCongruentActive      = 0;
+	
+// 	wrp->logL1SyncInterval                   = 0;/* Once per second. Average? */
+// 	wrp->L1SyncInterval = 4 << (wrp->logL1SyncInterval + 8);
+// 	wrp->L1SyncReceiptTimeout = HA_DEFAULT_L1SYNCRECEIPTTIMEOUT;
 
-
-	wrp->logL1SyncInterval = 0;	/* Once per second. Average? */
-	wrp->L1SyncInterval = 4 << (wrp->logL1SyncInterval + 8);
-	wrp->L1SyncReceiptTimeout = HA_DEFAULT_L1SYNCRECEIPTTIMEOUT;
-
-	/*
-	 * It looks like we can't check cfg.ext at init time
-	 * because the value can change at run time (pity me). So
-	 * go disabled, which will then clear all bits at 1st iteration
-	 */
-	wrp->L1SyncState = L1SYNC_DISABLED; /* Changed later */
-
-	/*
-	 * It looks like the braindead specification wants these to eb
-	 * changed by management, but never by the state machine. So
-	 * even if disabled I have this configuration, that for us is
-	 * always 111 (clearly tx and rx are undistinguishable or nothing
-	 * will work in the implementation (we compare tx with peer-tx)
-	 */
-	SET_BITS(ha_conf, CONG | TXCO | RXCO);
 	return 0;
 }
 
@@ -124,21 +133,29 @@ static int ha_init(struct pp_instance *ppi, unsigned char *pkt, int plen)
 static int ha_handle_signaling(struct pp_instance * ppi,
 			       unsigned char *pkt, int plen)
 {
-	struct wr_dsport *wrp = WR_DSPOR(ppi);
 	int to_rx;
 
 	pp_diag(ppi, ext, 2, "hook: %s (%i:%s) -- plen %i\n", __func__,
-		ppi->state, ha_l1name[wrp->L1SyncState], plen);
-
-	to_rx = wrp->L1SyncInterval * wrp->L1SyncReceiptTimeout;
+		ppi->state, ha_l1name[ppi->L1BasicDS->L1SyncState], plen);
+	
+	to_rx = (4 << (ppi->L1BasicDS->logL1SyncInterval + 8)) *
+		ppi->L1BasicDS->L1SyncReceiptTimeout;
 	__pp_timeout_set(ppi, HA_TO_RX, to_rx);
 
-	wrp->ha_link_ok = 1;
+	ppi->L1BasicDS->L1SyncLinkAlive = 1;
 
 	ha_unpack_signal(ppi, pkt, plen);
 	return 0;
 }
 
+uint8_t ha_L1Sync_creat_bitmask(int tx_coh, int rx_coh, int congru)
+{
+	uint8_t outputMask=0;
+	if(tx_coh) outputMask |= HA_TX_COHERENT;
+	if(rx_coh) outputMask |= HA_RX_COHERENT;
+	if(congru) outputMask |= HA_CONGRUENT;
+	return outputMask;
+}
 /*
  * This hook is called by most states (master/slave etc) to do stuff
  * and send signalling messages; it returns the ext-specific timeout value
@@ -148,11 +165,12 @@ static int ha_calc_timeout(struct pp_instance *ppi)
 	struct wr_dsport *wrp = WR_DSPOR(ppi);
 	int to_tx, do_xmit = 0;
 	int config_ok, state_ok;
+	uint8_t local_config, peer_config, local_active, peer_active;
 
-	pp_diag(ppi, ext, 2, "hook: %s (%i:%s)\n", __func__,
-		ppi->state, ha_l1name[wrp->L1SyncState]);
+	pp_diag(ppi, ext, 2, "ML: enter L1Sync with state %s and LinkActive = %d \n",
+		  ha_l1name[ppi->L1BasicDS->L1SyncState], ppi->L1BasicDS->L1SyncLinkAlive);
 
-	to_tx = wrp->L1SyncInterval; /* randomize? */
+	to_tx = 4 << (ppi->L1BasicDS->logL1SyncInterval + 8);
 
 	if (ppi->is_new_state) { /* sth changed (or beginning of the world) */
 		do_xmit = 1;
@@ -161,7 +179,7 @@ static int ha_calc_timeout(struct pp_instance *ppi)
 		 * we clear RX_COHERENT. And unlock the pll just to be sure.
 		 */
 		if (ppi->state == PPS_MASTER) {
-			CLR_BITS(ha_active, RXCO);
+			ppi->L1BasicDS->rxCoherentActive = 0;
 			wrp->ops->locking_disable(ppi);
 		}
 	}
@@ -171,72 +189,94 @@ static int ha_calc_timeout(struct pp_instance *ppi)
 		do_xmit = 1;
 
 	/* If we stopped receiving go back */
-	if (wrp->ha_link_ok && pp_timeout(ppi, HA_TO_RX)) {
-		wrp->ha_link_ok = 0;
-		wrp->L1SyncState = L1SYNC_IDLE;
-		wrp->ha_peer_conf = wrp->ha_peer_active = 0;
+	if (ppi->L1BasicDS->L1SyncLinkAlive && pp_timeout(ppi, HA_TO_RX)) {
+		ppi->L1BasicDS->L1SyncLinkAlive = 0;
+		ppi->L1BasicDS->L1SyncState     = L1SYNC_IDLE;
+		ppi->L1BasicDS->txCoherentActive         = 0;
+		ppi->L1BasicDS->rxCoherentActive         = 0;
+		ppi->L1BasicDS->congruentActive          = 0;
+		ppi->L1BasicDS->peerTxCoherentActive     = 0;
+		ppi->L1BasicDS->peerRxCoherentActive     = 0;
+		ppi->L1BasicDS->peerCongruentActive      = 0;
 		if (ppi->state == PPS_SLAVE)
 			wrp->ops->locking_disable(ppi);
 		do_xmit = 1;
 	}
 	/* From any state, if now disabled, disable */
 	if (ppi->cfg.ext != PPSI_EXT_HA)
-		wrp->L1SyncState = L1SYNC_DISABLED;
+		ppi->L1BasicDS->L1SyncState = L1SYNC_DISABLED;
 
 	/* Always check the pll status, whether or not we turned it on */
-	if (ppi->state == PPS_SLAVE  && HAS_BITS(ha_conf, CONG)) {
+	if (ppi->state == PPS_SLAVE  && ppi->L1BasicDS->congruentConfigured == 1) {
 		if (wrp->ops->locking_poll(ppi, 0) == WR_SPLL_READY) {
 			/* we could just set, but detect edge to report it */
-			if (!HAS_BITS(ha_active, RXCO)) {
+			if (ppi->L1BasicDS->rxCoherentActive == 0) {
 				pp_diag(ppi, ext, 1, "PLL is locked\n");
 				do_xmit = 1;
 			}
-			SET_BITS(ha_active, RXCO);
+			ppi->L1BasicDS->rxCoherentActive = 1;
 		} else {
-			CLR_BITS(ha_active, RXCO);
+			ppi->L1BasicDS->rxCoherentActive = 0;
 		}
 	}
 	/* Similarly, always upgrade master's active according to the slave */
-	if (ppi->state == PPS_MASTER && HAS_BITS(ha_conf, CONG)) {
-		if (HAS_BITS(ha_peer_active, RXCO | TXCO)
-		    &&
-		    HAS_BITS(ha_active, TXCO)) {
+	if (ppi->state == PPS_MASTER && ppi->L1BasicDS->congruentConfigured == 1) {
+		if (ppi->L1BasicDS->peerTxCoherentActive == 1 &&
+		    ppi->L1BasicDS->peerRxCoherentActive == 1 &&
+		    ppi->L1BasicDS->txCoherentActive     == 1) {
 			/* peer is both and I am tx -- so I am rx too */
-			SET_BITS(ha_active, RXCO);
+			ppi->L1BasicDS->rxCoherentActive = 1;
 		} else {
-			CLR_BITS(ha_active, RXCO);
+			ppi->L1BasicDS->rxCoherentActive = 1;
 		}
 	}
-
+	
+	// create bit masks
+	local_config = ha_L1Sync_creat_bitmask(ppi->L1BasicDS->txCoherentConfigured,
+	                                       ppi->L1BasicDS->rxCoherentConfigured,
+	                                       ppi->L1BasicDS->congruentConfigured);
+	peer_config  = ha_L1Sync_creat_bitmask(ppi->L1BasicDS->peerTxCoherentConfigured,
+	                                       ppi->L1BasicDS->peerRxCoherentConfigured,
+	                                       ppi->L1BasicDS->peerCongruentConfigured);
+	local_active = ha_L1Sync_creat_bitmask(ppi->L1BasicDS->txCoherentActive,
+	                                       ppi->L1BasicDS->rxCoherentActive,
+	                                       ppi->L1BasicDS->congruentActive);
+	peer_active  = ha_L1Sync_creat_bitmask(ppi->L1BasicDS->peerTxCoherentActive,
+	                                       ppi->L1BasicDS->peerRxCoherentActive,
+	                                       ppi->L1BasicDS->peerCongruentActive);
+	
+	ha_print_L1Sync_basic_bitmaps(ppi, local_config,local_active, "Local (ex optParam)");
+	ha_print_L1Sync_basic_bitmaps(ppi, local_config,local_active, "Peer  (ex optParam)");
 	/*
 	 * L1 state machine; calculate what trigger state changes
 	 */
-	config_ok = (wrp->ha_conf == wrp->ha_peer_conf); /* conf must match */
+	config_ok = (local_config == peer_config); /* conf must match */
 
 	/* For state, if bits in conf are 0, we don't care about bits in act */
-	state_ok = (wrp->ha_conf & wrp->ha_active & wrp->ha_peer_active)
-		== wrp->ha_conf; /* if in conf, it must be in both act */
+	state_ok = (local_config & local_active& peer_active)
+		== local_config; /* if in conf, it must be in both act */
 
-	switch(wrp->L1SyncState) {
+	switch(ppi->L1BasicDS->L1SyncState) {
 
 	case L1SYNC_DISABLED: /* Likely beginning of the world, or new cfg */
 		wrp->wrModeOn = 0;
-		wrp->ha_active = 0;
+		ppi->L1BasicDS->L1SyncLinkAlive = 0;
 		do_xmit = 0;
 		if (ppi->cfg.ext != PPSI_EXT_HA)
 			break;
 
-		wrp->L1SyncState = L1SYNC_IDLE;
+		ppi->L1BasicDS->L1SyncState = L1SYNC_IDLE;
 		do_xmit = 1;
 		/* and fall through */
 
 	case L1SYNC_IDLE: /* If verified to be direct and active... */
 		wrp->wrModeOn = 0;
-		if (!wrp->ha_link_ok)
+		if (!ppi->L1BasicDS->L1SyncLinkAlive)
 			break;
 
-		wrp->L1SyncState = L1SYNC_LINK_ALIVE;
-		SET_BITS(ha_active, CONG | TXCO);
+		ppi->L1BasicDS->L1SyncState      = L1SYNC_LINK_ALIVE;
+		ppi->L1BasicDS->txCoherentActive = 1;
+		ppi->L1BasicDS->congruentActive  = 1;
 		/* and fall through */
 
 	case L1SYNC_LINK_ALIVE: /* Check cfg: start locking if ok */
@@ -246,23 +286,23 @@ static int ha_calc_timeout(struct pp_instance *ppi)
 			break; /* remain in alive, don't proceed */
 
 		/* configuration matches, so the slave must lock */
-		if (ppi->state == PPS_SLAVE && HAS_BITS(ha_conf, CONG)) {
+		if (ppi->state == PPS_SLAVE && ppi->L1BasicDS->congruentConfigured == 1) {
 			pp_diag(ppi, ext, 1, "Locking PLL\n");
 			wrp->ops->locking_enable(ppi);
 		}
 
 		/* master or slave: proceed to match */
-		wrp->L1SyncState = L1SYNC_CONFIG_MATCH;
+		ppi->L1BasicDS->L1SyncState= L1SYNC_CONFIG_MATCH;
 
 	case L1SYNC_CONFIG_MATCH:
 		if (!config_ok) { /* config_ok set above */
-			wrp->L1SyncState = L1SYNC_LINK_ALIVE;
+			ppi->L1BasicDS->L1SyncState = L1SYNC_LINK_ALIVE;
 			break;
 		}
 		if (!state_ok) /* state_ok set above, after polling */
 			break;
 
-		wrp->L1SyncState = L1SYNC_UP;
+		ppi->L1BasicDS->L1SyncState = L1SYNC_UP;
 		ha_update_correction_values(ppi);
 		// Do what was done in WR LINK ON: 
 		wrp->wrModeOn = TRUE;
@@ -389,10 +429,8 @@ static int ha_handle_followup(struct pp_instance *ppi,
 			      TimeInternal *precise_orig_timestamp,
 			      TimeInternal *correction_field)
 {
-	struct wr_dsport *wrp = WR_DSPOR(ppi);
-
 	pp_diag(ppi, ext, 2, "hook: %s\n", __func__);
-	if (wrp->L1SyncState != L1SYNC_UP)
+	if (ppi->L1BasicDS->L1SyncState  != L1SYNC_UP)
 		return 0;
 
 	precise_orig_timestamp->phase = 0;

@@ -51,18 +51,6 @@ struct wr_dsport {
 	Boolean doRestart;
 	Boolean linkUP;
 
-	/*
-	 * Following fields added for HA support
-	 */
-	int ha_link_ok; /* we received sth */
-
-	/* The following 4 replace "txCoherentConfigured" and friends */
-	uint8_t ha_conf, ha_active, ha_peer_conf, ha_peer_active;
-
-	Enumeration8 L1SyncState;
-	int L1SyncInterval;  /* mean time, according to what metrics? */
-	int logL1SyncInterval; /* O.5.2.5: log of above field in seconds */
-	int L1SyncReceiptTimeout; /* a number of intervals above: 3 or more */
 };
 
 /* This uppercase name matches "DSPOR(ppi)" used by standard protocol */

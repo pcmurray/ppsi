@@ -33,6 +33,7 @@
 #define HA_TX_COHERENT	0x01
 #define HA_RX_COHERENT	0x02
 #define HA_CONGRUENT	0x04
+#define HA_OPT_PARAMS	0x08
 
 enum l1_sync_states { /*draft P1588_v_29: page 334 */
 	__L1SYNC_MISSING = 0, /* my addition... */ //TODO: std-error->report in ballout
@@ -114,4 +115,7 @@ int ha_delay_ms_cal(struct pp_instance *ppi, struct wr_servo_state *s,
 			int64_t *delay_ms_fix, int64_t *fiber_fix_alpha);
 void ha_print_correction_values(struct pp_instance *ppi);
 int ha_update_correction_values(struct pp_instance *ppi);
+uint8_t ha_L1Sync_creat_bitmask(int tx_coh, int rx_coh, int congru);
+void ha_print_L1Sync_basic_bitmaps(struct pp_instance *ppi,
+			uint8_t configed, uint8_t active, char* text);
 #endif /* __HAEXT_HA_API_H__ */
