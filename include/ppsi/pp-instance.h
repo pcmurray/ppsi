@@ -166,6 +166,8 @@ struct pp_instance {
 	/** (IEEE1588-2018) */
 	DSAsymmetryCorrection *asymCorrDS; /*draft P1588_v_29: page 99*/
 	DSTimestampCorrection *tstampCorrDS; /*draft P1588_v_29: page 99*/
+	DSL1SyncBasic *L1BasicDS;  /*draft P1588_v_29: page 100 and 333-335 */
+	DSL1SyncOptParams *L1OptParamsDS;/*draft P1588_v_29: page 101 and 340-341  */
 	/** *********************** */
 
 	unsigned long timeouts[__PP_TO_ARRAY_SIZE];

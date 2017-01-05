@@ -210,8 +210,13 @@ int main(int argc, char **argv)
 		ppi->port_name = ppi->cfg.port_name;
 		ppi->mech = ppi->cfg.mech;
 		ppi->portDS = calloc(1, sizeof(*ppi->portDS));
-		ppi->asymCorrDS = calloc(1, sizeof(*ppi->asymCorrDS));
+		
+		/** probably this should go into a new ext_init() hook*/
+		ppi->asymCorrDS   = calloc(1, sizeof(*ppi->asymCorrDS));
 		ppi->tstampCorrDS = calloc(1, sizeof(*ppi->tstampCorrDS));
+		ppi->L1BasicDS    = calloc(1, sizeof(*ppi->L1BasicDS));
+		ppi->L1OptParamsDS= calloc(1, sizeof(*ppi->L1OptParamsDS));
+		/** ***************************************************/
 		extds = calloc(1, sizeof(struct wr_dsport));
 		if (!ppi->portDS || !extds) {
 			fprintf(stderr, "ppsi: out of memory\n");
