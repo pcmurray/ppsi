@@ -49,6 +49,20 @@ static int run_all_state_machines(struct pp_globals *ppg)
 			pp_diag(ppi, fsm, 1, "iface %s went %s\n",
 				ppi->iface_name, WR_DSPOR(ppi)->linkUP ? "up":"down");
 
+			/** ML: This is completely wrong !!! to be changed
+			 * - INITIALIZING state should be only when switch/ppsi starts
+			 * - all the stuff that is done in initializing that needs to be done
+			 *   after link-up needs to go somewhere ele
+			 * - why do we clean arch_data when link goes down??? IMHO this shoudl
+			 *   not happen
+			 * - the FSM should run on both links: up and down
+			 * - in principle, when link goes down a port should stay in SLAVE
+			 *   state until ANNOUCE_TIMEOUT but I think we could force it into
+			 *   MASTER state ASAP. Note: this is desired in WR/HA but not in a 
+			 *   standard PTP. It seems made on purpose to ingore link down event
+			 *   and maintain SLAVE state - this is to avoid thrashing whan linkdown
+			 *   is very short.
+			 */
 			if (WR_DSPOR(ppi)->linkUP) {
 				ppi->state = PPS_INITIALIZING;
 			}
@@ -63,7 +77,7 @@ static int run_all_state_machines(struct pp_globals *ppg)
 
 		/* Do not call state machine if link is down */
 		if (WR_DSPOR(ppi)->linkUP)
-			delay_ms_j = pp_state_machine(ppi, NULL, 0);
+			delay_ms_j = pp_state_machine(ppi, NULL, 0); /** ML always execut */
 		else
 			delay_ms_j = PP_DEFAULT_NEXT_DELAY_MS;
 
