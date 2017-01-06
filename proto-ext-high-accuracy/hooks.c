@@ -164,15 +164,14 @@ static int ha_calc_timeout(struct pp_instance *ppi)
 {
 	struct wr_dsport *wrp = WR_DSPOR(ppi);
 	int to_tx, do_xmit = 0;
-	int config_ok, state_ok;
+	int config_ok, state_ok, link_ok, l1_sync_enabled, l1_sync_reset;
 	uint8_t local_config, peer_config, local_active, peer_active;
 
 	pp_diag(ppi, ext, 2, "ML: enter L1Sync with state %s and LinkActive = %d \n",
 		  ha_l1name[ppi->L1BasicDS->L1SyncState], ppi->L1BasicDS->L1SyncLinkAlive);
 
-	to_tx = 4 << (ppi->L1BasicDS->logL1SyncInterval + 8);
-
-	if (ppi->is_new_state) { /* sth changed (or beginning of the world) */
+	/* L1 needs to follow PTP FSM when congruent */
+	if (ppi->is_new_state && ppi->L1BasicDS->congruentConfigured == 1) {
 		do_xmit = 1;
 		/*
 		 * There is one special case: if we are a _new_ master,
@@ -183,28 +182,16 @@ static int ha_calc_timeout(struct pp_instance *ppi)
 			wrp->ops->locking_disable(ppi);
 		}
 	}
-
-	/* If TX time expired, transmit */
-	if (pp_timeout(ppi, HA_TO_TX))
-		do_xmit = 1;
-
+	
+	/** *************** Update of dynamic data set members ****************/
+	/* Check whether signaling messages are still recevied*/
 	/* If we stopped receiving go back */
 	if (ppi->L1BasicDS->L1SyncLinkAlive && pp_timeout(ppi, HA_TO_RX)) {
 		ppi->L1BasicDS->L1SyncLinkAlive = 0;
-		ppi->L1BasicDS->L1SyncState     = L1SYNC_IDLE;
-		ppi->L1BasicDS->txCoherentActive         = 0;
-		ppi->L1BasicDS->rxCoherentActive         = 0;
-		ppi->L1BasicDS->congruentActive          = 0;
-		ppi->L1BasicDS->peerTxCoherentActive     = 0;
-		ppi->L1BasicDS->peerRxCoherentActive     = 0;
-		ppi->L1BasicDS->peerCongruentActive      = 0;
 		if (ppi->state == PPS_SLAVE)
 			wrp->ops->locking_disable(ppi);
 		do_xmit = 1;
 	}
-	/* From any state, if now disabled, disable */
-	if (ppi->cfg.ext != PPSI_EXT_HA)
-		ppi->L1BasicDS->L1SyncState = L1SYNC_DISABLED;
 
 	/* Always check the pll status, whether or not we turned it on */
 	if (ppi->state == PPS_SLAVE  && ppi->L1BasicDS->congruentConfigured == 1) {
@@ -212,7 +199,7 @@ static int ha_calc_timeout(struct pp_instance *ppi)
 			/* we could just set, but detect edge to report it */
 			if (ppi->L1BasicDS->rxCoherentActive == 0) {
 				pp_diag(ppi, ext, 1, "PLL is locked\n");
-				do_xmit = 1;
+				do_xmit = 1; //announce as soon as locked, permitted by std
 			}
 			ppi->L1BasicDS->rxCoherentActive = 1;
 		} else {
@@ -227,10 +214,26 @@ static int ha_calc_timeout(struct pp_instance *ppi)
 			/* peer is both and I am tx -- so I am rx too */
 			ppi->L1BasicDS->rxCoherentActive = 1;
 		} else {
-			ppi->L1BasicDS->rxCoherentActive = 1;
+			ppi->L1BasicDS->rxCoherentActive = 0;
 		}
 	}
+	/* By design, when link is up, it is always tx coherent and congruent*/
+	if (WR_DSPOR(ppi)->linkUP){
+		ppi->L1BasicDS->txCoherentActive = 1;
+		ppi->L1BasicDS->congruentActive  = 1;
+	}
+	else {
+		ppi->L1BasicDS->txCoherentActive = 0;
+		ppi->L1BasicDS->congruentActive  = 0;
+	}
 	
+	if(ppi->L1BasicDS->L1SyncState == L1SYNC_DISABLED ||
+		ppi->L1BasicDS->L1SyncState == L1SYNC_IDLE){
+		ppi->L1BasicDS->peerTxCoherentActive     = 0;
+		ppi->L1BasicDS->peerRxCoherentActive     = 0;
+		ppi->L1BasicDS->peerCongruentActive      = 0;
+	}
+	/** ***************** create bit masks (to make things easier)******************/
 	// create bit masks
 	local_config = ha_L1Sync_creat_bitmask(ppi->L1BasicDS->txCoherentConfigured,
 	                                       ppi->L1BasicDS->rxCoherentConfigured,
@@ -247,22 +250,36 @@ static int ha_calc_timeout(struct pp_instance *ppi)
 	
 	ha_print_L1Sync_basic_bitmaps(ppi, local_config,local_active, "Local (ex optParam)");
 	ha_print_L1Sync_basic_bitmaps(ppi, local_config,local_active, "Peer  (ex optParam)");
+	
+	/** ******** state transition variables (table 140) ****************/
 	/*
 	 * L1 state machine; calculate what trigger state changes
 	 */
-	config_ok = (local_config == peer_config); /* conf must match */
+	l1_sync_enabled = (ppi->cfg.ext == PPSI_EXT_HA) &&
+				  (ppi->L1BasicDS->L1SyncEnabled == 1);
+	link_ok         = (ppi->L1BasicDS->L1SyncLinkAlive == 1);
+	config_ok       = (local_config == peer_config); /* conf must match */
+	state_ok        = (local_config & local_active & peer_active)
+				  == local_config; /* if in conf, it must be in both act */
+	l1_sync_reset   = (WR_DSPOR(ppi)->linkUP == 0);
 
-	/* For state, if bits in conf are 0, we don't care about bits in act */
-	state_ok = (local_config & local_active& peer_active)
-		== local_config; /* if in conf, it must be in both act */
+	/** ***************** state machine (Figure 62)******************/
+	/* transmissions from any state*/
+	if (!l1_sync_enabled || l1_sync_reset)
+		ppi->L1BasicDS->L1SyncState = L1SYNC_DISABLED;
 
+	if (!link_ok)
+		ppi->L1BasicDS->L1SyncState = L1SYNC_IDLE;
+	
+	/*state machine*/
 	switch(ppi->L1BasicDS->L1SyncState) {
 
 	case L1SYNC_DISABLED: /* Likely beginning of the world, or new cfg */
-		wrp->wrModeOn = 0;
-		ppi->L1BasicDS->L1SyncLinkAlive = 0;
+		//TODO: remove this dependency on WR
+		wrp->wrModeOn       = 0;
+		wrp->parentWrModeOn = 0;
 		do_xmit = 0;
-		if (ppi->cfg.ext != PPSI_EXT_HA)
+		if (l1_sync_enabled==0)
 			break;
 
 		ppi->L1BasicDS->L1SyncState = L1SYNC_IDLE;
@@ -270,43 +287,52 @@ static int ha_calc_timeout(struct pp_instance *ppi)
 		/* and fall through */
 
 	case L1SYNC_IDLE: /* If verified to be direct and active... */
-		wrp->wrModeOn = 0;
-		if (!ppi->L1BasicDS->L1SyncLinkAlive)
+		//TODO: remove this dependency on WR
+		wrp->wrModeOn       = 0;
+		wrp->parentWrModeOn = 0;
+		if (link_ok==0)
 			break;
 
 		ppi->L1BasicDS->L1SyncState      = L1SYNC_LINK_ALIVE;
-		ppi->L1BasicDS->txCoherentActive = 1;
-		ppi->L1BasicDS->congruentActive  = 1;
 		/* and fall through */
 
 	case L1SYNC_LINK_ALIVE: /* Check cfg: start locking if ok */
+		//TODO: remove this dependency on WR
+		wrp->wrModeOn       = 0;
+		wrp->parentWrModeOn = 0;
 		if (!config_ok)
 			break;
-		if (ppi->state != PPS_SLAVE && ppi->state != PPS_MASTER)
-			break; /* remain in alive, don't proceed */
-
-		/* configuration matches, so the slave must lock */
-		if (ppi->state == PPS_SLAVE && ppi->L1BasicDS->congruentConfigured == 1) {
-			pp_diag(ppi, ext, 1, "Locking PLL\n");
-			wrp->ops->locking_enable(ppi);
-		}
 
 		/* master or slave: proceed to match */
 		ppi->L1BasicDS->L1SyncState= L1SYNC_CONFIG_MATCH;
 
 	case L1SYNC_CONFIG_MATCH:
+		//TODO: remove this dependency on WR
+		wrp->wrModeOn       = 0;
+		wrp->parentWrModeOn = 0;
 		if (!config_ok) { /* config_ok set above */
 			ppi->L1BasicDS->L1SyncState = L1SYNC_LINK_ALIVE;
 			break;
 		}
+		
+		/* apply the config, which means lock on slave, do nothing on master */
+		if (ppi->state == PPS_SLAVE && ppi->L1BasicDS->congruentConfigured == 1 &&
+			ppi->L1BasicDS->rxCoherentActive==0) {
+			pp_diag(ppi, ext, 1, "Locking PLL\n");
+			wrp->ops->locking_enable(ppi);
+		}
+		if (ppi->state == PPS_MASTER && ppi->L1BasicDS->congruentConfigured == 1) {
+			wrp->ops->locking_disable(ppi);
+		}
+		
 		if (!state_ok) /* state_ok set above, after polling */
 			break;
 
 		ppi->L1BasicDS->L1SyncState = L1SYNC_UP;
+		//TODO: remove this dependency on WR
+		wrp->wrModeOn       = 1;
+		wrp->parentWrModeOn = 1;
 		ha_update_correction_values(ppi);
-		// Do what was done in WR LINK ON: 
-		wrp->wrModeOn = TRUE;
-		wrp->parentWrModeOn = TRUE;
 		wrp->ops->enable_ptracker(ppi);
 		/* and fall through */
 
@@ -322,14 +348,20 @@ static int ha_calc_timeout(struct pp_instance *ppi)
 		break;
 	}
 
-	if (do_xmit) {/* transmitting is simple */
+	/** ***************** Transmit L1_SYNC_TLV******************/
+	/* If neededy by implemenation above or when TX time expired, transmit */
+	if (pp_timeout(ppi, HA_TO_TX))
+		do_xmit = 1;
+	
+	if (ppi->L1BasicDS->L1SyncState != L1SYNC_DISABLED && do_xmit == 1) {/* transmitting is simple */
 		int len;
 
 		pp_diag(ppi, ext, 1, "Sending signaling msg\n");
 		len = ha_pack_signal(ppi);
 		/* FIXME: check the destination MAC address */
 		__send_and_log(ppi, len, PP_NP_GEN);
-
+		
+		to_tx = 4 << (ppi->L1BasicDS->logL1SyncInterval + 8);
 		__pp_timeout_set(ppi, HA_TO_TX, to_tx); /* loop ever since */
 	}
 
