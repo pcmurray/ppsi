@@ -190,9 +190,42 @@ static int bmc_dataset_cmp(struct pp_instance *ppi,
 static int bmc_state_decision(struct pp_instance *ppi,
 							  struct pp_frgn_master *m)
 {
-	int cmpres, ret;
+	int cmpres, ret, isSlavePort,i;
 	struct pp_frgn_master myself;
 
+	/* check whether the decision of BMCA should be considered, i.e. whether
+	 * external port configuration optional feature (clause 17.6) is enabled.
+	 * The external state configuration is not permitted on PTP Ports that are
+	 * slaveOnly and masterOnly ports (see 17.6.1) */
+	if(DSDEF(ppi)->externalPortConfiguration == 1 && DSDEF(ppi)->slaveOnly==0 && 
+		      ppi->portDS->masterOnly==0){
+		cmpres=0;
+
+		if (ppi->role == PPSI_ROLE_SLAVE)
+			goto slave;
+		
+		/* if the port is in configured other than slave, the type of data set 
+		 * update depends on whether there is any port in the BC configured to be
+		 * slave. 
+		 * Note: we actually check whether there is any port in slave state, which 
+		 * means that this port has received announce message(s) and thus updated
+		 * the data set of this BC. If this port has not received any announce messge,
+		 * the data set would be empty and that would be a problem.
+		 * 
+		 * If the port is a master and there is no slave ports (or the port configured
+		 * to be slave has not received announce), the data sets are updated as on 
+		 * Grandmaster (i.e. the switch announces its own attributes) */
+		isSlavePort = 0;
+		for (i = 0; i < GLBS(ppi)->nlinks; i++) {
+			if(INST(GLBS(ppi), i)->state == PPS_SLAVE)
+				isSlavePort=1;
+		}
+	  
+		if (ppi->role == PPSI_ROLE_MASTER){
+			goto master;
+		}
+	}
+	
 	if (ppi->role == PPSI_ROLE_SLAVE)
 		goto slave;
 
@@ -214,6 +247,7 @@ static int bmc_state_decision(struct pp_instance *ppi,
 		if (cmpres > 0)
 			goto passive;
 	}
+
 	if (cmpres < 0)
 		goto master;
 	if (cmpres > 0) {
@@ -248,7 +282,7 @@ passive:
 
 master:
 	//TODO: consider whether a smarter solution is needed for non-simple cases
-	if(cmpres < 0) { // it is M1 and M2, see IEEE1588-2008, page 87, in short switch is a GM
+	if(cmpres < 0 || isSlavePort == 0) { // it is M1 and M2, see IEEE1588-2008, page 87, in short switch is a GM
 		m1(ppi); //GM
 		ret = PPS_MASTER;
 	} else
