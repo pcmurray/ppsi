@@ -144,7 +144,7 @@ static void st_com_add_foreign(struct pp_instance *ppi, unsigned char *buf)
 int st_com_slave_handle_announce(struct pp_instance *ppi, unsigned char *buf,
 				 int len)
 {
-	if (len < PP_ANNOUNCE_LENGTH)
+	if (len < PP_ANNOUNCE_LENGTH || ppi->portDS->masterOnly == 1)
 		return -1;
 
 	/* st_com_add_foreign takes care of announce unpacking */
