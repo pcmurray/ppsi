@@ -79,6 +79,14 @@ int ha_update_correction_values(struct pp_instance *ppi)
 /* open is global; called from "pp_init_globals" */
 static int ha_open(struct pp_globals *ppg, struct pp_runtime_opts *rt_opts)
 {
+	int i;
+	ppg->defaultDS->externalPortConfiguration = 1;
+	
+	for (i = 0; i < ppg->nlinks; i++) {
+		struct pp_instance *ppi = INST(ppg, i);
+		ppi->portDS->masterOnly = 0;
+	}
+
 	pp_diag(NULL, ext, 2, "hook: %s -- ext %i\n", __func__,
 		INST(ppg,0)->cfg.ext);
 	return 0;
