@@ -89,7 +89,10 @@ int st_com_execute_slave(struct pp_instance *ppi)
 
 	if (pp_timeout(ppi, PP_TO_ANN_RECEIPT)) {
 		ppi->frgn_rec_num = 0;
-		if (DSDEF(ppi)->clockQuality.clockClass != PP_CLASS_SLAVE_ONLY
+		if (DSDEF(ppi)->externalPortConfiguration == 1 && 
+		      DSDEF(ppi)->slaveOnly==0 &&  ppi->portDS->masterOnly==0){
+			ppi->next_state = PPS_SLAVE;
+		} else if (DSDEF(ppi)->clockQuality.clockClass != PP_CLASS_SLAVE_ONLY
 		    && (ppi->role != PPSI_ROLE_SLAVE)) {
 			ppi->next_state = PPS_MASTER;
 		} else {
