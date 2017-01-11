@@ -172,6 +172,7 @@ static int ha_calc_timeout(struct pp_instance *ppi)
 {
 	struct wr_dsport *wrp = WR_DSPOR(ppi);
 	int to_tx, do_xmit = 0;
+	int pll_state=0;
 	int config_ok, state_ok, link_ok, l1_sync_enabled, l1_sync_reset;
 	uint8_t local_config, peer_config, local_active, peer_active;
 
@@ -201,9 +202,11 @@ static int ha_calc_timeout(struct pp_instance *ppi)
 		do_xmit = 1;
 	}
 
+	pll_state = wrp->ops->locking_poll(ppi, 0); // this is needed in many places
+
 	/* Always check the pll status, whether or not we turned it on */
-	if (ppi->state == PPS_SLAVE  && ppi->L1BasicDS->congruentConfigured == 1) {
-		if (wrp->ops->locking_poll(ppi, 0) == WR_SPLL_READY) {
+	if (ppi->state == PPS_SLAVE) { // TODO: this should be based on recommendedState
+		if (pll_state == WR_SPLL_READY) {
 			/* we could just set, but detect edge to report it */
 			if (ppi->L1BasicDS->rxCoherentActive == 0) {
 				pp_diag(ppi, ext, 1, "PLL is locked\n");
@@ -215,7 +218,7 @@ static int ha_calc_timeout(struct pp_instance *ppi)
 		}
 	}
 	/* Similarly, always upgrade master's active according to the slave */
-	if (ppi->state == PPS_MASTER && ppi->L1BasicDS->congruentConfigured == 1) {
+	if (ppi->state == PPS_MASTER) { // TODO: this should be based on recommendedState
 		if (ppi->L1BasicDS->peerTxCoherentActive == 1 &&
 		    ppi->L1BasicDS->peerRxCoherentActive == 1 &&
 		    ppi->L1BasicDS->txCoherentActive     == 1) {
@@ -225,15 +228,33 @@ static int ha_calc_timeout(struct pp_instance *ppi)
 			ppi->L1BasicDS->rxCoherentActive = 0;
 		}
 	}
-	/* By design, when link is up, it is always tx coherent and congruent*/
-	if (WR_DSPOR(ppi)->linkUP){
-		ppi->L1BasicDS->txCoherentActive = 1;
+
+	// TODO: this should be rather recommendedState
+	if (ppi->state == PPS_SLAVE && pll_state == WR_SPLL_READY)
 		ppi->L1BasicDS->congruentActive  = 1;
-	}
-	else {
-		ppi->L1BasicDS->txCoherentActive = 0;
+
+	/** TODO: in principle, the PLL should report unlocked when it is not locked, 
+	 * regardless of the state. Thus, when we check in MASTER state, it should report
+	 * unlocked - this is not the case for some reasons
+	 *
+	 * Ideally, we want to check whether PLL is locked at any time. This is to cover
+	 * the case of network re-arrangement. In such case, a port in SLAVE state can 
+	 * transition to MASTER state and after such transition the port in MASTER state
+	 * might remain locked. We want to detect this case. 
+	 * 
+	 * Thus, the condition should be:
+	 * else if (ppi->state == PPS_MASTER && pll_state != WR_SPLL_READY)
+	 */
+	else if (ppi->state == PPS_MASTER)
+		ppi->L1BasicDS->congruentActive  = 1;
+	else
 		ppi->L1BasicDS->congruentActive  = 0;
-	}
+
+	/* By design, when link is up, it is always tx coherent and congruent*/
+	if (WR_DSPOR(ppi)->linkUP)
+		ppi->L1BasicDS->txCoherentActive = 1;
+	else 
+		ppi->L1BasicDS->txCoherentActive = 0;
 	
 	if(ppi->L1BasicDS->L1SyncState == L1SYNC_DISABLED ||
 		ppi->L1BasicDS->L1SyncState == L1SYNC_IDLE){
@@ -257,7 +278,7 @@ static int ha_calc_timeout(struct pp_instance *ppi)
 	                                       ppi->L1BasicDS->peerCongruentActive);
 	
 	ha_print_L1Sync_basic_bitmaps(ppi, local_config,local_active, "Local (ex optParam)");
-	ha_print_L1Sync_basic_bitmaps(ppi, local_config,local_active, "Peer  (ex optParam)");
+	ha_print_L1Sync_basic_bitmaps(ppi, peer_config, peer_active,  "Peer  (ex optParam)");
 	
 	/** ******** state transition variables (table 140) ****************/
 	/*
