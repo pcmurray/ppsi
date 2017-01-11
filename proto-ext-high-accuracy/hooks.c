@@ -95,7 +95,7 @@ static int ha_update_correction_values(struct pp_instance *ppi)
 		fix_alpha);
 // 	ppi->asymCorrDS->delayCoefficient.scaledRelativeDifference = delay_Coeff_from_alpha;
 	if(fix_alpha < 0)
-		ppi->asymCorrDS->delayCoefficient.scaledRelativeDifference = delayCoeff_pos;
+		ppi->asymCorrDS->delayCoefficient.scaledRelativeDifference = -delayCoeff_pos;
 	else
 		ppi->asymCorrDS->delayCoefficient.scaledRelativeDifference = delayCoeff_pos;
 	

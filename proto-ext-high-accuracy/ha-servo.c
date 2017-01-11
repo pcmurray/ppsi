@@ -319,9 +319,10 @@ int ha_delay_ms_cal(struct pp_instance *ppi, struct wr_servo_state *s,
 			int64_t *delay_ms_fix, int64_t *fiber_fix_alpha, 
 			int64_t or_picos_mu, int64_t or_delayCoeff)
 {
-	int64_t delayCoeff, fiber_fix_alpha_ha, delay_ms_fix_ha, ts_offset_ps_ha, picos_mu,fiber_fix_alpha_ha_double, port_fix_alpha;
+	int64_t delayCoeff, fiber_fix_alpha_ha, delay_ms_fix_ha, ts_offset_ps_ha, picos_mu,fiber_fix_alpha_ha_double, port_fix_alpha, fiber_fix_alpha_ha_trick,sDC;
 	TimeInternal ts_offset_ha, ts_offset_hw_ha;
 	double alpha;
+	
 	
 	if(or_picos_mu)
 		picos_mu = or_picos_mu;
@@ -341,10 +342,23 @@ int ha_delay_ms_cal(struct pp_instance *ppi, struct wr_servo_state *s,
 	 * fix_alpha = [2^62 + delayCoeff]\[2*2^22 + delayCoeff *2-22] - 2^39 */
 	fiber_fix_alpha_ha        = ((((int64_t)1<<62) + delayCoeff)/(((int64_t)1<<23) + (delayCoeff>>40)) - ((int64_t)1<<39));
 	fiber_fix_alpha_ha_double = ((double)pow(2.0, 62.0) + (double)delayCoeff)/((double)pow(2.0, 23.0) + (double)(delayCoeff>>40)) - (double)pow(2.0, 39.0);
+	
+	sDC = (delayCoeff >> 32);
+	
+	if(delayCoeff > 0)
+		fiber_fix_alpha_ha_trick  = +( delayCoeff  >>24)
+		                            -((sDC*sDC)    >>23)
+		                            +((sDC*sDC*sDC)>>54);
+	else
+		fiber_fix_alpha_ha_trick  = +( delayCoeff  >>24)
+		                            +((sDC*sDC)    >>23)
+		                            +((sDC*sDC*sDC)>>54);
+
+
 	alpha                     = ((double)delayCoeff)/(double)pow(2.0, 62.0);
 	port_fix_alpha            =  (double)pow(2.0, 40.0) * ((alpha + 1.0) / (alpha + 2.0) - 0.5);
 	
-	delay_ms_fix_ha = (((int64_t)picos_mu * fiber_fix_alpha_ha) >> FIX_ALPHA_FRACBITS) + (picos_mu >> 1);
+	delay_ms_fix_ha = (((int64_t)picos_mu * fiber_fix_alpha_ha_trick) >> FIX_ALPHA_FRACBITS) + (picos_mu >> 1);
 
 	ts_offset_ha = ts_add(ts_sub(s->t1, s->t2), picos_to_ts(delay_ms_fix_ha));
 	ts_offset_hw_ha = ts_hardwarize(ts_offset_ha, s->clock_period_ps);
@@ -355,6 +369,7 @@ int ha_delay_ms_cal(struct pp_instance *ppi, struct wr_servo_state *s,
 	pp_diag(ppi, servo, 2, "ML:        delayCoeff                  (int64_t) = %lld\n",(long long)delayCoeff);
 	pp_diag(ppi, servo, 2, "ML:        fiber_fix_alpha_ha          (int64_t) = %lld\n",(long long)fiber_fix_alpha_ha);
 	pp_diag(ppi, servo, 2, "ML:        fiber_fix_alpha_ha_double   (int64_t) = %lld\n",(long long)fiber_fix_alpha_ha_double);
+	pp_diag(ppi, servo, 2, "ML:        fiber_fix_alpha_ha_trick    (int64_t) = %lld\n",(long long)fiber_fix_alpha_ha_trick);
 	pp_diag(ppi, servo, 1, "ML:        alpha                                 = %lld * e-10\n", (long long)(alpha*(int64_t)10000000000));
 	pp_diag(ppi, servo, 2, "ML:        fiber_fix_alpha             (int64_t) = %lld\n",(long long)port_fix_alpha);
 	pp_diag(ppi, servo, 2, "ML:        delayMM                     (int64_t) = %lld\n",(long long)(picos_mu));
