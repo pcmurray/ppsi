@@ -1,0 +1,553 @@
+\input texinfo    @c -*-texinfo-*-
+
+@documentlanguage en
+@documentencoding ISO-8859-1
+@setfilename ppsi-status-2017-01
+@settitle    ppsi-status-2017-01
+@iftex
+@afourpaper
+@end iftex
+@paragraphindent none
+
+@setchapternewpage off
+@finalout
+@headings off
+
+@iftex
+@contents
+@end iftex
+
+@c ######################################################################====
+@node Top
+@top PPSi status
+
+This is a summary of my tests, as of 2017-01.
+
+There are a number of different setups, likely too many: Ethernet/UDP;
+E2E/P2P; WRS/WRN; WR/HA; Master/Slave; With WR mate/with plain PTP. It's
+64 combinations (or 128?). Not all of them are tested, unfortunately.
+
+If you think this is similar to the pre-plug-fest report, yes it is.
+
+@c ######################################################################====
+@node Home Commits
+@chapter Home Commits
+
+The ``home'' commits are as follows: everything is based on these
+commits, which are considered the stable ancestor as of today
+(2016-12-02).
+
+@itemize @bullet
+@item @t{ppsi}: 922e2caf (``rubi-proposed_master'' as I write this)
+@item @t{wr-switch-sw}: 3576c91 (``rubi-proposed_master'' as I write this)
+@item @t{wrpc-sw}: be06d28 (``rubi-170116'' as I write this)
+@end itemize
+
+When needed (e.g. new time structures), other branches
+are used on top of the home commits.
+
+@vskip 1cm
+
+Let me remind here, for reference the diagnostic levels of @i{ppsi}:
+
+@itemize @bullet
+@item @b{FSM} (enter/re-enter/leave PTP states)
+@item @b{Time} (time set/change/timeout)
+@item @b{Frames} (sent/received -- use level 2 for full frame dump)
+@item @b{Servo} (the timestamps and calculations)
+@item @b{BMC} (not used here, as BMC is a dark spot in ppsi)
+@item @b{Extension} (hooks and WR/HA-specific code)
+@item @b{Configuration} (to diagnose the parsing of config file)
+@end itemize
+
+Thus, for example, @t{-d 101002} will show fsm, frames and complete extension
+information.
+
+@c ##########################################################################
+@node Standard PTP in non-WR systems
+@chapter Standard PTP in non-WR systems
+
+I tested standard PTP between two PC's (earlier I used an ARM device
+running @i{buildroot-2016.08.1}, but there are no differences.  I used
+the Debian ptpd version and sometimes a local build (on the ARM).  I
+also used @i{linuxptp} a.k.a. @i{ptp4linux}, locally built
+(@t{git://git.code.sf.net/p/linuxptp/code})
+
+To build @i{ppsi} on the host select @t{unix_defconfig}. To build
+on the target select @t{unix_defconfig} and if needed set @t{CROSS_COMPILE=}
+on your @t{make} command line (or environment).
+
+The @i{ptp} package on buildroot speaks version 1 of the protocol.
+We are not interoperable with it (use: ``ptp -c -d -i eth0'').
+
+The @i{ptp2} package has a long and complex configuration file,
+but accepts a simple command line invocation. I used this as a basis
+(the command is @i{ptpd} on Debian and @i{ptpd2} on Buildroot):
+
+@example
+   ptpd2 -i eth0 --slaveonly --e2e --foreground --verbose
+@end example
+
+And for @i{ppsi}:
+
+@example
+   ./ppsi -C "port eth0; proto udp; role master" -d 101
+@end example
+
+@c ==========================================================================
+@node UDP (Ok)
+@section UDP (Ok)
+
+@unnumberedsubsec UDP ppsi/ppsi (Ok)
+
+What follow is a list of the 4 command lines to be used for e2e master
+and slave, and ptp master and slave, with some debugging (the 
+@i{PORT=} is by itself to simplify local changes).
+@example
+   PORT=eth0
+   ./ppsi -C "port $PORT; proto udp; mechanism e2e; role master" -d 101
+   ./ppsi -C "port $PORT; proto udp; mechanism e2e; role slave" -d 1012
+   ./ppsi -C "port $PORT; proto udp; mechanism p2p; role master" -d 101
+   ./ppsi -C "port $PORT; proto udp; mechanism p2p; role slave" -d 1012
+@end example
+
+Ppsi synchronizes with itself with both mechanism.
+
+@unnumberedsubsec UDP ppsi/ptpd (Ok)
+
+The 4 commands to be used with @i{ptpd} are as follow. Again,
+some common assignments are factorized at the beginning. The order
+master/slave is swapped so you (and I) can run the 4 tests in order,
+matching the 4 command lines for @i{ppsi} above.
+
+@example
+   PORT=eth0
+   PTPD=ptpd2; # or "ptpd"
+   $PTPD -i $PORT --slaveonly --e2e --foreground --verbose
+   $PTPD -i $PORT --masteronly --e2e --foreground --verbose
+   $PTPD -i $PORT --slaveonly --p2p --foreground --verbose
+   $PTPD -i $PORT --masteronly --p2p --foreground --verbose
+@end example
+
+All 4 configurations work with ppsi.
+
+@unnumberedsubsec UDP ppsi/linuxptp (Ok)
+
+The commands to be used in @i{linuxptp} are the following ones,
+using software timestamping:
+
+@example
+   PORT=eth0
+   ./ptp4l -i $PORT -S -l7 -m -4 -E -s
+   ./ptp4l -i $PORT -S -l7 -m -4 -E
+   ./ptp4l -i $PORT -S -l7 -m -4 -P -s
+   ./ptp4l -i $PORT -S -l7 -m -4 -P
+@end example
+
+All 4 configurations work with ppsi.
+
+@c ==========================================================================
+@node Ethernet (Ok)
+@section Ethernet (Ok)
+
+For Ethernet mode, user @t{proto raw} in @i{ppsi}. The following
+ones are the 4 test cases:
+
+@unnumberedsubsec Eternet ppsi/ppsi (Ok)
+
+@example
+   PORT=eth0
+   ./ppsi -C "port $PORT; proto raw; mechanism e2e; role master" -d 101
+   ./ppsi -C "port $PORT; proto raw; mechanism e2e; role slave" -d 1012
+   ./ppsi -C "port $PORT; proto raw; mechanism p2p; role master" -d 101
+   ./ppsi -C "port $PORT; proto raw; mechanism p2p; role slave" -d 1012
+@end example
+
+@i{ppsi} syncs properly with itself in the two configurations.
+
+@unnumberedsubsec Ethernet ppsi/ptpd (Ok)
+
+For @i{ptp2}, there is no simple command-line switch to force Ethernet
+mode.  Instead, we must pass the full options with the same
+format of the configuration file:
+@t{--ptpengine:transport=ethernet}.
+
+The 4 test cases are the following ones, in the usual order tp
+match the 4 @i{ppsi} invocations above.
+
+@example
+   PORT=eth0
+   PTPD=ptpd2; # or "ptpd"
+   OPTS="--ptpengine:transport=ethernet"
+   $PTPD -i $PORT --slaveonly --e2e --foreground --verbose $OPTS
+   $PTPD -i $PORT --masteronly --e2e --foreground --verbose $OPTS
+   $PTPD -i $PORT --slaveonly --p2p --foreground --verbose $OPTS
+   $PTPD -i $PORT --masteronly --p2p --foreground --verbose $OPTS
+@end example
+
+All 4 cases are verified to work properly.
+
+@unnumberedsubsec Ethernet ppsi/linuxptp (Ok)
+
+The commands to be used in @i{linuxptp} are the following ones,
+using software timestamping:
+
+@example
+   PORT=eth0
+   ./ptp4l -i $PORT -S -l7 -m -2 -E -s
+   ./ptp4l -i $PORT -S -l7 -m -2 -E
+   ./ptp4l -i $PORT -S -l7 -m -2 -P -s
+   ./ptp4l -i $PORT -S -l7 -m -2 -P
+@end example
+
+All 4 configurations work with ppsi.
+
+
+@c ##########################################################################
+@node WR-Switch
+@chapter WR-Switch
+
+I tested the WR Switch as master and slave of other, non-WR systems.
+Also, I include here older (successful) tests performed in a wrs-to-wrs
+WR setup.
+
+The tests are performed with @i{ppsi}, @i{ptpd} (v2.3.0) and @i{linuxptp}
+running on a Debian system. The test command lines are the same as above.
+In the various tests, the WRS only always runs @i{ppsi}, while the
+other system runs each of the three tools.
+
+For some of the tests, you don't need to change anything in the switch
+itself, but I'd rather show here all configurations one after the
+other, even when the other party would work with an unchanged switch
+configuration (i.e., if the wrs is master over ethernet, where but e2e
+and p2p work).
+
+The 8 commands I run in the switch, to test master and slave,
+p2p and e2e, udp and raw ethernet, are the following ones. We need
+to stop @i{monit} or it may restart @i{ppsi} between the tests.
+
+@example
+   killall -STOP monit
+   killall ppsi
+   CF="-f /dev/null"
+   PORT=wri11
+   ifconfig $PORT 192.168.254.254; # we must have a valid address
+   rtu_stat add 01:00:5e:00:00:6b 19
+
+   ppsi $CF -C "port $PORT; proto raw; mechanism e2e; role master" -d 101
+   ppsi $CF -C "port $PORT; proto raw; mechanism p2p; role master" -d 101
+   ppsi $CF -C "port $PORT; proto raw; mechanism e2e; role slave" -d 1012
+   ppsi $CF -C "port $PORT; proto raw; mechanism p2p; role slave" -d 1012
+   ppsi $CF -C "port $PORT; proto udp; mechanism e2e; role master" -d 101
+   ppsi $CF -C "port $PORT; proto udp; mechanism p2p; role master" -d 101
+   ppsi $CF -C "port $PORT; proto udp; mechanism e2e; role slave" -d 1012
+   ppsi $CF -C "port $PORT; proto udp; mechanism p2p; role slave" -d 1012
+@end example
+
+@c ==========================================================================
+@node Known Issues
+@section Known Issues
+
+There are a number of known issues with the white rabbit switch.
+They apply regardless of which ptp implementation runs on the other
+side of the cable:
+
+@itemize @bullet
+
+@c BUG: bind udp to the port regardless of address
+@item In order to transmit UDP frames we need to have an IP address
+assigned to the interface, otherwise @i{ppsi} fails with ``@t{unix_open_ch_udp: ioctl(SIOCGIFADDR): Address not available}.   I should implement
+port-binding for UDP frames.
+
+@c BUG: nost steering wrs frequency
+@item The wrs is not currently able to steer frequency when being
+slave of a non-wr master.
+
+@c BUG: rtu_stat in wrs5
+@item The wrs needs a static rule to be added in order for the UDP/P2P
+mac address to be properly received by the CPU (see the @t{rtu_stat}
+command in @ref{WR-Switch} above).
+
+@end itemize
+
+@c ==========================================================================
+@node WRS/ppsi (Ok)
+@section WRS/ppsi (Ok)
+
+A @i{ppsi} peer of the White Rabbit Switch could run the following 8
+command lines, to match the ones in the switch:
+
+@example
+   PORT=eth0
+   ./ppsi -C "port $PORT; proto raw; mechanism e2e; role slave" -d 1012
+   ./ppsi -C "port $PORT; proto raw; mechanism p2p; role slave" -d 1012
+   ./ppsi -C "port $PORT; proto raw; mechanism e2e; role master" -d 101
+   ./ppsi -C "port $PORT; proto raw; mechanism p2p; role master" -d 101
+   ./ppsi -C "port $PORT; proto udp; mechanism e2e; role slave" -d 1012
+   ./ppsi -C "port $PORT; proto udp; mechanism p2p; role slave" -d 1012
+   ./ppsi -C "port $PORT; proto udp; mechanism e2e; role master" -d 101
+   ./ppsi -C "port $PORT; proto udp; mechanism p2p; role master" -d 101
+@end example
+
+Besides what outlined in @ref{Known Issues}, all cases work properly.
+
+@c ==========================================================================
+@node WRS/ptpd
+@section WRS/ptpd
+
+A @i{ptpd} peer of the white rabbit swich should run the following
+command lines to match the 8 wrs configurations, in order:
+
+@example
+   PORT=eth0
+   OPTS="--ptpengine:transport=ethernet"
+   PTPD=ptpd2; # or "ptpd"
+   $PTPD -i $PORT --slaveonly --e2e --foreground --verbose $OPTS
+   $PTPD -i $PORT --slaveonly --p2p --foreground --verbose $OPTS
+   $PTPD -i $PORT --masteronly --e2e --foreground --verbose $OPTS
+   $PTPD -i $PORT --masteronly --p2p --foreground --verbose $OPTS
+   $PTPD -i $PORT --slaveonly --e2e --foreground --verbose
+   $PTPD -i $PORT --slaveonly --p2p --foreground --verbose
+   $PTPD -i $PORT --masteronly --e2e --foreground --verbose
+   $PTPD -i $PORT --masteronly --p2p --foreground --verbose
+@end example
+
+@c BUG: wrs interaction with ptpd in raw ethernet
+Here there are a number of misbehaviours.  @i{ptpd} is loosing a mumber of
+frames, sometimes moving back to state ``listening'' or complaining that
+no masters are there.  This happens in all the ``raw ethernet'' tests.
+Unfortunately, @i{strace} can't be used to see what's happening, because
+@i{ptpd} uses @i{mmap} to receive frames.
+
+Moving to a different Ethernet port, which solved similar problems
+with @i{linuxptp}, had no effect here, and problems persist.
+
+The UDP cases work reliably.
+
+@c ==========================================================================
+@node WRS/linuxptp (Ok)
+@section WRS/linuxptp (Ok)
+
+A @i{linuxptp} peer of the white rabbit swich should run the following
+command lines to match the 8 wrs configurations, in order:
+
+@example
+   PORT=eth0
+   ./ptp4l -i $PORT -S -l7 -m -2 -E -s
+   ./ptp4l -i $PORT -S -l7 -m -2 -P -s
+   ./ptp4l -i $PORT -S -l7 -m -2 -E
+   ./ptp4l -i $PORT -S -l7 -m -2 -P
+   ./ptp4l -i $PORT -S -l7 -m -4 -E -s
+   ./ptp4l -i $PORT -S -l7 -m -4 -P -s
+   ./ptp4l -i $PORT -S -l7 -m -4 -E
+   ./ptp4l -i $PORT -S -l7 -m -4 -P
+@end example
+
+Here, similarly to what happens with @i{ptpd}, there are problems with
+the raw ethernet communication -- but also with UDP.  Diagnostics is a
+little more helpful, though. This is a failure case in the second test
+(raw, p2p, slave).
+
+@smallexample
+   ptp4l[19700235.830]: timed out while polling for tx timestamp
+   ptp4l[19700235.830]: increasing tx_timestamp_timeout may correct \
+             this issue, but it is likely caused by a driver bug
+   ptp4l[19700235.830]: port 1: send peer delay response failed
+@end smallexample
+
+Checking with @i{strace} I can confirm the failure is due to the
+missing timestamp (and, so no @i{pdelay-resp-followup} is sent.
+Also, it's clear how the program is not receiving many of the frames
+sent by the switch.
+
+With end-to-end as master, @i{linuxptp} fails in sending sync; it
+also doesn't receive most delay-req from the wrs slave.
+
+Changing to a different Ethernet port (different brand and driver) fixed
+the problem, it seems, and all 8 tests work. So I moved from a
+dual 82580 (which has hardware timestamping, not configured in my
+system) to a more traditional RTL8169.
+
+@c ==========================================================================
+@node WRS to WRS (Ok)
+@section WRS to WRS (Ok)
+
+I only performed this test in wrs-4.2 dunring December 2016, using a
+backport of the then-current master (branch @t{ppsi-2016-12-wrs-42}).  The
+branch backports HAL shared memory, to be able to access the
+ports. @t{wr_mon} won't be able to run, as the @i{ppsi} data
+structures are different from what it expects:
+
+@example
+   wr_mon: Error: Unknown PPSI's shm version 17 (known is 12)
+@end example
+
+Please remember that you need to run the following command on both
+switches (use ``18'' on older versions, where ports are @t{wr0}..@t{wr17},
+and use ``19'' on newer versions, where ports are @t{wri1}..@t{wri18})
+
+@example
+   rtu_stat add 01:00:5e:00:00:6b 18
+   rtu_stat add 01:00:5e:00:00:6b 19
+@end example
+
+As usual, we must stop monit and configure ppsi to run on a single port:
+
+@smallexample
+   # On the master switch (port wr1 or wri2)
+   PORT=wr1
+   killall -STOP monit
+   killall ppsi
+   CF="-f /dev/null"
+   WR="extension whiterabbit"
+   ppsi $CF -C "port $PORT; $WR; proto raw; mechanism e2e; role master" -d 101
+   ppsi $CF -C "port $PORT; $WR; proto raw; mechanism p2p; role master" -d 101
+   ppsi $CF -C "port $PORT; $WR; proto udp; mechanism e2e; role master" -d 101
+   ppsi $CF -C "port $PORT; $WR; proto udp; mechanism p2p; role master" -d 101
+
+   # On the slave switch (port wr0 or wri1)
+   PORT=wr0
+   killall -STOP monit
+   killall ppsi
+   CF="-f /dev/null"
+   WR="extension whiterabbit"
+   ppsi $CF -C "port $PORT; $WR; proto raw; mechanism e2e; role slave" -d 1012
+   ppsi $CF -C "port $PORT; $WR; proto raw; mechanism p2p; role slave" -d 1012
+   ppsi $CF -C "port $PORT; $WR; proto udp; mechanism e2e; role slave" -d 1012
+   ppsi $CF -C "port $PORT; $WR; proto udp; mechanism p2p; role slave" -d 1012
+@end smallexample
+
+All 4 cases are verified to be working perfectly.
+
+@c ##########################################################################
+@node WR Node
+@chapter WR Node
+
+Like the @ref{WR-Switch}, I'm testing synchronization of the
+WR Node against non-WR and WR (the switch).
+
+The tests are performed with @i{gsi_pdelay_defconfig}. This includes
+both @t{CONFIG_IP} and @t{CONFIG_P2P}.
+
+@c BUG: UDP in the node
+UDP support for PTP is not yet included, so we are going to run 4
+tests.  The @i{ptp} command on the @t{wrpc} shell allows now to
+change both mechanism and role. So the tests being performed
+are the following ones (the @i{verbose} line is useful for all
+4 cases):
+
+@example
+   verbose 1012 
+
+   ptp e2e slave start
+   ptp p2p slave start
+   ptp e2e master start
+   ptp p2p master start
+@end example
+
+
+@c ==========================================================================
+@node WRN/ppsi
+@section WRN/ppsi
+
+The 4 commands to be used to run the 4 tests, in the same order as
+the @t{wrpc} commands above, are as follows:
+
+@example
+   PORT=eth0
+   ./ppsi -C "port $PORT; proto raw; mechanism e2e; role master" -d 101
+   ./ppsi -C "port $PORT; proto raw; mechanism p2p; role master" -d 101
+   ./ppsi -C "port $PORT; proto raw; mechanism e2e; role slave" -d 1012
+   ./ppsi -C "port $PORT; proto raw; mechanism p2p; role slave" -d 1012
+@end example
+
+@c BUG: node as slave to non-wr
+When running as slave, @t{wrpc} is not really able to track the non-WR
+master.  One problem is that most timestamps are reported as @i{invalid}
+and thus discarded, even if they would be good enough for non-WR PTP
+operations.  Another is the inability of the WR node to steer
+frequency when running in non-WR mode.
+
+As a master, the node is working well with a non-WR @i{ppsi} slave.
+
+@c ==========================================================================
+@node WRN/ptpd
+@section WRN/ptpd
+
+The 4 commands to be run on @i{ptpd} are the following ones,
+in the same order as the ``@t{ptp}'' commands for the node:
+
+@example
+   PORT=eth0
+   OPTS="--ptpengine:transport=ethernet"
+   PTPD=ptpd2; # or "ptpd"
+   $PTPD -i $PORT --masteronly --e2e --foreground --verbose $OPTS
+   $PTPD -i $PORT --masteronly --p2p --foreground --verbose $OPTS
+   $PTPD -i $PORT --slaveonly --e2e --foreground --verbose $OPTS
+   $PTPD -i $PORT --slaveonly --p2p --foreground --verbose $OPTS
+@end example
+
+As a slave to this tool, @t{wrpc} has the same problems described
+in @ref{WRN/ppsi} above.
+
+@c BUG: ptpd doesn't work as a slave of wr node
+As a master, @t{wrpc} is not being tracked by @i{ptpd}, which is not
+receiving many frames, and complains either about no masters being
+there or about ``@t{Ignored followup, SequenceID doesn't match with
+last Sync message}''.
+
+This happens both with the end-to-end and the peer-to-peer mechanisms.
+
+@c ==========================================================================
+@node WRN/linuxptp
+@section WRN/linuxptp
+
+The commands to run on @i{linuxptp} are the following ones, to be
+matched, in the same order, with the 4 commands in @t{wrpc}:
+
+@example
+   PORT=eth0
+   ./ptp4l -i $PORT -S -l7 -m -2 -E
+   ./ptp4l -i $PORT -S -l7 -m -2 -P
+   ./ptp4l -i $PORT -S -l7 -m -2 -E -s
+   ./ptp4l -i $PORT -S -l7 -m -2 -P -s
+@end example
+
+The result of the tests is equivalent to the @i{ppsi} tests:
+the node as a slave doesn't track the master, but works perfectly
+as a master.
+
+@c ==========================================================================
+@node WRN to WRS - White Rabbit link (Ok)
+@section WRN to WRS - White Rabbit link (Ok)
+
+@c BUG: UDP in wrpc
+There is no UDP support yet in these commits, so the only tests
+performed are with raw ethernet.
+
+These are the 4 commands run on the switch:
+
+@example
+   killall -STOP monit
+   killall ppsi
+   CF="-f /dev/null"
+   PORT=wri1
+   WR="proto raw; extension whiterabbit"
+   ppsi $CF -C "port $PORT; $WR; mechanism e2e; role master" -d 101
+   ppsi $CF -C "port $PORT; $WR; mechanism p2p; role master" -d 101
+   ppsi $CF -C "port $PORT; $WR; mechanism e2e; role slave" -d 1012
+   ppsi $CF -C "port $PORT; $WR; mechanism p2p; role slave" -d 1012
+@end example
+
+The commands to be run on the slave are as follows:
+
+@example
+   ptp e2e slave
+   ptp p2p slave
+   ptp e2e master
+   ptp p2p master
+@end example
+
+All 4 situations work as expected.
+
+@bye
