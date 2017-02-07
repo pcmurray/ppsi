@@ -58,6 +58,12 @@ int pp_pclock(struct pp_instance *ppi, unsigned char *pkt, int plen)
 #endif
 			e = st_com_slave_handle_followup(ppi, pkt, plen);
 		break;
+		
+	case PPM_DELAY_REQ:
+		msg_copy_header(&ppi->delay_req_hdr,
+				&ppi->received_ptp_header);
+		msg_issue_delay_resp(ppi, &ppi->last_rcv_time);
+		break;
 
 	case PPM_PDELAY_REQ:
 		e = (plen < PP_PDELAY_RESP_LENGTH);

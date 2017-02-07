@@ -401,6 +401,7 @@ int wr_servo_update(struct pp_instance *ppi)
 		+ s->delta_tx_m + s->delta_rx_s + ph_adjust;
 
 	ppi->link_delay = (int64_t)((delay_ms_fix));
+	pp_printf("port %d delay = %d\n", ppi->port_idx, ppi->link_delay);
 
 	if (__PP_DIAG_ALLOW_FLAGS(pp_global_flags, pp_dt_servo, 1)) {
 		dump_timestamp(ppi, "servo:t1", s->t1);
@@ -412,10 +413,12 @@ int wr_servo_update(struct pp_instance *ppi)
 	}
 
 	ts_offset = ts_add(ts_sub(s->t1, s->t2), ts_add(ppi->p2p_cField, picos_to_ts(delay_ms_fix)));
-	if((ts_offset.seconds<0) || (ts_offset.nanoseconds == 999999999)) {
-		pp_printf("ts_offset %d:%d\n", ts_offset.seconds, ts_offset.nanoseconds );
-		return -1;
-	}
+	//pp_printf("port %d ts_offset = %d:%d:%d\n",ppi->port_idx, ts_offset.seconds, ts_offset.nanoseconds, ts_offset.phase);
+	pp_printf("port %d cField = %d:%d:%d\n",ppi->port_idx, ppi->p2p_cField.seconds, ppi->p2p_cField.nanoseconds, ppi->p2p_cField.phase);
+	//if((ts_offset.seconds<0) || (ts_offset.nanoseconds == 999999999)) {
+		//pp_printf("ts_offset %d:%d\n", ts_offset.seconds, ts_offset.nanoseconds );
+		//return -1;
+	//}
 	ts_offset_hw = ts_hardwarize(ts_offset, s->clock_period_ps);
 	pp_diag(ppi, servo, 1, "offset: %d [hw:%d]\n",
 	                   (ts_offset.phase    + ts_offset.nanoseconds * 1000),

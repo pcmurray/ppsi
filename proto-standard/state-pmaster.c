@@ -29,13 +29,13 @@ int pp_pmaster(struct pp_instance *ppi, unsigned char *pkt, int plen)
 		return 0;
 	}
 	
-	if (!ppi->is_HSR){
-		ppi->master_only = 0;
-		ppi->slave_only = 1;
+	/* TO BE CHECK */
+	if (!ppi->is_HSR && ppi->master_only){
+		ppi->master_only = 1;
+		ppi->slave_only = 0;
 		ppi->backup_only = 0;
 		ppi->slave_prio = 0;
-		ppi->next_state = PPS_SLAVE;
-		return 0;
+		ppi->next_state = PPS_MASTER;
 	}
 
 	if (ppi->is_new_state) {
@@ -158,10 +158,11 @@ out:
 	if (e == 0) {
 		if (DSDEF(ppi)->clockQuality.clockClass == PP_CLASS_SLAVE_ONLY
 		    || ppi->slave_only)
-			ppi->next_state = PPS_LISTENING;
-	} else {
+			//ppi->next_state = PPS_LISTENING;
+			ppi->next_state = PPS_MASTER;
+	}/* else {
 		ppi->next_state = PPS_FAULTY;
-	}
+	}*/
 
 	d1 = pp_ms_to_timeout(ppi, PP_TO_ANN_INTERVAL);
 	d2 = pp_ms_to_timeout(ppi, PP_TO_SYNC);

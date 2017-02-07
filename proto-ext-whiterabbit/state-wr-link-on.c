@@ -48,5 +48,6 @@ int wr_link_on(struct pp_instance *ppi, unsigned char *pkt, int plen)
 		ppi->next_state = PPS_SLAVE;
 		wrp->ops->locking_enable(ppi);
 	}
+	if (!ppi->is_HSR) ppi->next_state = PPS_MASTER;
 	return 0;
 }
