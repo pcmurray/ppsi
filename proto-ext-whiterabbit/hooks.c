@@ -189,14 +189,13 @@ static int wr_handle_announce(struct pp_instance *ppi)
 }
 
 static int wr_handle_followup(struct pp_instance *ppi,
-			      struct pp_time *precise_orig_timestamp)
+			      struct pp_time *t1) /* t1 == &ppi->t1 */
 {
 	pp_diag(ppi, ext, 2, "hook: %s\n", __func__);
 	if (!WR_DSPOR(ppi)->wrModeOn)
 		return 0;
 
-	wr_servo_got_sync(ppi, precise_orig_timestamp,
-			  &ppi->t2);
+	wr_servo_got_sync(ppi, t1, &ppi->t2);
 
 	if (CONFIG_HAS_P2P && ppi->mech == PP_P2P_MECH)
 		wr_servo_update(ppi);
