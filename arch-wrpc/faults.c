@@ -50,6 +50,7 @@ static int cmd_fault(const char *args[])
 				  (int)((t->scaled_nsecs * 1000) >> 16));
 		}
 		pp_printf("\n");
+		return 0;
 	}
 
 	pp_printf("Use: \"fault drop [<rxdrop> <txdrop>]\" (0..999)\n");

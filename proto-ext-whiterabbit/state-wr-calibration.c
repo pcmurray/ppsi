@@ -16,7 +16,7 @@
 int wr_calibration(struct pp_instance *ppi, unsigned char *pkt, int plen)
 {
 	struct wr_dsport *wrp = WR_DSPOR(ppi);
-	int e = 0, sendmsg = 0;
+	int sendmsg = 0;
 	uint32_t delta;
 
 	if (ppi->is_new_state) {
@@ -31,7 +31,7 @@ int wr_calibration(struct pp_instance *ppi, unsigned char *pkt, int plen)
 
 	if (sendmsg) {
 		__pp_timeout_set(ppi, PP_TO_EXT_0, wrp->calPeriod);
-		e = msg_issue_wrsig(ppi, CALIBRATE);
+		msg_issue_wrsig(ppi, CALIBRATE);
 		wrp->wrPortState = WR_PORT_CALIBRATION_0;
 		if (wrp->calibrated)
 			wrp->wrPortState = WR_PORT_CALIBRATION_2;
@@ -126,7 +126,7 @@ int wr_calibration(struct pp_instance *ppi, unsigned char *pkt, int plen)
 			break;
 	case WR_PORT_CALIBRATION_8:
 		/* send deltas to the other port and go to the next state */
-		e = msg_issue_wrsig(ppi, CALIBRATED);
+		msg_issue_wrsig(ppi, CALIBRATED);
 		ppi->next_state = WRS_CALIBRATED;
 		wrp->calibrated = TRUE;
 
