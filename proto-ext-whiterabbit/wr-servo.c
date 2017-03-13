@@ -1,4 +1,5 @@
 #include <ppsi/ppsi.h>
+#include <ppsi/assert.h>
 #include "wr-api.h"
 #include <libwr/shmem.h>
 
@@ -7,6 +8,23 @@
 #else
 #define ARCH_IS_WRS 0
 #endif
+
+#ifdef CONFIG_WRPC_FAULTS
+#define HAS_FAULTS 1
+#else
+#define HAS_FAULTS 0
+#endif
+
+struct pp_time faulty_stamps[6]; /* if unused, dropped at link time */
+
+static void apply_faulty_stamp(struct wr_servo_state *s, int index)
+{
+	if (HAS_FAULTS) {
+		assert(index >= 1 && index <= 6, "Wrong T index %i\n", index);
+		pp_time_add(&s->t1 + index - 1, faulty_stamps + index - 1);
+	}
+}
+
 
 #define WR_SERVO_OFFSET_STABILITY_THRESHOLD 60 /* psec */
 
@@ -198,8 +216,8 @@ int wr_servo_got_sync(struct pp_instance *ppi, struct pp_time *t1,
 	struct wr_servo_state *s =
 			&((struct wr_data *)ppi->ext_data)->servo_state;
 
-	s->t1 = *t1;
-	s->t2 = *t2;
+	s->t1 = *t1; apply_faulty_stamp(s, 1);
+	s->t2 = *t2; apply_faulty_stamp(s, 2);
 	got_sync = 1;
 	return 0;
 }
@@ -211,13 +229,12 @@ int wr_servo_got_delay(struct pp_instance *ppi)
 
 	wrs_shm_write(ppsi_head, WRS_SHM_WRITE_BEGIN);
 
-	s->t3 = ppi->t3;
-	/*  s->t3.phase = 0; */
-	s->t4 = ppi->t4;
+	s->t3 = ppi->t3; apply_faulty_stamp(s, 3);
+	s->t4 = ppi->t4; apply_faulty_stamp(s, 4);
 
 	if (CONFIG_HAS_P2P && ppi->mech == PP_P2P_MECH) {
-		s->t5 = ppi->t5;
-		s->t6 = ppi->t6;
+		s->t5 = ppi->t5; apply_faulty_stamp(s, 5);
+		s->t6 = ppi->t6; apply_faulty_stamp(s, 6);
 
 		wr_p2p_delay(ppi, s);
 	}
