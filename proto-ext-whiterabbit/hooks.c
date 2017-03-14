@@ -167,9 +167,13 @@ static void wr_s1(struct pp_instance *ppi, MsgHeader *hdr, MsgAnnounce *ann)
 static int wr_execute_slave(struct pp_instance *ppi)
 {
 	pp_diag(ppi, ext, 2, "hook: %s\n", __func__);
+
+	if (pp_timeout(ppi, PP_TO_FAULT))
+		wr_servo_reset(ppi); /* the caller handles ptp state machine */
+
+	/* The doRestart thing is not  used, it seems */
 	if (!WR_DSPOR(ppi)->doRestart)
 		return 0;
-
 	ppi->next_state = PPS_INITIALIZING;
 	WR_DSPOR(ppi)->doRestart = FALSE;
 	return 1; /* the caller returns too */

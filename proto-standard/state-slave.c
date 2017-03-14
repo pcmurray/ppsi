@@ -55,6 +55,7 @@ static int slave_handle_response(struct pp_instance *ppi, unsigned char *pkt,
 	pp_time_add(&ppi->t4, &hdr->cField);
 	/* WARNING: should be "sub" (see README-cfield::BUG)  */
 
+	pp_timeout_set(ppi, PP_TO_FAULT);
 	if (pp_hooks.handle_resp)
 		e = pp_hooks.handle_resp(ppi);
 	else

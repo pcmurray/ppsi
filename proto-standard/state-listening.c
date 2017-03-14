@@ -13,6 +13,7 @@ int pp_listening(struct pp_instance *ppi, unsigned char *pkt, int plen)
 {
 	int e = 0; /* error var, to check errors in msg handling */
 
+	pp_timeout_set(ppi, PP_TO_FAULT); /* no fault as long as we listen */
 	if (pp_hooks.listening)
 		e = pp_hooks.listening(ppi, pkt, plen);
 	if (e)

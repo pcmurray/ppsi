@@ -38,6 +38,7 @@ void pp_servo_init(struct pp_instance *ppi)
 		SRV(ppi)->obs_drift = 0;
 	}
 
+	pp_timeout_set(ppi, PP_TO_FAULT);
 	pp_diag(ppi, servo, 1, "Initialized: obs_drift %lli\n",
 		SRV(ppi)->obs_drift);
 }

@@ -83,7 +83,12 @@ int st_com_execute_slave(struct pp_instance *ppi)
 	if (ret < 0)
 		return ret;
 
-	if (pp_timeout(ppi, PP_TO_ANN_RECEIPT)) {
+	if (pp_timeout(ppi, PP_TO_ANN_RECEIPT)
+	    || pp_timeout(ppi, PP_TO_FAULT)) {
+		/* 
+		 * Note: TO_FAULTY == SYNCHRONIZATION_FAULT
+		 * should move us to UNCALIBRATED (not implemented)
+		 */
 		ppi->frgn_rec_num = 0;
 		if (DSDEF(ppi)->clockQuality.clockClass != PP_CLASS_SLAVE_ONLY
 		    && (ppi->role != PPSI_ROLE_SLAVE)) {
@@ -164,6 +169,7 @@ int st_com_peer_handle_pres(struct pp_instance *ppi, unsigned char *buf,
 		}
 
 		if (!(hdr->flagField[0] & PP_TWO_STEP_FLAG)) {
+			pp_timeout_set(ppi, PP_TO_FAULT);
 			if (pp_hooks.handle_presp)
 				e = pp_hooks.handle_presp(ppi);
 			else
@@ -198,6 +204,7 @@ int st_com_peer_handle_pres_followup(struct pp_instance *ppi,
 		ppi->t5 = respFllw.responseOriginTimestamp;
 		pp_time_add(&ppi->t5, &hdr->cField);
 
+		pp_timeout_set(ppi, PP_TO_FAULT);
 		if (pp_hooks.handle_presp)
 			e = pp_hooks.handle_presp(ppi);
 		else

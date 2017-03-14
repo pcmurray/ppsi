@@ -172,6 +172,13 @@ static inline int32_t delta_to_ps(struct FixedDelta d)
 	return (sps->lsb >> 16) | (sps->msb << 16);
 }
 
+void wr_servo_stop(struct pp_instance *ppi)
+{
+	struct wr_servo_state *s =
+			&((struct wr_data *)ppi->ext_data)->servo_state;
+	s->state = WR_UNINITIALIZED;
+}
+
 int wr_servo_init(struct pp_instance *ppi)
 {
 	struct wr_dsport *wrp = WR_DSPOR(ppi);
