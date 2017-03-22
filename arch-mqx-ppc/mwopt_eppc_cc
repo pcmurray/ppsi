@@ -525,10 +525,6 @@
 
 
 
--DPPSI_VERSION=\"ppsi-v2014.07-Bitronics01\"
--DDEFAULT_TIME_OPS=wrs_time_ops
--DDEFAULT_NET_OPS=wrs_net_ops
-
 
 -prefix "$(PA_INCLUDE)/lib_c99.prefix"
 -nostdinc

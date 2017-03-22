@@ -1,10 +1,11 @@
 *.map*
 *.o
 *.a
-ppsi.bin
 *.patch
 *~
-/ppsi
+
+*.d
+*.i
 
 *.cmd
 *.o

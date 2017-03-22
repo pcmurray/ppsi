@@ -59,6 +59,14 @@ config ARCH_SIMULATOR
 	  This architecture uses standard Unix system calls, but the
 	  code includes some Linux dependencies.
 
+config ARCH_MQX_PPC
+	bool "Mqx Ppc PPSi lib"
+	select HAS_VLAN
+	select HAS_MULTIPLE_VLAN
+	help
+	  Build a PPSi library for use in an MQX image under MQX.
+	  Library will be covered by LGPL, for use in a non-User Device.
+
 endchoice
 
 config ARCH
@@ -69,6 +77,7 @@ config ARCH
        default "wrpc" if ARCH_WRPC
        default "wrs" if ARCH_WRS
        default "sim" if ARCH_SIMULATOR
+       default "mqx-ppc" if ARCH_MQX_PPC
 
 menu "PTP Protocol Options"
         choice
