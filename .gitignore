@@ -13,3 +13,6 @@ ppsi.bin
 .config.old
 include/config
 include/generated
+mkid.local
+id-lang.mp
+ID

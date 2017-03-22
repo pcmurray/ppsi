@@ -1,0 +1,197 @@
+# mwopt_eppc_ld - options specific to linker
+#
+#-------------------------------------------------------------------------------
+#Command-Line Linker Options                                                    
+#-------------------------------------------------------------------------------
+#  -dis[assemble]             # global; disassemble object code and do not      
+#                             #   link; implies '-nostdlib'                     
+#  -L+ | -l path              # global; cased; add library search path; default 
+#                             #   is to search current working directory and    
+#                             #   then system directories (see '-defaults');    
+#                             #   search paths have global scope over the       
+#                             #   command line and are searched in the order    
+#                             #   given                                         
+#  -lr path                   # global; like '-l', but add recursive library    
+#                             #   search path                                   
+#  -l+file                    # cased; add a library by searching access paths  
+#                             #   for file named lib<file>.<ext> where <ext> is 
+#                             #   a typical library extension; if that fails,   
+#                             #   try to add <file> directly; library added in  
+#                             #   link order before system libraries (see       
+#                             #   '-defaults')                                  
+#  -[no]defaults              # global; same as -[no]stdlib; default            
+#  -nofail                    # continue importing or disassembling after       
+#                             #   errors in earlier files                       
+#  -[no]stdlib                # global; use system library access paths         
+#                             #   (specified by %MWLibraries%) and add system   
+#                             #   libraries (specified by %MWLibraryFiles%) at  
+#                             #   end of link order; default                    
+#  -reverselibsearchpath      # global; reverse search order of library paths   
+#  -S                         # global; cased; disassemble and send output to   
+#                             #   file; do not link; implies '-nostdlib'        
+#
+#-------------------------------------------------------------------------------
+#ELF Linker Options                                                             
+#-------------------------------------------------------------------------------
+#  -m[ain] symbol             # set main entry point for application or shared  
+#                             #   library; for 'symbol', maximum length 63      
+#                             #   chars; default is '__start'                   
+#  -noentry | -nomain         # do not use an entry point                       
+#  -map [filename]            # generate link map file; if parameter specified, 
+#                             #   set output filename for map file; default is  
+#                             #   <outfile>.MAP                                 
+#  -mapunused | -unused       # include list of unused symbols in map file;     
+#                             #   implies '-map'                                
+#  -listclosure               # display symbol closure in map file; implies     
+#                             #   '-map'                                        
+#  -listdwarf                 # include list dwarf objects in map file; implies 
+#                             #   '-map'                                        
+#  -o file                    # specify output filename                         
+#  -srec [filename]           # generate an S-record file; if parameter         
+#                             #   specified, specify filename for S-record      
+#                             #   file; default is <outfile>.mot                
+#  -sreceol keyword           # set end-of-line separator for S-record file;    
+#                             #   implies '-srec'                               
+#     mac                     #    Macintosh                                    
+#     dos                     #    DOS; default                                 
+#     unix                    #    Unix                                         
+#                             #                                                 
+#  -sreclength length         # specify length of S-records; implies '-srec';   
+#                             #   for 'length', range 8 - 255; default is 26    
+#  -sortsrec                  # sort S-record in ascending address order;       
+#                             #   implies '-srec'                               
+#  -linkmode keyword          # set linking mode, note that this affect link    
+#                             #   time performance                              
+#     lessram                 #    Use Less Ram                                 
+#     normal                  #    Normal; default                              
+#     moreram                 #    Use More Ram                                 
+#                             #                                                 
+#  -code_merging              # code merging optimization                       
+#    keyword[,...]            #                                                 
+#     off                     #    disable code merging optimization; default   
+#     safe                    #    enable code merging optimization. Limit to   
+#                             #      multi-defs                                 
+#     all                     #    enable code merging optimization. Try any    
+#                             #      function                                   
+#     aggressive              #    don't check if the functions addresses are   
+#                             #      used. To have effect, code merging should  
+#                             #      be enabled by using -code_merging safe or  
+#                             #      -code_merging all                          
+#                             #                                                 
+#  -far_near_addressing       # enable far to near addressing optimization      
+#  -vle_bl_opt                # enable vle shorten BL optimization              
+#  -vle_enhance_merging       # enable VLE enhance code merging optimization    
+#  -genbinary keyword         # generate 0, 1 or multiple binary files          
+#     none                    #    None; default                                
+#     one                     #    One                                          
+#     multiple                #    Multiple                                     
+#                             #                                                 
+#  -gap_fill                  # fill the gaps in s-record file                  
+#
+#-------------------------------------------------------------------------------
+#ELF Linker Address Options                                                     
+#                                                                               
+#   If a linker command file is passed, -codeaddr, -dataaddr, -sdataaddr, and   
+#   -sdata2addr are ignored.                                                    
+#                                                                               
+#   If a linker command file is not passed, the linker will start the code      
+#   sections at 0x00010000 and follow contiguously with the large const         
+#   sections, the large data sections, the small data section, the small const  
+#   section and then the bss sections.  If you pass one or more of -codeaddr,   
+#   -dataaddr, -sdataaddr and -sdata2addr, the addresses you pass affect the    
+#   starting addresses of the sections referred to.                             
+#                                                                               
+#   All addresses are valid, including 0x0.                                     
+#-------------------------------------------------------------------------------
+#  -lcf filename              # use the linker command file in <filename> for   
+#                             #   code and data addresses; -codeaddr,           
+#                             #   -dataaddr, -sdataaddr and -sdata2addr are     
+#                             #   ignored if -lcf is present; <filename> must   
+#                             #   end in '.lcf'                                 
+#  -codeaddr addr             # set address for code; default is 65536          
+#  -dataaddr addr             # set address for data; default is to have large  
+#                             #   data sections follow the code and large const 
+#                             #   sections                                      
+#  -sdataaddr addr            # set address for small data; default is to have  
+#                             #   .sdata/.sbss sections follow the large data   
+#                             #   sections                                      
+#  -sdata2addr addr           # set address for small constant data; default is 
+#                             #   to have .sdata2/.sbss2 sections follow the    
+#                             #   .sbss section                                 
+#  -stackaddr addr            # the stack; default is 0x3dfff0                  
+#  -heapaddr addr             # set address for the heap; default is computed   
+#                             #   by starting with the stack address and        
+#                             #   subtracting the heapsize and stacksize        
+#  -romaddr addr              # set address for ROM image;default is not to     
+#                             #   generate a ROM image                          
+#  -rambuffer addr            # set address for RAM buffer used by ROM images;  
+#                             #   default is to not generate a ROM image;       
+#                             #   '-rambuffer' is ignored if '-romaddr' is      
+#                             #   absent                                        
+#
+#-------------------------------------------------------------------------------
+#Embedded PPC Project Options                                                   
+#-------------------------------------------------------------------------------
+#  -application               # global; for linker;                             
+#                             #   generate an application; same as '-xm a'      
+#  -library                   # global; for linker;                             
+#                             #   generate a static library; same as '-xm l'    
+#  -ConvertArchiveToPartialLi # global; for linker;                             
+#    nk                       #   Convert archive to partial library;           
+#  -partial | -r              # for linker;                                     
+#                             #   perform a partial link of objects; unresolved 
+#                             #   symbols are not errors                        
+#  -opt_partial | -r1         # for linker;                                     
+#                             #   perform final work on a partial link; allows  
+#                             #   use of LCF file and creates tables for static 
+#                             #   constructors / destructors and C++ exception  
+#                             #   initialization; implies '-r'                  
+#  -resolved_partial | -r2    # for linker;                                     
+#                             #   perform resolved final partial link;          
+#                             #   unresolved symbols are errors; implies '-r1'  
+#  -strip_partial             # for linker;                                     
+#                             #   perform dead-stripping on partial link;       
+#                             #   requires '-r1' or '-r2'                       
+#  -interpreter filename      # for linker;                                     
+#                             #   use the interpreter file in <filename>        
+#  -heapsize long             # for linker;                                     
+#                             #   set size of data heap in kilobytes; default   
+#                             #   is 1024                                       
+#  -stacksize long            # for linker;                                     
+#                             #   set size of stack in kilobytes; default is 64 
+#  -tune_relocations          # global; for linker;                             
+#                             #   convert addressing to reflect addressing      
+#                             #   needs of chosen abi type; only applies to     
+#                             #   EABI and SDA_PIC_PID                          
+#
+#-------------------------------------------------------------------------------
+#Embedded PowerPC Disassembler Options                                          
+#-------------------------------------------------------------------------------
+#  -fmt | -format keyword     # compatibility;                                  
+#                             #   specify formatting options                    
+#     [no]x                   #    [don't] show extended mnemonics; default     
+#                             #                                                 
+#  -show keyword[,...]        # specify display options                         
+#     only|none               #    as in '-show none' or, e.g.,                 
+#                             #      '-show only,code,data'                     
+#     all                     #    show everything                              
+#     [no]binary              #    show binary information, such as address and 
+#                             #      opcodes, for object code; default          
+#     [no]code | [no]text     #    show .text sections; default                 
+#     [no]data                #    show data; default                           
+#     [no]detail              #    show detailed dump information               
+#     [no]extended            #    show extended mnemonics; default             
+#     [no]exceptions |        #    show exception tables; implies '-show data'  
+#       [no]xtab[les]         #                                                 
+#     [no]headers             #    show object headers; default                 
+#     [no]debug | [no]dwarf   #    show DWARF information                       
+#     [no]tables              #    show string and symbol tables; default       
+#     [no]xtables             #    show exception tables                        
+#     [no]source              #    interleave the code dissasembly with c/c++   
+#                             #      source                                     
+#                             #                                                 
+#  -xtables on|off            # compatibility;                                  
+#                             #   show exception tables; default is off         
+
+
+# ppsi linker options
