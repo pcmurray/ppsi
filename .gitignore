@@ -17,3 +17,4 @@ include/generated
 mkid.local
 id-lang.mp
 ID
+*.tgz

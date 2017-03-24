@@ -1,197 +1,197 @@
 # mwopt_eppc_com - options shared between mwcceppc.exe and mwldeppc.exe
 #
 #-------------------------------------------------------------------------------
-#General Command-Line Options                                                   
-#                                                                               
-#   Please see '-help usage' for details about the meaning of this help.        
+#General Command-Line Options
+#
+#   Please see '-help usage' for details about the meaning of this help.
 #-------------------------------------------------------------------------------
-#  -help [keyword[,...]]      # global; for this tool;                          
-#                             #   display help                                  
-#     usage                   #    show usage information                       
-#     [no]spaces              #    insert blank lines between options in        
-#                             #      printout                                   
-#     all                     #    show all standard options                    
-#     [no]normal              #    show only standard options                   
-#     [no]obsolete            #    show obsolete options                        
-#     [no]ignored             #    show ignored options                         
-#     [no]deprecated          #    show deprecated options                      
-#     [no]meaningless         #    show options meaningless for this target     
-#     [no]compatible          #    show compatibility options                   
-#     opt[ion]=name           #    show help for a given option; for 'name',    
-#                             #      maximum length 63 chars                    
-#     search=keyword          #    show help for an option whose name or help   
-#                             #      contains 'keyword' (case-sensitive); for   
-#                             #      'keyword', maximum length 63 chars         
-#     group=keyword           #    show help for groups whose names contain     
-#                             #      'keyword' (case-sensitive); for 'keyword', 
-#                             #      maximum length 63 chars                    
-#     tool=keyword[,...]      #    categorize groups of options by tool;        
-#                             #      default                                    
-#        all                  #       show all options available in this tool   
-#        this                 #       show options executed by this tool;       
-#                             #         default                                 
-#        other|skipped        #       show options passed to another tool       
-#        both                 #       show options used in all tools            
-#                             #                                                 
-#                             #                                                 
-#  -version                   # global; for this tool;                          
-#                             #   show version, configuration, and build date   
-#  -timing                    # global; collect timing statistics               
-#  -progress                  # global; show progress and version               
-#  -v[erbose]                 # global; verbose information; cumulative;        
-#                             #   implies -progress                             
-#  -search                    # global; search access paths for source files    
-#                             #   specified on the command line; may specify    
-#                             #   object code and libraries as well; this       
-#                             #   option provides the IDE's 'access paths'      
-#                             #   functionality                                 
-#  -[no]wraplines             # global; word wrap messages; default             
-#  -maxerrors max             # specify maximum number of errors to print, zero 
-#                             #   means no maximum; default is 0                
-#  -maxwarnings max           # specify maximum number of warnings to print,    
-#                             #   zero means no maximum; default is 0           
-#  -msgstyle keyword          # global; set error/warning message style         
-#     mpw                     #    use MPW message style                        
-#     std                     #    use standard message style; default          
-#     gcc                     #    use GCC-like message style                   
-#     IDE                     #    use CW IDE-like message style                
-#     parseable               #    use context-free machine-parseable message   
-#                             #      style                                      
-#     EnterpriseIDE           #    use Enterprise-IDE message style             
-#                             #                                                 
-#  -[no]stderr                # global; use separate stderr and stdout streams; 
-#                             #   if using -nostderr, stderr goes to stdout     
-#  -fullLicenseSearch         # global; use more robust search for valid        
-#                             #   license files, will result in somewhat longer 
-#                             #   build times                                   
+#  -help [keyword[,...]]      # global; for this tool;
+#                             #   display help
+#     usage                   #    show usage information
+#     [no]spaces              #    insert blank lines between options in
+#                             #      printout
+#     all                     #    show all standard options
+#     [no]normal              #    show only standard options
+#     [no]obsolete            #    show obsolete options
+#     [no]ignored             #    show ignored options
+#     [no]deprecated          #    show deprecated options
+#     [no]meaningless         #    show options meaningless for this target
+#     [no]compatible          #    show compatibility options
+#     opt[ion]=name           #    show help for a given option; for 'name',
+#                             #      maximum length 63 chars
+#     search=keyword          #    show help for an option whose name or help
+#                             #      contains 'keyword' (case-sensitive); for
+#                             #      'keyword', maximum length 63 chars
+#     group=keyword           #    show help for groups whose names contain
+#                             #      'keyword' (case-sensitive); for 'keyword',
+#                             #      maximum length 63 chars
+#     tool=keyword[,...]      #    categorize groups of options by tool;
+#                             #      default
+#        all                  #       show all options available in this tool
+#        this                 #       show options executed by this tool;
+#                             #         default
+#        other|skipped        #       show options passed to another tool
+#        both                 #       show options used in all tools
+#                             #
+#                             #
+#  -version                   # global; for this tool;
+#                             #   show version, configuration, and build date
+#  -timing                    # global; collect timing statistics
+#  -progress                  # global; show progress and version
+#  -v[erbose]                 # global; verbose information; cumulative;
+#                             #   implies -progress
+#  -search                    # global; search access paths for source files
+#                             #   specified on the command line; may specify
+#                             #   object code and libraries as well; this
+#                             #   option provides the IDE's 'access paths'
+#                             #   functionality
+#  -[no]wraplines             # global; word wrap messages; default
+#  -maxerrors max             # specify maximum number of errors to print, zero
+#                             #   means no maximum; default is 0
+#  -maxwarnings max           # specify maximum number of warnings to print,
+#                             #   zero means no maximum; default is 0
+#  -msgstyle keyword          # global; set error/warning message style
+#     mpw                     #    use MPW message style
+#     std                     #    use standard message style; default
+#     gcc                     #    use GCC-like message style
+#     IDE                     #    use CW IDE-like message style
+#     parseable               #    use context-free machine-parseable message
+#                             #      style
+#     EnterpriseIDE           #    use Enterprise-IDE message style
+#                             #
+#  -[no]stderr                # global; use separate stderr and stdout streams;
+#                             #   if using -nostderr, stderr goes to stdout
+#  -fullLicenseSearch         # global; use more robust search for valid
+#                             #   license files, will result in somewhat longer
+#                             #   build times
 #
 #  -[no]defaults              # global; passed to linker;
 #                             #   same as '-[no]stdinc'; default
 #
 #
 #
-#  -char keyword              # passed to linker;                               
-#                             #   set sign of 'char'                            
-#     signed                  #    chars are signed; default                    
-#     unsigned                #    chars are unsigned                           
-#                             #                                                 
+#  -char keyword              # passed to linker;
+#                             #   set sign of 'char'
+#     signed                  #    chars are signed; default
+#     unsigned                #    chars are unsigned
+#                             #
 #-------------------------------------------------------------------------------
-#Debugging Control Options                                                      
+#Debugging Control Options
 #-------------------------------------------------------------------------------
-#  -g[dwarf]                  # global; cased; generate DWARF 1.x debugging     
-#                             #   information; same as '-sym dwarf-1,full'      
-#  -gdwarf-2                  # global; cased; generate DWARF 2.x debugging     
-#                             #   information; same as '-sym dwarf-2,full'      
-#  -sym keyword[,...]         # global; specify debugging options               
-#     off                     #    do not generate debugging information;       
-#                             #      default                                    
-#     on|dwarf-1              #    turn on DWARF 1.x debugging information      
-#     full[path]              #    store full paths to source files             
-#     dwarf-2                 #    turn on DWARF 2.x debugging information      
-#                             #                                                 
+#  -g[dwarf]                  # global; cased; generate DWARF 1.x debugging
+#                             #   information; same as '-sym dwarf-1,full'
+#  -gdwarf-2                  # global; cased; generate DWARF 2.x debugging
+#                             #   information; same as '-sym dwarf-2,full'
+#  -sym keyword[,...]         # global; specify debugging options
+#     off                     #    do not generate debugging information;
+#                             #      default
+#     on|dwarf-1              #    turn on DWARF 1.x debugging information
+#     full[path]              #    store full paths to source files
+#     dwarf-2                 #    turn on DWARF 2.x debugging information
+#                             #
 #
 #-------------------------------------------------------------------------------
-#Embedded PPC Project Options                                                   
+#Embedded PPC Project Options
 #-------------------------------------------------------------------------------
-#  -big                       # generate code and link for a big-endian target; 
-#                             #   default                                       
-#  -little                    # generate code and link for a little-endian      
-#                             #   target                                        
-#  -proc[essor] keyword       # global; specify processor for code generation,  
-#                             #   scheduling, and inline assembler; note: for   
-#                             #   e500 and Zen targets, sets default of '-char  
-#                             #   unsigned'                                     
-#     401                     #                                                 
-#     403                     #                                                 
-#     405                     #                                                 
-#     505                     #                                                 
-#     509                     #                                                 
-#     555                     #                                                 
-#     56X                     #                                                 
-#     601                     #                                                 
-#     602                     #                                                 
-#     603                     #                                                 
-#     603e                    #                                                 
-#     604                     #                                                 
-#     604e                    #                                                 
-#     740                     #                                                 
-#     74X                     #                                                 
-#     750                     #                                                 
-#     75X                     #                                                 
-#     801                     #                                                 
-#     821                     #                                                 
-#     823                     #                                                 
-#     850                     #                                                 
-#     85X                     #                                                 
-#     860                     #                                                 
-#     86X                     #                                                 
-#     87X                     #                                                 
-#     88X                     #                                                 
-#     5100                    #                                                 
-#     5200                    #                                                 
-#     7400                    #                                                 
-#     744X                    #                                                 
-#     7450                    #                                                 
-#     745X                    #                                                 
-#     82XX                    #                                                 
-#     8240                    #                                                 
-#     824X                    #                                                 
-#     8260                    #                                                 
-#     827X                    #                                                 
-#     8280                    #                                                 
-#     e300[v1|c1]             #                                                 
-#     e300c2                  #                                                 
-#     e300c3                  #                                                 
-#     e300c4                  #                                                 
-#     e600                    #                                                 
-#     85xx                    #                                                 
-#     e500[v1]                #                                                 
-#     e500v2                  #                                                 
-#     Zen                     #                                                 
-#     5565                    #                                                 
-#     5674                    #                                                 
-#     gekko                   #                                                 
-#     generic                 #    ; default                                    
-#                             #                                                 
-#  -fp keyword                # specify floating-point code generation options  
-#     none|off                #    no floating point                            
-#     soft[ware]              #    software FP emulation; default               
-#     hard[ware]              #    hardware FP codegen                          
-#     efpu|spfp               #    e500 SPFP hardware FP plus software double   
-#                             #      FP emulation                               
-#     dpfp                    #    e500v2 DPFP hardware FP                      
-#     fmadd                   #    same as '-fp hard' and '-fp_contract'        
-#     spfp_only|              #    all floating point types are single          
-#       double_is_4_bytes     #      precision only                             
-#                             #                                                 
-#  -sdatathreshold short      # set maximum size in bytes of mutable data       
-#                             #   objects before they are moved from small data 
-#                             #   sections; default is 8                        
-#  -sdata[threshold] short    # set maximum size in bytes for mutable data      
-#                             #   objects before being spilled from small data  
-#                             #   section into data section; default is 8       
-#  -sdata2[threshold] short   # set maximum size in bytes for constant data     
-#                             #   objects before being spilled from constant    
-#                             #   section into data section; default is 8       
-#  -model keyword             # specify code model                              
-#     absolute                #    absolute code and data addressing; default   
-#     sda_pic_pid             #    SDA PIC/PID                                  
-#                             #                                                 
-#  -abi keyword               # global; specify ABI to use                      
-#     eabi                    #    EABI; default                                
-#     SysV                    #    SysV ABI without gnu-ism                     
-#     SuSE                    #    SuSE Linux with gnu-ism                      
-#     YellowDog               #    YellowDog Linux with gnu-ism                 
-#     sda_pic_pid             #    SDA PIC/PID                                  
-#                             #                                                 
+#  -big                       # generate code and link for a big-endian target;
+#                             #   default
+#  -little                    # generate code and link for a little-endian
+#                             #   target
+#  -proc[essor] keyword       # global; specify processor for code generation,
+#                             #   scheduling, and inline assembler; note: for
+#                             #   e500 and Zen targets, sets default of '-char
+#                             #   unsigned'
+#     401                     #
+#     403                     #
+#     405                     #
+#     505                     #
+#     509                     #
+#     555                     #
+#     56X                     #
+#     601                     #
+#     602                     #
+#     603                     #
+#     603e                    #
+#     604                     #
+#     604e                    #
+#     740                     #
+#     74X                     #
+#     750                     #
+#     75X                     #
+#     801                     #
+#     821                     #
+#     823                     #
+#     850                     #
+#     85X                     #
+#     860                     #
+#     86X                     #
+#     87X                     #
+#     88X                     #
+#     5100                    #
+#     5200                    #
+#     7400                    #
+#     744X                    #
+#     7450                    #
+#     745X                    #
+#     82XX                    #
+#     8240                    #
+#     824X                    #
+#     8260                    #
+#     827X                    #
+#     8280                    #
+#     e300[v1|c1]             #
+#     e300c2                  #
+#     e300c3                  #
+#     e300c4                  #
+#     e600                    #
+#     85xx                    #
+#     e500[v1]                #
+#     e500v2                  #
+#     Zen                     #
+#     5565                    #
+#     5674                    #
+#     gekko                   #
+#     generic                 #    ; default
+#                             #
+#  -fp keyword                # specify floating-point code generation options
+#     none|off                #    no floating point
+#     soft[ware]              #    software FP emulation; default
+#     hard[ware]              #    hardware FP codegen
+#     efpu|spfp               #    e500 SPFP hardware FP plus software double
+#                             #      FP emulation
+#     dpfp                    #    e500v2 DPFP hardware FP
+#     fmadd                   #    same as '-fp hard' and '-fp_contract'
+#     spfp_only|              #    all floating point types are single
+#       double_is_4_bytes     #      precision only
+#                             #
+#  -sdatathreshold short      # set maximum size in bytes of mutable data
+#                             #   objects before they are moved from small data
+#                             #   sections; default is 8
+#  -sdata[threshold] short    # set maximum size in bytes for mutable data
+#                             #   objects before being spilled from small data
+#                             #   section into data section; default is 8
+#  -sdata2[threshold] short   # set maximum size in bytes for constant data
+#                             #   objects before being spilled from constant
+#                             #   section into data section; default is 8
+#  -model keyword             # specify code model
+#     absolute                #    absolute code and data addressing; default
+#     sda_pic_pid             #    SDA PIC/PID
+#                             #
+#  -abi keyword               # global; specify ABI to use
+#     eabi                    #    EABI; default
+#     SysV                    #    SysV ABI without gnu-ism
+#     SuSE                    #    SuSE Linux with gnu-ism
+#     YellowDog               #    YellowDog Linux with gnu-ism
+#     sda_pic_pid             #    SDA PIC/PID
+#                             #
 #
 
 
 # ppsi common toolchain options
--sym dwarf-2
--sym full
--msgstyle parseable
 -proc zen
+-sym dwarf-2
+-sym fullpath
+-msgstyle parseable
 -big
 -fp spfp
 -model absolute
