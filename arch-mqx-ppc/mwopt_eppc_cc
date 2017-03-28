@@ -529,17 +529,14 @@
 -prefix "$(PA_INCLUDE)/lib_c99.prefix"
 -nostdinc
 -nosyspath
--i "$(CONFIG)/pxs30m60"
--i "$(CONFIG)/common"
--i "$(DEBUG)/bsp"
--i "$(DEBUG)/psp"
--i "$(DEBUG)/mfs"
--i "$(DEBUG)/rtcs"
--i "$(DEBUG)/shell"
+#-i "$(CONFIG)/pxs30m60"
+#-i "$(CONFIG)/common"
+#-i "$(DEBUG)/bsp"
+#-i "$(DEBUG)/psp"
+#-i "$(DEBUG)/mfs"
+#-i "$(DEBUG)/rtcs"
+#-i "$(DEBUG)/shell"
 -I-
 -I"$(PA_INCLUDE)"
--I-
 -I"$(PA_RUNTIME)/Include"
--I-
 -I"$(PA_SUPPORT)/Initialization_Files"
-

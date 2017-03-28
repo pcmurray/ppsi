@@ -99,7 +99,7 @@ $(OBJ-y): .config $(wildcard include/ppsi/*.h)
 
 # Finally, "make clean" is expected to work
 clean:
-	rm -f $$(find . -name '*.[oa]' ! -path './scripts/kconfig/*') *.bin $(TARGET) *~ $(TARGET).map*
+	rm -f $$(find . -name '*.[oai]' ! -path './scripts/kconfig/*') *.bin $(TARGET) *~ $(TARGET).map*
 
 distclean: clean
 	rm -rf include/config include/generated
@@ -126,3 +126,9 @@ defconfig:
 	@$(MAKE) -f Makefile.kconfig unix_defconfig
 
 .config: silentoldconfig
+
+
+# rule to preprocess c file
+PREPROCESS.c = $(CC) -E $(CFLAGS) $(CPPFLAGS)
+%.i: %.c
+	$(PREPROCESS.c) ${@:.i=.c} > $@

@@ -1,4 +1,4 @@
-/* mqx_ppc_port.h - utilities to support PPSi under MQX with MetroWerks PPC
+/* mqx_ppc_port.h - support PPSi under MQX with MetroWerks PPC toolchain
  * Copyright (c) 2017 by Bitronics, LLC
  * released into public domain
  */
