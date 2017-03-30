@@ -10,6 +10,10 @@
     #endif
 #endif
 
+//#define __noparens__(arg)  arg
+//#define __attribute__(arg)  __declspec(__noparens__ arg)
+
+
 #define WEAK    __declspec(weak)
 
 

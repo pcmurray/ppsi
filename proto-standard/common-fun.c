@@ -8,7 +8,7 @@
 #include <ppsi/ppsi.h>
 #include "common-fun.h"
 #include "../lib/network_types.h"
-#include "../proto-ext-whiterabbit/wr-api.h" /* FIXME: phase_to_cf_units */
+//#include "../proto-ext-whiterabbit/wr-api.h" /* FIXME: phase_to_cf_units */
 
 #ifdef CONFIG_ARCH_WRS
 #define ARCH_IS_WRS 1
