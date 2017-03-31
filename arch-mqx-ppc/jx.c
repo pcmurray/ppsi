@@ -15,27 +15,41 @@
 
 
 
+// PACKED struct
+//#pragma pack (push)           // works
+//#pragma pack (1)              // works
+//#pragma pack (pop)            // works
+
+//#pragma options align=packed  // works
+//...                           // works
+//#pragma options align=reset   // works
+
+//__attribute__((packed))       // doesn't work; just ignored
+
+
+PACK_START
 struct foo_ext_hooks
-  __attribute__((packed))
 	{
-	int x;
-	int y;
     char a;
+	int x;
+    char b;
+	int y;
 	int z;
 	};
+PACK_END
 
 
 struct foo_ext_hooks
-  WEAK
-  __attribute__((packed))
-  __attribute__((used))
-  //__attribute__((deprecated))     // works just fine
-  foo_hooks =
+  WEAK                          // works
+  //__attribute__((used))
+  //__attribute__((deprecated)) // works
+  foo_hooks
+    =
 	{
-	1,
-	2,
-    'b',
-    3
+    .y = 2,
+    .a = 'A',
+    .z = 3,
+    .x = 1,
 	};
 
 int moo (void) __attribute__((warn_unused_result)); // attrib ignored

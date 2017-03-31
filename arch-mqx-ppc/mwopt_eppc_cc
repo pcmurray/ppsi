@@ -518,6 +518,7 @@
 -bool off
 -lang c99
 -gccext on
+-gccinc
 -enum int
 -str nopool
 -str reuse
