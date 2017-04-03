@@ -131,4 +131,4 @@ defconfig:
 # rule to preprocess c file
 PREPROCESS.c = $(CC) -E $(CFLAGS) $(CPPFLAGS)
 %.i: %.c
-	$(PREPROCESS.c) ${@:.i=.c} > $@
+	$(PREPROCESS.c) $<  > $@
