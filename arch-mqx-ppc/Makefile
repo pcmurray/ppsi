@@ -74,17 +74,7 @@ LFLAGS=-library @${mkfile_dir}/mwopt_eppc_com \
 
 all: $(TARGET)
 
-# implicit rules to preprocess c file
-#PREPROCESS.c = $(CC) -E $(CFLAGS) $(CPPFLAGS)
-#%.i: %.c
-#	$(PREPROCESS.c) ${@:.i=.c} > $@
 
+%.dis: %.o
+	$(LD) -dis $< > $@
 
-## implicit rules to preprocess c file
-#PREPROCESS.c = $(CC) -E $(CFLAGS) $(CPPFLAGS)
-#%.i: ${mkfile_dir}mwopt_eppc_i %.c
-#	$(subst mwopt_eppc_cc,mwopt_eppc_i,$(PREPROCESS.c)) ${@:.i=.c} > $@
-#
-#
-#${mkfile_dir}mwopt_eppc_i:
-#	envsubst >$@ <${mkfile_dir}mwopt_eppc_cc
