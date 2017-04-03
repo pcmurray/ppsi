@@ -47,7 +47,7 @@ struct foo_ext_hooks
     =
 	{
     .y = 2,
-    .a = 'A',
+    .b = 'B',
     .z = 3,
     .x = 1,
 	};
